@@ -26,7 +26,7 @@
             <!-- Level Harga -->
             <div>
                 <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Level Harga</label>
-                <button id="dropdownLevelHargaButton" data-dropdown-toggle="dropdownLevelHarga" class="w-full inline-flex items-center justify-between px-4 py-2 text-sm font-medium text-center text-white bg-primary-700 rounded-lg hover:bg-primary-800 focus:ring-4 focus:outline-none focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800" type="button">
+                <button id="dropdownLevelHargaButton" data-dropdown-toggle="dropdownLevelHarga" class="w-full inline-flex items-center justify-between px-4 py-2 text-sm font-medium text-center text-gray-900 bg-gray-200 rounded-lg hover:bg-gray-300 focus:ring-4 focus:outline-none focus:ring-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 dark:focus:ring-gray-800" type="button">
                     Pilih Level Harga
                     <svg class="w-2.5 h-2.5 ml-auto" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
                         <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 4 4 4-4"/>
@@ -74,7 +74,7 @@
             <div>
                 <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Wilayah</label>
                 <!-- Provinsi -->
-                <button id="dropdownProvinsiButton" data-dropdown-toggle="dropdownProvinsi" class="w-full inline-flex items-center px-4 py-2 text-sm font-medium text-center text-white bg-primary-700 rounded-lg hover:bg-primary-800 focus:ring-4 focus:outline-none focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800" type="button">
+                <button id="dropdownProvinsiButton" data-dropdown-toggle="dropdownProvinsi" class="w-full inline-flex items-center px-4 py-2 text-sm font-medium text-center text-gray-900 bg-gray-200 rounded-lg hover:bg-gray-300 focus:ring-4 focus:outline-none focus:ring-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 dark:focus:ring-gray-800" type="button">
                     Pilih Provinsi
                     <svg class="w-2.5 h-2.5 ms-2.5 ml-auto" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
                         <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 4 4 4-4"/>
@@ -107,7 +107,7 @@
                 </div>
 
                 <!-- Kabupaten/Kota -->
-                <button id="dropdownKabkotButton" data-dropdown-toggle="dropdownKabkot" class="w-full inline-flex items-center px-4 py-2 text-sm font-medium text-center text-white bg-primary-700 rounded-lg hover:bg-primary-800 focus:ring-4 focus:outline-none focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800 mt-2" type="button">
+                <button id="dropdownKabkotButton" data-dropdown-toggle="dropdownKabkot" class="w-full inline-flex items-center px-4 py-2 text-sm font-medium text-center text-gray-900 bg-gray-200 rounded-lg hover:bg-gray-300 focus:ring-4 focus:outline-none focus:ring-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 dark:focus:ring-gray-800 mt-2" type="button">
                     Pilih Kabupaten/Kota
                     <svg class="w-2.5 h-2.5 ms-2.5 ml-auto" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
                         <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 4 4 4-4"/>
@@ -142,7 +142,7 @@
 
             <div>
                 <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Komoditas</label>
-                <button id="dropdownKomoditasButton" @click="toggleDropdown('komoditas')" class="w-full inline-flex items-center justify-between px-4 py-2 text-sm font-medium text-center text-white bg-primary-700 rounded-lg hover:bg-primary-800 focus:ring-4 focus:outline-none focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800" type="button">
+                <button id="dropdownKomoditasButton" @click="toggleDropdown('komoditas')" class="w-full inline-flex items-center justify-between px-4 py-2 text-sm font-medium text-center text-gray-900 bg-gray-200 rounded-lg hover:bg-gray-300 focus:ring-4 focus:outline-none focus:ring-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 dark:focus:ring-gray-800" type="button">
                     Pilih Komoditas
                     <svg class="w-2.5 h-2.5 ml-auto" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
                         <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 4 4 4-4"/>
@@ -208,13 +208,7 @@
                         Komoditas
                     </th>
                     <th scope="col" class="px-6 py-3">
-                        Harga
-                    </th>
-                    <th scope="col" class="px-6 py-3">
-                        Bulan
-                    </th>
-                     <th scope="col" class="px-6 py-3">
-                        Tahun
+                        Inflasi/RH
                     </th>
                     <th scope="col" class="px-6 py-3">
                         <span class="sr-only">Hapus</span>
@@ -231,8 +225,6 @@
                         <td class="px-6 py-4" x-text="item.kd_komoditas"></td>
                         <td class="px-6 py-4" x-text="item.nama_komoditas"></td>
                         <td class="px-6 py-4" x-text="item.harga"></td>
-                        <td class="px-6 py-4" x-text="item.bulan"></td>
-                        <td class="px-6 py-4" x-text="item.tahun"></td>
                         <td class="px-6 py-4 text-right">
                             <button @click="removeRow(index)" class="font-medium text-red-600 dark:text-red-500 hover:underline">Hapus</button>
                         </td>
@@ -273,14 +265,12 @@
                     console.log("Adding Row:");
                     console.log(this.kd_wilayah, this.selectedKabkots, this.selectedProvinces, this.komoditas); // Log the variables to see if they have values
                     this.tableData.push({
-                        kd_wilayah: "Text",
-                        nama_wilayah: "Text",
-                        level_harga: "Text",
-                        kd_komoditas: "Text",
-                        nama_komoditas: "Text",
-                        harga: "Text",
-                        bulan: "Text",
-                        tahun: "Text",
+                        kd_wilayah: "1207",
+                        nama_wilayah: "KAB LABUHANBATU",
+                        level_harga: "Harga Konsumen Kota",
+                        kd_komoditas: "013",
+                        nama_komoditas: "Ayam Kampung",
+                        harga: "0.70",
                     });
                 },
 

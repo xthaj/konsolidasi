@@ -83,16 +83,104 @@
         </div>
     </x-slot>
 
-    <div id="visualizationCanvas" class="w-full md:w-3/4 p-4 md:overflow-y-auto md:h-full transition-all duration-300 dark:bg-gray-900" :class="{ 'md:w-full': !isBuilderVisible }">
+    <div id="visualizationCanvas" class="w-full p-4 md:overflow-y-auto md:h-full transition-all duration-300 dark:bg-gray-900" :class="{ 'md:w-full': !isBuilderVisible }">
         <div class="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
             <div class="bg-white p-4 rounded-lg shadow-md relative dark:bg-gray-800">
                 <h3 class="text-lg font-bold">Total: 198M</h3>
                 <canvas id="barChart" class="w-full h-64 md:h-auto"></canvas>
             </div>
+            <div class="bg-white p-4 rounded-lg shadow-md relative dark:bg-gray-800">
+                <h3 class="text-lg font-bold">Growth Rate</h3>
+                <canvas id="lineChart" class="w-full h-64 md:h-auto"></canvas>
+            </div>
+            <div class="bg-white p-4 rounded-lg shadow-md relative dark:bg-gray-800">
+                <h3 class="text-lg font-bold">Category Distribution</h3>
+                <canvas id="pieChart" class="w-full h-64 md:h-auto"></canvas>
+            </div>
+            <div class="bg-white p-4 rounded-lg shadow-md relative dark:bg-gray-800">
+                <h3 class="text-lg font-bold">Area Chart</h3>
+                <canvas id="areaChart" class="w-full h-64 md:h-auto"></canvas>
+            </div>
         </div>
     </div>
 
+    <!-- Include Chart.js library -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('webData', () => ({
+                provinces: @json($wilayah->where('flag', 2)->values()), // Load all provinces
+                kabkots: @json($wilayah->where('flag', 3)->values()), // Load all kab/kot
+                selectedProvince: {},
+                selectedKabkot: '',
+                dropdowns: { province: false },
+
+                nasional: false,
+                kd_wilayah:'',
+
+                komoditas: @json($komoditas), // Fetch from Laravel
+                selectedKomoditas: '', // Default empty
+
+                // Handle selection
+                selectKomoditas(event) {
+                    this.selectedKomoditas = event.target.value;
+                },
+                // Computed property: Filter kabupaten based on selected province
+                get filteredKabkots() {
+                    if (!this.selectedProvince.kd_wilayah) return [];
+                    return this.kabkots.filter(k => k.parent_kd == this.selectedProvince.kd_wilayah);
+                },
+
+                // Select a province
+                selectProvince(province) {
+                    this.selectedProvince = province;
+                    this.selectedKabkot = ''; // Reset kabkot
+                    this.closeDropdown('province');
+                    this.updateKdWilayah(); // Call updateKdWilayah here!
+                },
+
+                // Dropdown handlers
+                toggleDropdown(menu) {
+                    this.dropdowns[menu] = !this.dropdowns[menu];
+                },
+                closeDropdown(menu) {
+                    this.dropdowns[menu] = false;
+                },
+                // Update kd_wilayah when kabkot is selected
+                updateKdWilayah() {
+                    if (this.nasional) {
+                        this.kd_wilayah = '1'; // Pusat
+                    } else if (this.selectedKabkot) {
+                        this.kd_wilayah = this.selectedKabkot; // Kabupaten/Kota
+                    } else if (this.selectedProvince.kd_wilayah) {
+                        this.kd_wilayah = this.selectedProvince.kd_wilayah; // Province
+                    } else {
+                        this.kd_wilayah = ''; // Default empty
+                    }
+                },
+
+                // Watch changes in nasional
+                togglePusat() {
+                    this.updateKdWilayah(); // Call updateKdWilayah
+                },
+
+                modalOpen: false,
+                item: { id: null, komoditas: 'Example Komoditas', harga: '1000' },
+
+                openModal(id, komoditas, harga, wilayah, levelHarga, periode) {
+                    this.item = { id, komoditas, harga, wilayah, levelHarga, periode };
+                    this.modalOpen = true;
+                },
+
+                closeModal() {
+                    this.modalOpen = false;
+                    this.item = { id: null, komoditas: '', harga: '', wilayah: '', levelHarga: '', periode: '' };
+                },
+
+            }));
+        });
+
         function toggleFullscreen(canvasId) {
             const canvas = document.getElementById(canvasId);
             const fullscreenIcon = document.getElementById(`fullscreenIcon${canvasId.charAt(0).toUpperCase() + canvasId.slice(1)}`); // Get the correct icon
