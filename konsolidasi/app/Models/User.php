@@ -9,40 +9,19 @@ use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
-    protected $fillable = [
-        'name',
-        'email',
-        'password',
-    ];
+    protected $table = 'user';
+    protected $primaryKey = 'user_id';
+    protected $fillable = ['username', 'password', 'nama_lengkap', 'is_pusat', 'kd_wilayah'];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
-    protected $hidden = [
-        'password',
-        'remember_token',
-    ];
-
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
-    protected function casts(): array
+    public function wilayah()
     {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
+        return $this->belongsTo(Wilayah::class, 'kd_wilayah', 'kd_wilayah');
+    }
+
+    public function getAuthIdentifierName()
+    {
+        return 'username'; // Return the name of your username field (e.g., 'user_identifier')
     }
 }
