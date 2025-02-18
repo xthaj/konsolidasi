@@ -85,9 +85,37 @@
 
     <div id="visualizationCanvas" class="w-full p-4 md:overflow-y-auto md:h-full transition-all duration-300 dark:bg-gray-900" :class="{ 'md:w-full': !isBuilderVisible }">
         <div class="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-            <div class="bg-white p-4 rounded-lg shadow-md relative dark:bg-gray-800">
-                <h3 class="text-lg font-bold">Total: 198M</h3>
-                <canvas id="barChart" class="w-full h-64 md:h-auto"></canvas>
+            <div class="bg-white  md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 lg:col-span-2 xl:col-span-3">
+                <h3 class="text-lg font-bold">Inflasi</h3>
+
+                <!-- <div x-data="{ selectedDatasets: [] }" class="flex flex-wrap gap-2 mb-4">
+                    <template x-for="(dataset, index) in datasets" :key="index">
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox"
+                                :id="'checkbox-' + index"
+                                x-model="selectedDatasets"
+                                :value="dataset.label"
+                                class="form-checkbox h-4 w-4 text-blue-600">
+                            <span x-text="dataset.label"></span>
+                        </label>
+                    </template>
+                </div> -->
+
+                <div class="flex justify-end space-x-2 mb-2">
+                    <button onclick="showInflasiLine()" class="bg-blue-500 text-white px-4 py-2 rounded">Show Inflasi</button>
+                    <button onclick="showAndilLine()" class="bg-green-500 text-white px-4 py-2 rounded">Show Andil</button>
+                    <button onclick="showBothLine()" class="bg-gray-500 text-white px-4 py-2 rounded">Show Both</button>
+                </div>
+                <canvas id="multiAxisChart" class="w-full max-h-96 md:h-auto"></canvas>
+            </div>
+            <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 lg:col-span-2 xl:col-span-3">
+                <h3 class="text-lg font-bold">Inflasi & Andil Maret 2025</h3>
+                <div class="flex justify-end space-x-2 mb-2">
+                    <button onclick="showInflasi()" class="bg-blue-500 text-white px-4 py-2 rounded">Show Inflasi</button>
+                    <button onclick="showAndil()" class="bg-green-500 text-white px-4 py-2 rounded">Show Andil</button>
+                    <button onclick="showBoth()" class="bg-gray-500 text-white px-4 py-2 rounded">Show Both</button>
+                </div>
+                <canvas id="horizontalBarChart" class="w-full max-h-96 md:h-auto"></canvas>
             </div>
             <div class="bg-white p-4 rounded-lg shadow-md relative dark:bg-gray-800">
                 <h3 class="text-lg font-bold">Growth Rate</h3>
@@ -181,6 +209,192 @@
             }));
         });
 
+        const labels = ['November 2024', 'December 2024', 'January 2025', 'February 2025', 'March 2025'];
+        const datasets = [
+            {
+                label: 'Harga Produsen',
+                data: [5.5, 3.0, 2.8, 3.2, -3.1], // Inflasi values
+                andil: [0.5, 0.6, 0.55, 0.65, 0.6], // Corresponding andil values
+
+            },
+            {
+                label: 'Harga Produsen Desa',
+                data: [3.8, 2.1, 2.0, 2.3, 2.2],
+                andil: [0.4, 0.45, 0.43, 0.47, 0.44],
+
+            },
+            {
+                label: 'Harga Perdagangan Besar',
+                data: [2.5, -3.0, 2.8, -3.2, -3.1], // Inflasi values
+                andil: [0.5, 0.80, 0.34, 0.15, 0.6], // Corresponding andil values
+
+            },
+            {
+                label: 'Harga Konsumen Desa',
+                data: [-1.8, 3.1, 4.0, 2.9, 7.2],
+                andil: [0.4, 0.30, 0.68, 0.25, 0.43],
+
+            },
+            {
+                label: 'Harga Konsumen Kota',
+                data: [2.5, 3.0, 7.0, 3.2, 3.1], // Inflasi values
+                andil: [0.22, 0.52, 0.32, 0.65, 0.6], // Corresponding andil values
+
+            },
+            // Add more datasets for other price levels as needed
+        ];
+
+                // Get the context of the canvas element
+        var ctx = document.getElementById('multiAxisChart').getContext('2d');
+        var hbx = document.getElementById('horizontalBarChart').getContext('2d');
+
+        // Create the chart
+        var multiAxisChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: datasets
+            },
+            options: {
+                responsive: true,
+                interaction: {
+                    mode: 'point',
+                    intersect: false
+                },
+                title: function() {
+                        return '';
+                },
+                plugins: {
+                    legend: {
+                        position: 'bottom', // Positions the legend at the bottom
+                        // Additional legend configurations can be added here
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const dataset = context.dataset;
+                                const inflasi = context.raw;
+                                const andil = dataset.andil[context.dataIndex];
+                                return [
+                                    `${dataset.label}`,
+                                    `Inflasi = ${inflasi}%`,
+                                    `Andil = ${andil}%`
+                                ];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Inflasi (%)'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Month'
+                        }
+                    }
+                }
+            }
+        });
+
+        var latestMonthIndex = labels.length - 1;
+        var horizontalBarChart = new Chart(hbx, {
+            type: 'bar',
+            options: {
+                indexAxis: 'y',
+                // Elements options apply to all of the options unless overridden in a dataset
+                // In this case, we are setting the border of each horizontal bar to be 2px wide
+                elements: {
+                    bar: {
+                        borderWidth: 2,
+                    },
+                },
+            },
+            data: {
+                labels: datasets.map(dataset => dataset.label),
+                datasets: [{
+                    label: 'Inflasi',
+                    data: datasets.map(dataset => dataset.data[latestMonthIndex]),
+
+                }]
+            },
+        });
+
+
+        function showInflasi() {
+
+            horizontalBarChart.data.datasets = [{
+                label: 'Inflasi',
+                data: datasets.map(dataset => dataset.data[latestMonthIndex]),
+
+            }];
+            horizontalBarChart.update();
+        }
+
+        function showAndil() {
+            horizontalBarChart.data.datasets = [{
+                label: 'Andil',
+                data: datasets.map(dataset => dataset.andil[latestMonthIndex]),
+
+            }];
+            horizontalBarChart.update();
+        }
+
+        function showBoth() {
+            horizontalBarChart.data.datasets = [
+                {
+                    label: 'Inflasi',
+                    data: datasets.map(dataset => dataset.data[latestMonthIndex]),
+
+                },
+                {
+                    label: 'Andil',
+                    data: datasets.map(dataset => dataset.andil[latestMonthIndex]),
+
+                }
+            ];
+            horizontalBarChart.update();
+        }
+
+
+        function showInflasiLine() {
+            // Assuming selectedDatasets is available in your Alpine component
+            const filteredDatasets = datasets.filter(dataset => selectedDatasets.includes(dataset.label));
+
+            multiAxisChart.data.datasets = datasets.map(dataset => ({
+                label: dataset.label,
+                data: dataset.data,
+            }));
+            multiAxisChart.update();
+        }
+
+        function showAndilLine() {
+            multiAxisChart.data.datasets = datasets.map(dataset => ({
+                label: dataset.label,
+                data: dataset.andil,
+            }));
+            multiAxisChart.update();
+        }
+
+        function showBothLine() {
+            multiAxisChart.data.datasets = datasets.flatMap(dataset => [
+                {
+                    label: `${dataset.label} - Inflasi`,
+                    data: dataset.data,
+                },
+                {
+                    label: `${dataset.label} - Andil`,
+                    data: dataset.andil,
+                }
+            ]);
+            multiAxisChart.update();
+        }
+
         function toggleFullscreen(canvasId) {
             const canvas = document.getElementById(canvasId);
             const fullscreenIcon = document.getElementById(`fullscreenIcon${canvasId.charAt(0).toUpperCase() + canvasId.slice(1)}`); // Get the correct icon
@@ -195,6 +409,7 @@
                 fullscreenIcon.textContent = 'fullscreen'; // Change icon back to fullscreen
             }
         }
+
 
         // Bar Chart
         new Chart(document.getElementById('barChart'), {
