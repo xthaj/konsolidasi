@@ -58,40 +58,48 @@
                         </div>
 
                         <button type="submit" class="w-full text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">Edit Nilai</button>
+
                     </form>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="p-4">
-        <div class="bg-white w-full md:w-1/2 overflow-hidden shadow-sm sm:rounded-lg">
-            <div class="flex flex-col md:flex-row gap-4 p-4">
-                <!-- Bulan -->
-                <div class="w-full md:w-1/3">
-                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Bulan</label>
-                    <select class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                        @foreach(['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'] as $bulan)
-                            <option>{{ $bulan }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <!-- Tahun -->
-                <div class="w-full md:w-1/3">
-                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Tahun</label>
-                    <select class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                        @for ($year = 2020; $year <= 2025; $year++)
-                            <option>{{ $year }}</option>
-                        @endfor
-                    </select>
-                </div>
-                <!-- submit -->
-                <div class="w-full md:w-1/3 flex flex-col justify-end">
-                    <button class="w-full text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">Submit</button>
-                </div>
+
+<div class="p-4">
+    <div class="bg-white w-full md:w-4/5 mx-auto overflow-hidden shadow-md rounded-lg p-4 dark:bg-gray-800">
+        <div class="flex flex-wrap items-end gap-4">
+            <!-- Bulan -->
+            <div class="flex-1 min-w-[150px]">
+                <label class="block text-sm font-medium text-gray-900 dark:text-white">Bulan</label>
+                <select class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    @foreach(['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'] as $bulan)
+                        <option>{{ $bulan }}</option>
+                    @endforeach
+                </select>
             </div>
+            <!-- Tahun -->
+            <div class="flex-1 min-w-[100px]">
+                <label class="block text-sm font-medium text-gray-900 dark:text-white">Tahun</label>
+                <select class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    @for ($year = 2020; $year <= 2025; $year++)
+                        <option>{{ $year }}</option>
+                    @endfor
+                </select>
+            </div>
+            <!-- Submit Button (Sticks to Bottom) -->
+            <div class=" flex self-end">
+                <button class=" px-5 py-2.5 text-white bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm dark:bg-blue-500 dark:hover:bg-blue-600 dark:focus:ring-blue-800">
+                    Submit
+                </button>
+            </div>
+            <!-- Close Period Button -->
+            <button class="px-5 py-2.5 text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm dark:bg-red-500 dark:hover:bg-red-600 dark:focus:ring-red-800">
+                Tutup Periode Rekonsiliasi
+            </button>
         </div>
     </div>
+</div>
 
     <div class="p-4">
         <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
@@ -121,8 +129,8 @@
                             <td class="px-6 py-4">006</td>
                             <td class="px-6 py-4">Beras Premium</td>
                             <td class="px-6 py-4">Harga Konsumen Kota</td>
-                            <td class="px-6 py-4">3.1%</td>
-                            <td class="px-6 py-4">2.8%</td>
+                            <td class="px-6 py-4">3.10%</td>
+                            <td class="px-6 py-4">Naik</td>
                             <td class="px-6 py-4">
                                 <span id="badge-dismiss-default" class="inline-flex items-center px-2 py-1 me-2 my-1 text-sm font-medium text-blue-800 bg-blue-100 rounded-sm dark:bg-blue-900 dark:text-blue-300">stok melimpah</span>
                                 <span id="badge-dismiss-default" class="inline-flex items-center px-2 py-1 me-2 my-1 text-sm font-medium text-blue-800 bg-blue-100 rounded-sm dark:bg-blue-900 dark:text-blue-300">persaingan harga</span>
@@ -150,28 +158,44 @@
                             <td class="px-6 py-4">Jagung</td>
                             <td class="px-6 py-4">Harga Perdagangan Besar</td>
                             <td class="px-6 py-4">4.2%</td>
-                            <td class="px-6 py-4">3.9%</td>
-                            <td class="px-6 py-4">Permintaan industri meningkat</td>
-                            <td class="px-6 py-4">Harga naik karena stok berkurang</td>
-                            <td class="px-6 py-4">https://sport.detik.com/sepakbola/liga-indonesia/d-7781510/timnas-indonesia-u-20-dihukum-uzbekistan-kalah-tersingkir</td>
+                            <td class="px-6 py-4">Turun</td>
+                            <td class="px-6 py-4"> </td>
+                            <td class="px-6 py-4"> </td>
+                            <td class="px-6 py-4"> </td>
                             <td class="px-6 py-4 text-right">
-                                <a href="#" class="font-medium text-blue-600 dark:text-blue-500 hover:underline">Edit</a>
+                            <a href="#" class="font-medium text-primary-600 dark:text-primary-500 hover:underline">Edit</a>
                             </td>
                         </tr>
                         <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200">
-                            <td class="px-6 py-4">3</td>
-                            <td class="px-6 py-4">1312</td>
-                            <td class="px-6 py-4">KAB PASAMAN BARAT</td>
-                            <td class="px-6 py-4">011</td>
-                            <td class="px-6 py-4">Daging Ayam Ras</td>
-                            <td class="px-6 py-4">Harga Produsen Desa</td>
-                            <td class="px-6 py-4">2.5%</td>
-                            <td class="px-6 py-4">2.1%</td>
-                            <td class="px-6 py-4">Pakan ayam naik</td>
-                            <td class="px-6 py-4">Biaya produksi meningkat</td>
-                            <td class="px-6 py-4">https://sport.detik.com/sepakbola/liga-indonesia/d-7781510/timnas-indonesia-u-20-dihukum-uzbekistan-kalah-tersingkir</td>
+                            <td class="px-6 py-4">2</td>
+                            <td class="px-6 py-4">1371</td>
+                            <td class="px-6 py-4">KOTA PADANG</td>
+                            <td class="px-6 py-4">010</td>
+                            <td class="px-6 py-4">Jagung</td>
+                            <td class="px-6 py-4">Harga Perdagangan Besar</td>
+                            <td class="px-6 py-4">4.2%</td>
+                            <td class="px-6 py-4">Turun</td>
+                            <td class="px-6 py-4"> </td>
+                            <td class="px-6 py-4"> </td>
+                            <td class="px-6 py-4"> </td>
                             <td class="px-6 py-4 text-right">
-                                <a href="#" class="font-medium text-blue-600 dark:text-blue-500 hover:underline">Edit</a>
+                                <a href="#" class="font-medium text-primary-600 dark:text-primary-500 hover:underline">Edit</a>
+                            </td>
+                        </tr>
+                        <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200">
+                            <td class="px-6 py-4">2</td>
+                            <td class="px-6 py-4">1371</td>
+                            <td class="px-6 py-4">KOTA PADANG</td>
+                            <td class="px-6 py-4">010</td>
+                            <td class="px-6 py-4">Jagung</td>
+                            <td class="px-6 py-4">Harga Perdagangan Besar</td>
+                            <td class="px-6 py-4">4.2%</td>
+                            <td class="px-6 py-4">Turun</td>
+                            <td class="px-6 py-4"> </td>
+                            <td class="px-6 py-4"> </td>
+                            <td class="px-6 py-4"> </td>
+                            <td class="px-6 py-4 text-right">
+                            <a href="#" class="font-medium text-primary-600 dark:text-primary-500 hover:underline">Edit</a>
                             </td>
                         </tr>
                     </tbody>

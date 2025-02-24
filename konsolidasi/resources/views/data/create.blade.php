@@ -10,7 +10,7 @@
                     </a>
 
                     <!-- Periode Selection -->
-                    <div class="grid grid-cols-2 gap-4 mt-4">
+                    <div class="grid grid-cols-3 gap-4 mt-4">
                         <!-- Bulan -->
                         <div>
                             <label class="block mb-1 text-sm font-medium text-gray-900 dark:text-white">Bulan</label>
@@ -30,7 +30,20 @@
                                 @endfor
                             </select>
                         </div>
+
+                        <div>
+                            <label class="block mb-1 text-sm font-medium text-gray-900 dark:text-white">Level Harga</label>
+                            <select class="border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5 bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-primary-500 focus:border-primary-500">
+                                    <option>{{ "Harga Konsumen Kota" }}</option>
+                                    <option>{{ "Harga Konsumen Desa" }}</option>
+                                    <option>{{ "Harga Perdagangan Besar" }}</option>
+                                    <option>{{ "Harga Produsen Desa" }}</option>
+                                    <option>{{ "Harga Produsen" }}</option>
+                            </select>
+                        </div>
                     </div>
+
+                    <p id="helper-text-explanation" class="mt-2 text-sm text-gray-500 dark:text-gray-400">Periode aktif</p>
 
                     <!-- File Upload -->
                     <div class="mt-4">

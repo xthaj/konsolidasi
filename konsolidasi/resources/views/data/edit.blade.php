@@ -134,6 +134,7 @@
                 </select>
             </div>
             <button class="w-full bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 text-white font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">Tampilkan</button>
+            <button class="w-full bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 text-white font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">Tambah</button>
         </div>
     </x-slot>
 
@@ -180,6 +181,9 @@
                     )" class="font-medium text-primary-600 dark:text-primary-500 hover:underline">
                         Edit
                     </button>
+
+
+
                     </td>
 
 

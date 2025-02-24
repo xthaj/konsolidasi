@@ -19,38 +19,20 @@
             <input type="text" id="username" name="username" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 placeholder-gray-400 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" placeholder="hatta45" required />
         </div>
 
-        {{--        <div class="mb-6">--}}
-        {{--            <label for="success" class="block mb-2 text-sm font-medium text-green-700 dark:text-green-500">Username</label>--}}
-        {{--            <input type="text" id="success" class="bg-green-50 border border-green-500 text-green-900 dark:text-green-400 placeholder-green-700 dark:placeholder-green-500 text-sm rounded-lg focus:ring-green-500 focus:border-green-500 block w-full p-2.5 dark:bg-gray-700 dark:border-green-500" placeholder="Success input">--}}
-        {{--            <p class="mt-2 text-sm text-green-600 dark:text-green-500"><span class="font-medium">Well done!</span> Some success message.</p>--}}
-        {{--        </div>--}}
-        {{--        <div>--}}
-        {{--            <label for="error" class="block mb-2 text-sm font-medium text-red-700 dark:text-red-500">Your name</label>--}}
-        {{--            <input type="text" id="error" class="bg-red-50 border border-red-500 text-red-900 placeholder-red-700 text-sm rounded-lg focus:ring-red-500 dark:bg-gray-700 focus:border-red-500 block w-full p-2.5 dark:text-red-500 dark:placeholder-red-500 dark:border-red-500" placeholder="Error input">--}}
-        {{--            <p class="mt-2 text-sm text-red-600 dark:text-red-500"><span class="font-medium">Oh, snapp!</span> Some error message.</p>--}}
-        {{--        </div>--}}
-
-
-
-        <!-- Is Pusat Checkbox -->
-
         <div x-data="{ isPusat: false }">
             <!-- Checkbox -->
-            <div class="flex items-start mb-6">
+            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Satuan Kerja</label>
+
+            <div class="flex items-start my-2">
                 <div class="flex items-center h-5">
                     <input type="hidden" name="is_pusat" value="0"> <input type="checkbox" name="is_pusat" id="is_pusat" value="1" x-model="isPusat" @click="togglePusat()" class="w-4 h-4 border border-gray-300 rounded-sm bg-gray-50 focus:ring-3 focus:ring-primary-300 dark:bg-gray-700 dark:border-gray-600 dark:focus:ring-primary-600 dark:ring-offset-gray-800" />
                 </div>
-                <label for="is_pusat" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">Satuan Kerja Pusat</label>
+                <label for="is_pusat" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">Pusat</label>
             </div>
 
-            <!-- Debugging: Display the value of isPusat -->
-{{--            <p class="text-sm text-gray-500">isPusat: <span x-text="isPusat"></span></p>--}}
 
-            <!-- Wilayah Section (Only Show If isPusat is False) -->
             <div :class="{ 'hidden': isPusat }">
                 <div class="flex relative flex-col">
-                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Satuan Kerja</label>
-
                     <div class="flex">
                         <button @click="toggleDropdown('province')" id="provinsi-button" class="shrink-0 z-10 inline-flex items-center py-2.5 px-4 text-sm font-medium text-center text-gray-500 bg-gray-100 border border-gray-300 rounded-s-lg hover:bg-gray-200 focus:ring-4 focus:outline-none focus:ring-gray-100 dark:bg-gray-700 dark:hover:bg-gray-600 dark:focus:ring-gray-700 dark:text-white dark:border-gray-600" type="button">
                             <span x-text="selectedProvince.nama_wilayah || 'Pilih Provinsi'"></span>
@@ -78,8 +60,10 @@
                             </template>
                         </select>
 
+
                         <input type="hidden" name="kd_wilayah" x-model="kd_wilayah">
                     </div>
+                    <p id="helper-text-explanation" class="mt-2 text-sm text-gray-500 dark:text-gray-400">Pilih hanya provinsi atau provinsi kemudian Kab/Kota</p>
                 </div>
             </div>
         </div>
