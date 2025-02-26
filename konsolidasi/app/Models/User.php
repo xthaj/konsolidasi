@@ -24,4 +24,8 @@ class User extends Authenticatable
     {
         return 'username'; // Return the name of your username field (e.g., 'user_identifier')
     }
+
+    public function isPusat():bool {
+        return $this->is_pusat;
+    }
 }
