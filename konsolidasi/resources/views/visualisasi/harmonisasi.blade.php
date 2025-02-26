@@ -431,12 +431,12 @@
         })
         .catch(err => console.error('Error loading GeoJSON:', err));
 
-        fetch("{{asset('geojson/Kabupaten_copy.json')}}")
+        fetch("{{asset('geojson/kab_indo_dummy4.json')}}")
             .then(response => response.json())
             .then(data => {
                 // Loop through GeoJSON features and add inflation data dynamically
                 data.features.forEach(feature => {
-                    const regionCode = feature.properties.KDBBPS;  // Get the region code from GeoJSON
+                    const regionCode = feature.properties.idkab;  // Get the region code from GeoJSON
                     const inflationRate = mapDemo2[regionCode];  // Get the inflation rate from your data
 
                     // If inflation data exists for the province, add it to the feature properties
@@ -460,7 +460,7 @@
                 },
                 onEachFeature: function (feature, layer) {
                     // Add a popup showing the inflation data
-                    layer.bindPopup('<strong>' + feature.properties.WADMKK + '</strong><br>Inflation Rate: ' + feature.properties.inflation_rate);
+                    layer.bindPopup('<strong>' + feature.properties.nmkab + '</strong><br>Inflation Rate: ' + feature.properties.inflation_rate);
                 }
             }).addTo(map2);
         })
