@@ -3,7 +3,8 @@
         Buat Akun
     </h1>
 
-    <form x-data="registerData" method="POST" action="{{ route('register') }}" class="space-y-4 md:space-y-6">
+    <div x-data="registerData">
+    <form  x-init="init()" class="space-y-4">
         @csrf
 
         <!-- Full Name -->
@@ -13,7 +14,7 @@
         </div>
 
 
-        <!-- Username for like unique or not -->
+        <!-- Username -->
         <div>
             <label for="username" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Username</label>
             <input type="text" id="username" name="username" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 placeholder-gray-400 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" placeholder="hatta45" required />
@@ -69,10 +70,6 @@
         </div>
 
 
-        <!-- Wilayah (Optional) -->
-        {{--        ini untuk yang BUKAN pusat, kalo klik checkbox nanti disabled. terus yg country ganti provinsi (flag =2) terus yg kanan kab dengan parent dr prov itu--}}
-
-
         <!-- Password & confirm -->
         <div>
             <label for="password" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Password</label>
@@ -89,60 +86,72 @@
             Sudah memiliki akun? <a href="#" class="font-medium text-primary-600 hover:underline dark:text-primary-500">Login di sini</a>
         </p>
     </form>
+    </div>
 
     <script>
-        document.addEventListener('alpine:init', () => {
-            Alpine.data('registerData', () => ({
-                provinces: @json($wilayah->where('flag', 2)->values()), // Load all provinces
-                kabkots: @json($wilayah->where('flag', 3)->values()), // Load all kab/kot
-                selectedProvince: {},
-                selectedKabkot: '',
-                dropdowns: { province: false },
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM fully loaded');
+    document.addEventListener('alpine:init', () => {
+        console.log('alpine:init event fired');
+        Alpine.data('registerData', () => ({
+            provinces: [],
+            kabkots: [],
+            selectedProvince: {},
+            selectedKabkot: '',
+            dropdowns: { province: false },
+            isPusat: false,
+            kd_wilayah: '',
 
-                isPusat: false,
-                kd_wilayah:'',
+            async init() {
+                try {
+                    let response = await fetch('/api/wilayah');
+                    let data = await response.json();
+                    this.provinces = data.provinces;
+                    this.kabkots = data.kabkots;
+                } catch (error) {
+                    console.error("Failed to load wilayah data:", error);
+                }
+            },
 
-                // Computed property: Filter kabupaten based on selected province
-                get filteredKabkots() {
-                    if (!this.selectedProvince.kd_wilayah) return [];
-                    return this.kabkots.filter(k => k.parent_kd == this.selectedProvince.kd_wilayah);
-                },
+            get filteredKabkots() {
+                if (!this.selectedProvince.kd_wilayah) return [];
+                return this.kabkots.filter(k => k.parent_kd == this.selectedProvince.kd_wilayah);
+            },
 
-                // Select a province
-                selectProvince(province) {
-                    this.selectedProvince = province;
-                    this.selectedKabkot = ''; // Reset kabkot
-                    this.closeDropdown('province');
-                    this.updateKdWilayah(); // Call updateKdWilayah here!
-                },
+            selectProvince(province) {
+                this.selectedProvince = province;
+                this.selectedKabkot = '';
+                this.closeDropdown('province');
+                this.updateKdWilayah();
+            },
 
-                // Dropdown handlers
-                toggleDropdown(menu) {
-                    this.dropdowns[menu] = !this.dropdowns[menu];
-                },
-                closeDropdown(menu) {
-                    this.dropdowns[menu] = false;
-                },
-                // Update kd_wilayah when kabkot is selected
-                updateKdWilayah() {
-                    if (this.isPusat) {
-                        this.kd_wilayah = '1'; // Pusat
-                    } else if (this.selectedKabkot) {
-                        this.kd_wilayah = this.selectedKabkot; // Kabupaten/Kota
-                    } else if (this.selectedProvince.kd_wilayah) {
-                        this.kd_wilayah = this.selectedProvince.kd_wilayah; // Province
-                    } else {
-                        this.kd_wilayah = ''; // Default empty
-                    }
-                },
+            toggleDropdown(menu) {
+                this.dropdowns[menu] = !this.dropdowns[menu];
+            },
 
-                // Watch changes in isPusat
-                togglePusat() {
-                    this.updateKdWilayah(); // Call updateKdWilayah
-                },
+            closeDropdown(menu) {
+                this.dropdowns[menu] = false;
+            },
 
-            }));
-        });
+            updateKdWilayah() {
+                if (this.isPusat) {
+                    this.kd_wilayah = '1';
+                } else if (this.selectedKabkot) {
+                    this.kd_wilayah = this.selectedKabkot;
+                } else if (this.selectedProvince.kd_wilayah) {
+                    this.kd_wilayah = this.selectedProvince.kd_wilayah;
+                } else {
+                    this.kd_wilayah = '';
+                }
+            },
+
+            togglePusat() {
+                this.updateKdWilayah();
+            },
+        }));
+    });
+});
+
     </script>
 
 </x-guest-layout>

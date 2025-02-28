@@ -8,7 +8,10 @@
         <title>{{ config('app.name', 'Laravel') }}</title>
 
         <!-- Scripts -->
-        @vite(['resources/css/app.css', 'resources/js/app.js'])
+        <!-- @vite(['resources/css/app.css', 'resources/js/alpine-init.js', 'resources/js/register.js','resources/js/alpine-start.js']) -->
+
+        <!-- Vite Slot -->
+        {{ $vite ?? '@vite(["resources/css/app.css"])' }} <!-- Default fallback -->
 
     </head>
     <body class="font-sans text-gray-900 antialiased">
