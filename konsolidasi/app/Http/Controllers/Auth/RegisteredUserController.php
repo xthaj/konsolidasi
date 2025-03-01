@@ -15,9 +15,22 @@ use Illuminate\View\View;
 
 class RegisteredUserController extends Controller
 {
+
+    public function checkUsername(Request $request)
+    {
+        $request->validate([
+            'username' => 'required|string|max:255',
+        ]);
+
+        $exists = User::where('username', $request->query('username'))->exists();
+
+        return response()->json(['exists' => $exists]);
+    }
+
     /**
      * Display the registration view.
      */
+
     public function create(): View
     {
         $wilayah = Wilayah::all(); // Fetch all wilayah records

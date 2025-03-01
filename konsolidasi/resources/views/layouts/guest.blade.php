@@ -8,11 +8,7 @@
         <title>{{ config('app.name', 'Laravel') }}</title>
 
         <!-- Scripts -->
-        <!-- @vite(['resources/css/app.css', 'resources/js/alpine-init.js', 'resources/js/register.js','resources/js/alpine-start.js']) -->
-
-        <!-- Vite Slot -->
-        {{ $vite ?? '@vite(["resources/css/app.css"])' }} <!-- Default fallback -->
-
+        @yield('vite')
     </head>
     <body class="font-sans text-gray-900 antialiased">
         <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-2 pb-6 sm:pb-10 bg-gray-100">
@@ -23,7 +19,7 @@
             </div>
 
             <div class="w-full sm:max-w-md mt-6 px-6 py-4 bg-white shadow-md overflow-hidden sm:rounded-lg p-2">
-                {{ $slot }}
+                @yield('content')
             </div>
         </div>
     </body>

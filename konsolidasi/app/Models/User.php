@@ -28,4 +28,9 @@ class User extends Authenticatable
     public function isPusat():bool {
         return $this->is_pusat;
     }
+
+    public static function usernameExists($username)
+    {
+        return self::where('username', $username)->exists();
+    }
 }

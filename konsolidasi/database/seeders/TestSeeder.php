@@ -61,8 +61,8 @@ class TestSeeder extends Seeder
                             'kd_wilayah' => (string) $kd_wilayah,
                             'bulan_tahun_id' => $bulan_tahun_id,
                             'kd_level' => (string) $kd_level,
-                            'harga' => (float) mt_rand(-500, 500) / 100, // Generate decimal values
-                            'andil' => (float) mt_rand(0, 10) / 10, // Generate decimal values (0.0 - 1.0)
+                            'harga' => (float) mt_rand(-500, 500) / 100,
+                            'andil' => (float) mt_rand(0, 10) / 10,
                             'created_at' => now(),
                             'updated_at' => now(),
                         ];
