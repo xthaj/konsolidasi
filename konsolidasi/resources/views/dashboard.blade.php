@@ -1,4 +1,10 @@
-<x-app-layout>
+@extends('layouts.app')
+@section("content")
+
+    @if (auth()->user()->isPusat())
+
+    @endif
+
     <body class="bg-white text-gray-900">
         <!-- admin 1 -->
         <div class="bg-white">
@@ -77,4 +83,4 @@
         </div>
 
     </body>
-</x-app-layout>
+@endsection

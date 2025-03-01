@@ -27,6 +27,7 @@ Route::get('/viz', [VisualisasiController::class, 'create'])->name('visualisasi.
 Route::middleware(['pusat'])->group(function () {
     Route::get('/data/edit', [DataController::class, 'edit'])->name('data.edit');
     Route::get('/data/upload', [DataController::class, 'create'])->name('data.create');
+    Route::post('/data/upload', [DataController::class, 'upload'])->name('data.upload');
 });
 
 // Rekonsiliasi

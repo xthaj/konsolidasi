@@ -11,7 +11,7 @@ class Inflasi extends Model
 
     protected $table = 'inflasi';
     protected $primaryKey = 'inflasi_id';
-    protected $fillable = ['kd_komoditas', 'kd_wilayah', 'bulan_tahun_id', 'kd_level', 'harga', 'flag'];
+    protected $fillable = ['kd_komoditas', 'kd_wilayah', 'bulan_tahun_id', 'kd_level', 'harga'];
 
     public function komoditas()
     {

@@ -37,9 +37,12 @@
                 <li>
                     <a href="{{ route('dashboard') }}" class="block py-2 px-3 rounded-sm md:p-0 {{ request()->routeIs('dashboard') ? 'text-white bg-primary-700 md:bg-transparent md:text-primary-700 dark:text-white md:dark:text-primary-500' : 'text-gray-900 hover:bg-gray-100 md:hover:bg-transparent md:hover:text-primary-700 dark:text-white md:dark:hover:text-primary-500 dark:hover:bg-gray-700 dark:hover:text-white' }}" aria-current="page">Beranda</a>
                 </li>
+
+            @if (auth()->user()->isPusat())
                 <li>
                     <a href="{{ route('visualisasi.create') }}" class="block py-2 px-3 rounded-sm md:p-0 {{ request()->routeIs('visualisasi.create') ? 'text-white bg-primary-700 md:bg-transparent md:text-primary-700 dark:text-white md:dark:text-primary-500' : 'text-gray-900 hover:bg-gray-100 md:hover:bg-transparent md:hover:text-primary-700 dark:text-white md:dark:hover:text-primary-500 dark:hover:bg-gray-700 dark:hover:text-white' }}">Visualisasi</a>
                 </li>
+
                 <li>
                     <button id="dropdownNavbarLink2" data-dropdown-toggle="dropdownData" class="flex items-center justify-between w-full py-2 px-3 rounded-sm md:p-0 md:w-auto {{ request()->routeIs('data.edit') || request()->routeIs('data.create') ? 'text-primary-700 dark:text-primary-500' : 'text-gray-900 hover:bg-gray-100 md:hover:bg-transparent md:hover:text-primary-700 dark:text-white md:dark:hover:text-primary-500 dark:hover:bg-gray-700 dark:hover:text-white' }}">Data
                         <svg class="w-2.5 h-2.5 ms-2.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
@@ -57,6 +60,7 @@
                         </ul>
                     </div>
                 </li>
+            @endif
                 <li>
                     <button id="dropdownNavbarLink3" data-dropdown-toggle="dropdownRekon" class="flex items-center justify-between w-full py-2 px-3 rounded-sm md:p-0 md:w-auto {{ request()->routeIs('rekon.pemilihan') || request()->routeIs('rekon.progres') ? 'text-primary-700 dark:text-primary-500' : 'text-gray-900 hover:bg-gray-100 md:hover:bg-transparent md:hover:text-primary-700 dark:text-white md:dark:hover:text-primary-500 dark:hover:bg-gray-700 dark:hover:text-white' }}">Rekonsiliasi
                         <svg class="w-2.5 h-2.5 ms-2.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
@@ -65,9 +69,11 @@
                     </button>
                     <div id="dropdownRekon" class="z-10 hidden font-normal bg-white divide-y divide-gray-100 rounded-lg shadow-sm w-44 dark:bg-gray-700 dark:divide-gray-600">
                         <ul class="py-2 text-sm text-gray-700 dark:text-gray-400">
+                        @if (auth()->user()->isPusat())
                             <li>
                                 <a href="{{ route('rekon.pemilihan') }}" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white">Pemilihan</a>
                             </li>
+                        @endif
                             <li>
                                 <a href="{{ route('rekon.progres') }}" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white">Progres</a>
                             </li>
