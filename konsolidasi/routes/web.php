@@ -29,6 +29,8 @@ Route::middleware(['pusat'])->group(function () {
     Route::get('/data/upload', [DataController::class, 'create'])->name('data.create');
     Route::post('/data/upload', [DataController::class, 'upload'])->name('data.upload');
     Route::post('/data/hapus', [DataController::class, 'hapus'])->name('data.hapus'); // New route for hapus
+    Route::post('/data/store', [DataController::class, 'store'])->name('data.store');
+    Route::patch('/data/update/{id}', [DataController::class, 'update'])->name('data.update');
 });
 
 // Rekonsiliasi

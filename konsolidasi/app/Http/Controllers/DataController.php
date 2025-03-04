@@ -180,4 +180,52 @@ class DataController extends Controller
 
         return response()->json(['inflasi_id' => $inflasi->id]);
     }
+
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'harga' => 'required|numeric',
+        ]);
+
+        try {
+            $inflasi = Inflasi::findOrFail($id);
+            $inflasi->harga = $request->harga;
+            $inflasi->save();
+
+            return redirect()->back()->with('success', 'Data updated successfully.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Error updating data: ' . $e->getMessage());
+        }
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'bulan' => 'required|integer|between:1,12',
+            'tahun' => 'required|integer|min:2000|max:2100',
+            'kd_level' => 'required|string|in:01,02,03,04,05',
+            'kd_wilayah' => 'required|string',
+            'kd_komoditas' => 'required|integer',
+            'harga' => 'required|numeric',
+        ]);
+
+        try {
+            $bulanTahun = BulanTahun::firstOrCreate([
+                'bulan' => $request->bulan,
+                'tahun' => $request->tahun,
+            ]);
+
+            Inflasi::create([
+                'bulan_tahun_id' => $bulanTahun->bulan_tahun_id,
+                'kd_level' => $request->kd_level,
+                'kd_wilayah' => $request->kd_wilayah,
+                'kd_komoditas' => $request->kd_komoditas,
+                'harga' => $request->harga,
+            ]);
+
+            return redirect()->back()->with('success', 'Data added successfully.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Error adding data: ' . $e->getMessage());
+        }
+    }
 }

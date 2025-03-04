@@ -12,7 +12,8 @@ class Rekonsiliasi extends Model
 
     protected $table = 'rekonsiliasi';
     protected $primaryKey = 'rekonsiliasi_id';
-    protected $fillable = ['inflasi_id', 'user_id', 'terakhir_diedit', 'alasan', 'detail', 'media'];
+    protected $fillable = ['inflasi_id', 'user_id', 'terakhir_diedit', 'alasan', 'detail', 'media', 'bulan_tahun_id'];
+
     public function inflasi()
     {
         return $this->belongsTo(Inflasi::class, 'inflasi_id', 'inflasi_id');
@@ -21,5 +22,10 @@ class Rekonsiliasi extends Model
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id', 'user_id');
+    }
+
+    public function bulanTahun()
+    {
+        return $this->belongsTo(BulanTahun::class);
     }
 }

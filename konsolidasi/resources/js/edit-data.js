@@ -2,16 +2,13 @@ Alpine.data('webData', () => ({
     provinces: [],
     kabkots: [],
     komoditas: [],
-    selectedProvince: '', // Now a string (kd_wilayah) or empty
+    selectedProvince: '',
     selectedKabkot: '',
     selectedKomoditas: '',
     selectedKdLevel: '',
-    dropdowns: { province: false },
     isPusat: false,
     kd_wilayah: '',
-
-    modalOpen: false,
-    item: { id: null, komoditas: '', harga: '', wilayah: '', levelHarga: '', periode: '' },
+    item: { id: null, komoditas: '', harga: '', wilayah: '', levelHarga: '' },
 
     async init() {
         try {
@@ -22,7 +19,9 @@ Alpine.data('webData', () => ({
 
             const komoditasResponse = await fetch('/api/komoditas');
             const komoditasData = await komoditasResponse.json();
-            this.komoditas = komoditasData.kd_komoditas || [];
+            this.komoditas = komoditasData || [];
+            console.log('Provinces:', this.provinces);
+    console.log('Kabkots:', komoditasData);
         } catch (error) {
             console.error('Failed to load data:', error);
         }
@@ -35,13 +34,13 @@ Alpine.data('webData', () => ({
 
     updateKdWilayah() {
         if (this.isPusat) {
-            this.kd_wilayah = '0'; // National checked = '0'
+            this.kd_wilayah = '0';
         } else if (this.selectedKabkot && this.selectedKdLevel === '01') {
-            this.kd_wilayah = this.selectedKabkot; // Kabupaten/Kota for HK
+            this.kd_wilayah = this.selectedKabkot;
         } else if (this.selectedProvince && this.selectedKdLevel === '01') {
-            this.kd_wilayah = this.selectedProvince; // Province for HK
+            this.kd_wilayah = this.selectedProvince;
         } else {
-            this.kd_wilayah = ''; // Default empty
+            this.kd_wilayah = '';
         }
     },
 
@@ -50,13 +49,16 @@ Alpine.data('webData', () => ({
         this.updateKdWilayah();
     },
 
-    openModal(id, komoditas, harga, wilayah, levelHarga, periode) {
-        this.item = { id, komoditas, harga, wilayah, levelHarga, periode };
-        this.modalOpen = true;
-    },
+    setItem(id, komoditas, harga, wilayah, levelHarga) {
+        console.log('Setting item:', { id, komoditas, harga, wilayah, levelHarga });
+        this.item = { id, komoditas, harga, wilayah, levelHarga };
 
-    closeModal() {
-        this.modalOpen = false;
-        this.item = { id: null, komoditas: '', harga: '', wilayah: '', levelHarga: '', periode: '' };
+        const form = document.querySelector('#edit-harga-form');
+        if (form) {
+            form.action = `/data/update/${id}`; // Directly set the action
+            console.log('Form action updated to:', form.action);
+        } else {
+            console.error('Edit form not found!');
+        }
     }
 }));

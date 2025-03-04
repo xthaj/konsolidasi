@@ -67,7 +67,7 @@ return new class extends Migration
 
             $table->foreign('kd_komoditas')->references('kd_komoditas')->on('komoditas')->cascadeOnDelete();
             $table->foreign('kd_wilayah')->references('kd_wilayah')->on('wilayah')->cascadeOnDelete();
-            $table->foreign('bulan_tahun_id')->references('bulan_tahun_id')->on('bulan_tahun')->cascadeOnDelete();
+            $table->foreign('bulan_tahun_id')->references('bulan_tahun_id')->on('bulan_tahun')->noActionOnUpdate();
             $table->foreign('kd_level')->references('kd_level')->on('level_harga')->cascadeOnDelete();
         });
 
@@ -75,12 +75,14 @@ return new class extends Migration
             $table->id('rekonsiliasi_id');
             $table->unsignedBigInteger('inflasi_id');
             $table->unsignedBigInteger('user_id')->nullable();
+            $table->unsignedBigInteger('bulan_tahun_id');
             $table->dateTime('terakhir_diedit')->nullable();
             $table->string('alasan', 500)->nullable();
             $table->string('detail', 255)->nullable();
             $table->string('media', 255)->nullable();
             $table->timestamps(); // created_at and updated_at added
 
+            $table->foreign('bulan_tahun_id')->references('bulan_tahun_id')->on('bulan_tahun')->cascadeOnDelete();
             $table->foreign('inflasi_id')->references('inflasi_id')->on('inflasi')->cascadeOnDelete();
             $table->foreign('user_id')->references('user_id')->on('user')->nullOnDelete();
         });
