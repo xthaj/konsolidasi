@@ -1,4 +1,9 @@
 <x-two-panel-layout>
+
+@section('vite')
+    @vite(['resources/css/app.css', 'resources/js/alpine-init.js', 'resources/js/edit-data.js', 'resources/js/alpine-start.js'])
+@endsection
+
     <x-slot name="sidebar">
         <div id="vizBuilderPanel" class="space-y-4 md:space-y-6 mt-4">
             <!-- Bulan & Tahun -->
@@ -273,8 +278,6 @@
                         harga: "0.70",
                     });
                 },
-
-
 
                 removeRow(index) {
                     this.tableData.splice(index, 1);

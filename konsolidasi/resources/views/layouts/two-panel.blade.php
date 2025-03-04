@@ -1,4 +1,8 @@
-<x-app-layout>
+@extends('layouts.app')
+
+@yield('vite')
+
+@section("content")
     <div x-data="webData">
         <div class="flex flex-col md:flex-row h-screen overflow-x-hidden" x-data="{ isSidebarVisible: true }">
             <!-- Sidebar -->
@@ -9,9 +13,15 @@
 
             <!-- Toggle Button -->
             <div class="hidden md:flex flex-col items-center p-2">
-                <button @click="isSidebarVisible = !isSidebarVisible" class="p-2 text-gray-600 hover:text-gray-900 focus:outline-none dark:text-white">
+                <button data-tooltip-target="tooltip-default" @click="isSidebarVisible = !isSidebarVisible" class="p-2 text-gray-600 hover:text-gray-900 focus:outline-none dark:text-white">
                     <span class="material-symbols-outlined" x-text="isSidebarVisible ? 'arrow_menu_close' : 'arrow_menu_open'"></span>
                 </button>
+
+                <div id="tooltip-default" role="tooltip" class="absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
+                    Kontrol
+                    <div class="tooltip-arrow" data-popper-arrow></div>
+                </div>
+
             </div>
 
             <!-- Main Content -->
@@ -21,4 +31,4 @@
             </main>
         </div>
     </div>
-</x-app-layout>
+@endsection

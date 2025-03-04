@@ -8,7 +8,7 @@ use App\Http\Controllers\Auth\RegisteredUserController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Log;
 use App\Http\Middleware\isPusat;
-
+use App\Models\Komoditas;
 use App\Models\Wilayah;
 use Illuminate\Support\Facades\Cache;
 
@@ -28,6 +28,7 @@ Route::middleware(['pusat'])->group(function () {
     Route::get('/data/edit', [DataController::class, 'edit'])->name('data.edit');
     Route::get('/data/upload', [DataController::class, 'create'])->name('data.create');
     Route::post('/data/upload', [DataController::class, 'upload'])->name('data.upload');
+    Route::post('/data/hapus', [DataController::class, 'hapus'])->name('data.hapus'); // New route for hapus
 });
 
 // Rekonsiliasi
@@ -54,6 +55,21 @@ Route::get('/api/wilayah', function () {
     return response()->json($data);
 });
 
+Route::get('/api/komoditas', function () {
+    Log::info('Komoditas data NOT fetched from database', ['timestamp' => now()]);
+    $data = Cache::rememberForever('komoditas_data', function () {
+        Log::info('Komoditas data fetched from database', ['timestamp' => now()]);
+        return Komoditas::all();
+
+    });
+
+    return response()->json($data);
+});
+
 Route::get('/api/check-username', [RegisteredUserController::class, 'checkUsername']);
+
+Route::get('/find-inflasi-id', [DataController::class, 'findInflasiId']);
+
+
 
 require __DIR__.'/auth.php';
