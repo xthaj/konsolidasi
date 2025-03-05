@@ -36,6 +36,7 @@ Route::middleware(['pusat'])->group(function () {
 // Rekonsiliasi
 Route::get('/rekonsiliasi/pemilihan', [RekonsiliasiController::class, 'pemilihan'])->name('rekon.pemilihan');
 Route::get('/rekonsiliasi/progres', [RekonsiliasiController::class, 'progres'])->name('rekon.progres');
+Route::post('/rekonsiliasi/confirm', [DataController::class, 'confirmRekonsiliasi'])->name('rekonsiliasi.confirm');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -70,7 +71,7 @@ Route::get('/api/komoditas', function () {
 
 Route::get('/api/check-username', [RegisteredUserController::class, 'checkUsername']);
 
-Route::get('/find-inflasi-id', [DataController::class, 'findInflasiId']);
+Route::post('/api/inflasi-id', [DataController::class, 'findInflasiId']);
 
 
 

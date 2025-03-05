@@ -11,6 +11,7 @@ use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\DataImport;
 use Illuminate\Support\Facades\Log;
+use App\Models\Rekonsiliasi;
 
 class DataController extends Controller
 {
@@ -207,33 +208,105 @@ class DataController extends Controller
     }
 
     public function findInflasiId(Request $request)
-    {
-        $request->validate([
-            'bulan' => 'required|integer|between:1,12',
-            'tahun' => 'required|integer|min:2000|max:2100',
-            'komoditas_id' => 'required|integer',
-            'kd_wilayah' => 'required|string',
+{
+    try {
+        // Expect a JSON payload with an array of combinations
+        $combinations = $request->json()->all();
+
+        if (!is_array($combinations) || empty($combinations)) {
+            return response()->json([
+                'error' => 'Invalid or empty combinations array'
+            ], 400);
+        }
+
+        $results = [];
+
+        foreach ($combinations as $combo) {
+            $bulan = $combo['bulan'] ?? null;
+            $tahun = $combo['tahun'] ?? null;
+            $kd_level = $combo['kd_level'] ?? null;
+            $kd_wilayah = $combo['kd_wilayah'] ?? null;
+            $kd_komoditas = $combo['kd_komoditas'] ?? null;
+            $nama_wilayah = $combo['nama_wilayah'] ?? 'Unknown Wilayah';
+            $level_harga = $combo['level_harga'] ?? 'Unknown Level Harga';
+            $nama_komoditas = $combo['nama_komoditas'] ?? 'Unknown Komoditas';
+
+            // Validate required parameters
+            if (!$bulan || !$tahun || !$kd_level || !$kd_wilayah || !$kd_komoditas) {
+                $results[] = [
+                    'kd_wilayah' => $kd_wilayah,
+                    'kd_komoditas' => $kd_komoditas,
+                    'nama_wilayah' => $nama_wilayah,
+                    'level_harga' => $level_harga,
+                    'nama_komoditas' => $nama_komoditas,
+                    'error' => 'Missing required parameters',
+                    'inflasi_id' => null
+                ];
+                continue;
+            }
+
+            // Find the BulanTahun record
+            $bulanTahun = BulanTahun::where('bulan', $bulan)
+                ->where('tahun', $tahun)
+                ->first();
+
+            if (!$bulanTahun) {
+                $results[] = [
+                    'kd_wilayah' => $kd_wilayah,
+                    'kd_komoditas' => $kd_komoditas,
+                    'nama_wilayah' => $nama_wilayah,
+                    'level_harga' => $level_harga,
+                    'nama_komoditas' => $nama_komoditas,
+                    'message' => 'BulanTahun not found',
+                    'inflasi_id' => null
+                ];
+                continue;
+            }
+
+            // Find the Inflasi record
+            $inflasi = Inflasi::where('bulan_tahun_id', $bulanTahun->bulan_tahun_id)
+                ->where('kd_level', $kd_level)
+                ->where('kd_wilayah', $kd_wilayah)
+                ->where('kd_komoditas', $kd_komoditas)
+                ->first();
+
+            if ($inflasi) {
+                $results[] = [
+                    'bulan_tahun_id' => $bulanTahun->bulan_tahun_id,
+                    'kd_wilayah' => $kd_wilayah,
+                    'kd_komoditas' => $kd_komoditas,
+                    'nama_wilayah' => $nama_wilayah,
+                    'level_harga' => $level_harga,
+                    'nama_komoditas' => $nama_komoditas,
+                    'inflasi_id' => $inflasi->inflasi_id,
+                    'harga' => $inflasi->harga
+                ];
+            } else {
+                $results[] = [
+                    'bulan_tahun_id' => $bulanTahun->bulan_tahun_id,
+                    'kd_wilayah' => $kd_wilayah,
+                    'kd_komoditas' => $kd_komoditas,
+                    'nama_wilayah' => $nama_wilayah,
+                    'level_harga' => $level_harga,
+                    'nama_komoditas' => $nama_komoditas,
+                    'message' => 'Inflasi record not found',
+                    'inflasi_id' => null
+                ];
+            }
+        }
+
+        return response()->json($results, 200);
+    } catch (\Exception $e) {
+        \Log::error('Error in findInflasiId: ' . $e->getMessage(), [
+            'combinations' => $request->json()->all()
         ]);
 
-        $bulanTahun = BulanTahun::where('bulan', $request->bulan)
-            ->where('tahun', $request->tahun)
-            ->first();
-
-        if (!$bulanTahun) {
-            return response()->json(['error' => 'No data found for the specified period.'], 404);
-        }
-
-        $inflasi = Inflasi::where('bulan_tahun_id', $bulanTahun->bulan_tahun_id)
-            ->where('komoditas_id', $request->komoditas_id)
-            ->where('kd_wilayah', $request->kd_wilayah)
-            ->first();
-
-        if (!$inflasi) {
-            return response()->json(['error' => 'No data found for the specified combination.'], 404);
-        }
-
-        return response()->json(['inflasi_id' => $inflasi->id]);
+        return response()->json([
+            'error' => 'Internal server error',
+            'message' => $e->getMessage()
+        ], 500);
     }
+}
 
     public function update(Request $request, $id)
     {
@@ -280,6 +353,44 @@ class DataController extends Controller
             return redirect()->back()->with('success', 'Data added successfully.');
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Error adding data: ' . $e->getMessage());
+        }
+    }
+
+    public function confirmRekonsiliasi(Request $request)
+    {
+        // Log incoming data for debugging
+        \Log::info('Request data:', $request->all());
+
+        $validated = $request->validate([
+            'inflasi_ids' => 'required|array',
+            'inflasi_ids.*' => 'integer',
+            'bulan_tahun_ids' => 'required|array',
+            'bulan_tahun_ids.*' => 'integer',
+        ]);
+
+        try {
+            foreach ($validated['inflasi_ids'] as $index => $inflasi_id) {
+                Rekonsiliasi::create([
+                    'inflasi_id' => $inflasi_id,
+                    'bulan_tahun_id' => $validated['bulan_tahun_ids'][$index],
+                    'user_id' => null,
+                    'terakhir_diedit' => null,
+                    'alasan' => null,
+                    'detail' => null,
+                    'media' => null,
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Rekonsiliasi berhasil dikonfirmasi.'
+            ], 200);
+        } catch (\Exception $e) {
+            \Log::error('Rekonsiliasi failed:', ['error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Rekonsiliasi gagal: ' . $e->getMessage()
+            ], 500);
         }
     }
 }

@@ -63,13 +63,12 @@
 
     <x-slot name="sidebar">
         <form id="filter-form" x-ref="filterForm" method="GET" action="{{ route('data.edit') }}">
-            <div id="vizBuilderPanel" x-data="webData" x-init="init()" class="space-y-4 md:space-y-6 mt-4">
+            <div id="vizBuilderPanel" class="space-y-4 md:space-y-6 mt-4">
                 <!-- Bulan & Tahun -->
                 <div class="flex gap-4">
                     <div class="w-1/2">
                         <label class="block mb-2 text-sm font-medium text-gray-900">Bulan<span class="text-red-500 ml-1">*</span></label>
                         <select name="bulan" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
-                            <option value="">Pilih Bulan</option>
                             @foreach(['Januari' => '01', 'Februari' => '02', 'Maret' => '03', 'April' => '04', 'Mei' => '05', 'Juni' => '06', 'Juli' => '07', 'Agustus' => '08', 'September' => '09', 'Oktober' => '10', 'November' => '11', 'Desember' => '12'] as $nama => $bulan)
                                 <option value="{{ $bulan }}" @selected(request('bulan') == $bulan)>{{ $nama }}</option>
                             @endforeach
@@ -78,7 +77,6 @@
                     <div class="w-1/2">
                         <label class="block mb-2 text-sm font-medium text-gray-900">Tahun<span class="text-red-500 ml-1">*</span></label>
                         <select name="tahun" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
-                            <option value="">Pilih Tahun</option>
                             @for ($year = 2020; $year <= 2025; $year++)
                                 <option value="{{ $year }}" @selected(request('tahun') == $year)>{{ $year }}</option>
                             @endfor
@@ -90,7 +88,6 @@
                 <div>
                     <label class="block mb-2 text-sm font-medium text-gray-900">Level Harga<span class="text-red-500 ml-1">*</span></label>
                     <select name="kd_level" x-model="selectedKdLevel" @change="updateKdWilayah()" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
-                        <option value="">Pilih Level Harga</option>
                         <option value="01" @selected(request('kd_level') == '01')>Harga Konsumen Kota</option>
                         <option value="02" @selected(request('kd_level') == '02')>Harga Konsumen Desa</option>
                         <option value="03" @selected(request('kd_level') == '03')>Harga Perdagangan Besar</option>
@@ -190,7 +187,7 @@
                         <tr>
                             <th scope="col" class="px-6 py-3">Kode Komoditas</th>
                             <th scope="col" class="px-6 py-3">Komoditas</th>
-                            <th scope="col" class="px-6 py-3">Inflasi/RH</th>
+                            <th scope="col" class="px-6 py-3">Inflasi</th>
                             @if ($inflasi->first()->kd_wilayah == 0)
                                 <th scope="col" class="px-6 py-3">Andil</th>
                             @endif
