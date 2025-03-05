@@ -9,6 +9,8 @@ Alpine.data('webData', () => ({
     isPusat: false,
     kd_wilayah: '',
     item: { id: null, komoditas: '', harga: '', wilayah: '', levelHarga: '' },
+    sortColumn: '{{ request(\'sort\', \'kd_komoditas\') }}',
+    sortDirection: '{{ request(\'direction\', \'asc\') }}',
 
     async init() {
         try {
@@ -20,8 +22,7 @@ Alpine.data('webData', () => ({
             const komoditasResponse = await fetch('/api/komoditas');
             const komoditasData = await komoditasResponse.json();
             this.komoditas = komoditasData || [];
-            console.log('Provinces:', this.provinces);
-    console.log('Kabkots:', komoditasData);
+            console.log('here');
         } catch (error) {
             console.error('Failed to load data:', error);
         }

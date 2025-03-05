@@ -45,51 +45,105 @@ class DataController extends Controller
 
     public function edit(Request $request): View
     {
-        $query = Inflasi::query()->with('komoditas');
+        $response = [
+            'inflasi' => null,
+            'message' => 'Silakan isi filter di sidebar untuk menampilkan data inflasi.',
+            'status' => 'no_filters',
+            'bulan' => $request->input('bulan', ''),
+            'tahun' => $request->input('tahun', ''),
+            'kd_level' => $request->input('kd_level', ''),
+            'kd_wilayah' => $request->input('kd_wilayah', ''),
+            'kd_komoditas' => $request->input('kd_komoditas', ''),
+            'sort' => $request->input('sort', 'kd_komoditas'),
+            'direction' => $request->input('direction', 'asc'),
+        ];
 
-        // Apply filters if present
-        if ($request->filled('bulan') && $request->filled('tahun')) {
+        if ($request->filled('bulan') &&
+            $request->filled('tahun') &&
+            $request->filled('kd_level') &&
+            $request->filled('kd_wilayah')) {
+
+            $query = Inflasi::query()->with('komoditas');
+
             $bulanTahun = BulanTahun::where('bulan', $request->bulan)
                 ->where('tahun', $request->tahun)
                 ->first();
 
             if ($bulanTahun) {
-                $query->where('bulan_tahun_id', $bulanTahun->bulan_tahun_id); // Use 'bulan_tahun_id' explicitly
+                $query->where('bulan_tahun_id', $bulanTahun->bulan_tahun_id);
                 Log::info('BulanTahun found', ['bulan_tahun_id' => $bulanTahun->bulan_tahun_id]);
+
+                $query->where('kd_level', $request->kd_level);
+                $query->where('kd_wilayah', $request->kd_wilayah);
+
+                if ($request->filled('kd_komoditas')) {
+                    $query->where('kd_komoditas', $request->kd_komoditas);
+                }
+
+                $sortColumn = $request->input('sort', 'kd_komoditas');
+                $sortDirection = $request->input('direction', 'asc');
+                if (in_array($sortColumn, ['kd_komoditas', 'inflasi'])) {
+                    $query->orderBy($sortColumn, $sortDirection);
+                } else {
+                    $query->orderBy('kd_komoditas', 'asc');
+                }
+
+                Log::info('Filters applied', $request->all());
+                Log::info('SQL Query', ['query' => $query->toSql(), 'bindings' => $query->getBindings()]);
+
+                $inflasi = $query->paginate(25);
+                Log::info('Inflasi result', ['count' => $inflasi->count(), 'data' => $inflasi->toArray()]);
+
+                if ($inflasi->isEmpty()) {
+                    $response = [
+                        'inflasi' => $inflasi,
+                        'message' => 'Data tidak tersedia untuk filter yang dipilih.',
+                        'status' => 'no_data',
+                        'bulan' => $request->bulan,
+                        'tahun' => $request->tahun,
+                        'kd_level' => $request->kd_level,
+                        'kd_wilayah' => $request->kd_wilayah,
+                        'kd_komoditas' => $request->kd_komoditas,
+                        'sort' => $sortColumn,
+                        'direction' => $sortDirection,
+                    ];
+                } else {
+                    $response = [
+                        'inflasi' => $inflasi,
+                        'message' => 'Data ditemukan.',
+                        'status' => 'success',
+                        'bulan' => $request->bulan,
+                        'tahun' => $request->tahun,
+                        'kd_level' => $request->kd_level,
+                        'kd_wilayah' => $request->kd_wilayah,
+                        'kd_komoditas' => $request->kd_komoditas,
+                        'sort' => $sortColumn,
+                        'direction' => $sortDirection,
+                    ];
+                }
             } else {
                 Log::info('No BulanTahun found for', [
                     'bulan' => $request->bulan,
                     'tahun' => $request->tahun,
                 ]);
+                $response = [
+                    'inflasi' => collect(),
+                    'message' => 'Data tidak tersedia untuk bulan dan tahun yang dipilih.',
+                    'status' => 'no_data',
+                    'bulan' => $request->bulan,
+                    'tahun' => $request->tahun,
+                    'kd_level' => $request->kd_level,
+                    'kd_wilayah' => $request->kd_wilayah,
+                    'kd_komoditas' => $request->kd_komoditas,
+                    'sort' => $request->input('sort', 'kd_komoditas'),
+                    'direction' => $request->input('direction', 'asc'),
+                ];
             }
         } else {
-            Log::info('Missing bulan or tahun', $request->only(['bulan', 'tahun']));
+            Log::info('Missing required filters', $request->only(['bulan', 'tahun', 'kd_level', 'kd_wilayah']));
         }
 
-        if ($request->filled('kd_level')) {
-            $query->where('kd_level', $request->kd_level);
-        }
-        if ($request->filled('kd_wilayah')) {
-            $query->where('kd_wilayah', $request->kd_wilayah);
-        }
-        if ($request->filled('kd_komoditas')) {
-            $query->where('kd_komoditas', $request->kd_komoditas);
-        }
-
-        // Debug: Log the filters and SQL query
-        Log::info('Filters applied', $request->all());
-        Log::info('SQL Query', ['query' => $query->toSql(), 'bindings' => $query->getBindings()]);
-
-        // Fix syntax error in hasAny
-        $inflasi = $request->hasAny(['bulan', 'tahun', 'kd_level', 'kd_wilayah', 'kd_komoditas'])
-            ? $query->paginate(25)
-            : collect();
-
-        Log::info('Inflasi result', ['count' => $inflasi->count(), 'data' => $inflasi->toArray()]);
-
-        $komoditas = Komoditas::all();
-        return view('data.edit', compact('inflasi', 'komoditas'));
-
+        return view('data.edit', array_merge($response));
     }
 
     public function create(): View

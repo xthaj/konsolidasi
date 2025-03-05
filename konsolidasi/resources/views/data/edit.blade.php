@@ -61,100 +61,13 @@
         </form>
     </x-modal>
 
-    <!-- Tambah Harga Modal (Blade Component) -->
-    <x-modal name="tambah-harga" focusable title="{{ __('Tambah Harga') }}">
-        <!-- <form method="post" action="{{ route('data.store') }}" class="p-6">
-            @csrf
-
-            <div class="mt-4">
-                <x-input-label for="bulan" :value="__('Bulan')" />
-                <select id="bulan" name="bulan" class="mt-1 block w-full p-2.5 border-gray-300 rounded-lg" required>
-                    <option value="">Pilih Bulan</option>
-                    @foreach(['Januari' => '01', 'Februari' => '02', 'Maret' => '03', 'April' => '04', 'Mei' => '05', 'Juni' => '06', 'Juli' => '07', 'Agustus' => '08', 'September' => '09', 'Oktober' => '10', 'November' => '11', 'Desember' => '12'] as $nama => $bulan)
-                        <option value="{{ $bulan }}">{{ $nama }}</option>
-                    @endforeach
-                </select>
-                <x-input-error :messages="$errors->get('bulan')" class="mt-2" />
-            </div>
-
-            <div class="mt-4">
-                <x-input-label for="tahun" :value="__('Tahun')" />
-                <select id="tahun" name="tahun" class="mt-1 block w-full p-2.5 border-gray-300 rounded-lg" required>
-                    <option value="">Pilih Tahun</option>
-                    @for ($year = 2020; $year <= 2025; $year++)
-                        <option value="{{ $year }}">{{ $year }}</option>
-                    @endfor
-                </select>
-                <x-input-error :messages="$errors->get('tahun')" class="mt-2" />
-            </div>
-
-            <div class="mt-4">
-                <x-input-label for="kd_level" :value="__('Level Harga')" />
-                <select id="kd_level" name="kd_level" class="mt-1 block w-full p-2.5 border-gray-300 rounded-lg" required>
-                    <option value="">Pilih Level Harga</option>
-                    <option value="01">Harga Konsumen Kota</option>
-                    <option value="02">Harga Konsumen Desa</option>
-                    <option value="03">Harga Perdagangan Besar</option>
-                    <option value="04">Harga Produsen Desa</option>
-                    <option value="05">Harga Produsen</option>
-                </select>
-                <x-input-error :messages="$errors->get('kd_level')" class="mt-2" />
-            </div>
-
-            <div class="mt-4">
-                <x-input-label for="kd_wilayah" :value="__('Wilayah')" />
-                <select id="kd_wilayah" name="kd_wilayah" class="mt-1 block w-full p-2.5 border-gray-300 rounded-lg" required>
-                    <option value="">Pilih Wilayah</option>
-                    <option value="0">Nasional</option>
-                    <template x-for="province in provinces" :key="province.kd_wilayah">
-                        <option :value="province.kd_wilayah" x-text="province.nama_wilayah"></option>
-                    </template>
-                </select>
-                <x-input-error :messages="$errors->get('kd_wilayah')" class="mt-2" />
-            </div>
-
-            <div class="mt-4">
-                <x-input-label for="kd_komoditas" :value="__('Komoditas')" />
-                <select id="kd_komoditas" name="kd_komoditas" class="mt-1 block w-full p-2.5 border-gray-300 rounded-lg" required>
-                    <option value="">Pilih Komoditas</option>
-                    <template x-for="komoditi in komoditas" :key="komoditi.kd_komoditas">
-                        <option :value="komoditi.kd_komoditas" x-text="komoditi.nama_komoditas"></option>
-                    </template>
-                </select>
-                <x-input-error :messages="$errors->get('kd_komoditas')" class="mt-2" />
-            </div>
-
-            <div class="mt-4">
-                <x-input-label for="harga" :value="__('Nilai Inflasi')" />
-                <x-text-input
-                    id="harga"
-                    name="harga"
-                    type="text"
-                    class="mt-1 block w-full"
-                    required
-                />
-                <x-input-error :messages="$errors->get('harga')" class="mt-2" />
-            </div>
-
-            <div class="mt-6 flex justify-end">
-                <x-secondary-button x-on:click="$dispatch('close')">
-                    {{ __('Cancel') }}
-                </x-secondary-button>
-
-                <x-primary-button class="ms-3">
-                    {{ __('Tambah Harga') }}
-                </x-primary-button>
-            </div>
-        </form> -->
-    </x-modal>
-
     <x-slot name="sidebar">
-        <form id="filter-form" method="GET" action="{{ route('data.edit') }}">
+        <form id="filter-form" x-ref="filterForm" method="GET" action="{{ route('data.edit') }}">
             <div id="vizBuilderPanel" x-data="webData" x-init="init()" class="space-y-4 md:space-y-6 mt-4">
                 <!-- Bulan & Tahun -->
                 <div class="flex gap-4">
                     <div class="w-1/2">
-                        <label class="block mb-2 text-sm font-medium text-gray-900">Bulan</label>
+                        <label class="block mb-2 text-sm font-medium text-gray-900">Bulan<span class="text-red-500 ml-1">*</span></label>
                         <select name="bulan" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                             <option value="">Pilih Bulan</option>
                             @foreach(['Januari' => '01', 'Februari' => '02', 'Maret' => '03', 'April' => '04', 'Mei' => '05', 'Juni' => '06', 'Juli' => '07', 'Agustus' => '08', 'September' => '09', 'Oktober' => '10', 'November' => '11', 'Desember' => '12'] as $nama => $bulan)
@@ -163,7 +76,7 @@
                         </select>
                     </div>
                     <div class="w-1/2">
-                        <label class="block mb-2 text-sm font-medium text-gray-900">Tahun</label>
+                        <label class="block mb-2 text-sm font-medium text-gray-900">Tahun<span class="text-red-500 ml-1">*</span></label>
                         <select name="tahun" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                             <option value="">Pilih Tahun</option>
                             @for ($year = 2020; $year <= 2025; $year++)
@@ -175,7 +88,7 @@
 
                 <!-- Level Harga -->
                 <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-900">Level Harga</label>
+                    <label class="block mb-2 text-sm font-medium text-gray-900">Level Harga<span class="text-red-500 ml-1">*</span></label>
                     <select name="kd_level" x-model="selectedKdLevel" @change="updateKdWilayah()" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                         <option value="">Pilih Level Harga</option>
                         <option value="01" @selected(request('kd_level') == '01')>Harga Konsumen Kota</option>
@@ -198,7 +111,7 @@
 
                     <!-- Provinsi Dropdown -->
                 <div x-show="!isPusat" class="mb-4">
-                    <label class="block mb-2 text-sm font-medium text-gray-900">Provinsi</label>
+                    <label class="block mb-2 text-sm font-medium text-gray-900">Provinsi<span class="text-red-500 ml-1">*</span></label>
                     <select x-model="selectedProvince" @change="selectedKabkot = ''; updateKdWilayah()" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                         <option value="" selected>Pilih Provinsi</option>
                         <template x-for="province in provinces" :key="province.kd_wilayah">
@@ -209,7 +122,7 @@
 
                 <!-- Kabkot Dropdown -->
                 <div x-show="!isPusat && selectedKdLevel === '01'" class="mb-4">
-                    <label class="block mb-2 text-sm font-medium text-gray-900">Kabupaten/Kota</label>
+                    <label class="block mb-2 text-sm font-medium text-gray-900">Kabupaten/Kota<span class="text-red-500 ml-1">*</span></label>
                     <select x-model="selectedKabkot" @change="updateKdWilayah()" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                         <option value="" selected>Pilih Kabupaten/Kota</option>
                         <template x-for="kabkot in filteredKabkots" :key="kabkot.kd_wilayah">
@@ -236,6 +149,24 @@
                     </select>
                 </div>
 
+                <!-- Sorting (Optional, defaults to kd_komoditas ascending) -->
+                <div class="flex gap-4">
+                    <div class="w-1/2">
+                        <label class="block mb-2 text-sm font-medium text-gray-900">Urut Berdasarkan</label>
+                        <select name="sort" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
+                            <option value="kd_komoditas" {{ $sort === 'kd_komoditas' ? 'selected' : '' }}>Kode Komoditas</option>
+                            <option value="inflasi" {{ $sort === 'inflasi' ? 'selected' : '' }}>Nilai Inflasi</option>
+                        </select>
+                    </div>
+                    <div class="w-1/2">
+                        <label class="block mb-2 text-sm font-medium text-gray-900">Pengurutan</label>
+                        <select name="direction" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
+                            <option value="asc" {{ $direction === 'asc' ? 'selected' : '' }}>Naik</option>
+                            <option value="desc" {{ $direction === 'desc' ? 'selected' : '' }}>Turun</option>
+                        </select>
+                    </div>
+                </div>
+
                 <!-- Buttons -->
                 <button type="submit" class="w-full bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 text-white font-medium rounded-lg text-sm px-5 py-2.5 text-center">Tampilkan</button>
                 <!-- <button type="button" x-on:click="$dispatch('open-modal', 'tambah-harga')" class="w-full bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 text-white font-medium rounded-lg text-sm px-5 py-2.5 text-center">Tambah</button> -->
@@ -243,7 +174,15 @@
         </form>
     </x-slot>
 
-    @if($inflasi->isNotEmpty())
+    @if($status === 'no_filters')
+        <div class="bg-white px-6 py-4 rounded-lg shadow-sm text-center text-gray-500">
+            {{ $message }}
+        </div>
+    @elseif($status === 'no_data')
+        <div class="bg-white px-6 py-4 rounded-lg shadow-sm text-center text-gray-500">
+            {{ $message }}
+        </div>
+    @elseif($status === 'success')
         <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
             <div class="relative overflow-x-auto shadow-md sm:rounded-lg">
                 <table class="w-full text-sm text-left rtl:text-right text-gray-500">
@@ -259,7 +198,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($inflasi as $item)
+                        @foreach($inflasi as $item)
                             <tr class="bg-white border-b border-gray-200">
                                 <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
                                     {{ $item->kd_komoditas }}
@@ -281,13 +220,15 @@
                                     </button>
                                 </td>
                             </tr>
+                        @endforeach
                     </tbody>
                 </table>
             </div>
         </div>
-
         <div class="mt-4">
             {{ $inflasi->appends(request()->query())->links() }}
         </div>
     @endif
+
+</div>
 </x-two-panel-layout>
