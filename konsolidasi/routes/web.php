@@ -5,9 +5,12 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\VisualisasiController;
 use App\Http\Controllers\RekonsiliasiController;
 use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\KomoditasController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Log;
 use App\Http\Middleware\isPusat;
+use App\Models\BulanTahun;
 use App\Models\Komoditas;
 use App\Models\Wilayah;
 use Illuminate\Support\Facades\Cache;
@@ -33,6 +36,9 @@ Route::middleware(['pusat'])->group(function () {
     Route::patch('/data/update/{id}', [DataController::class, 'update'])->name('data.update');
 });
 
+//Bulan tahun
+
+
 // Rekonsiliasi
 Route::get('/rekonsiliasi/pemilihan', [RekonsiliasiController::class, 'pemilihan'])->name('rekon.pemilihan');
 Route::get('/rekonsiliasi/progres', [RekonsiliasiController::class, 'progres'])->name('rekon.progres');
@@ -42,9 +48,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::get('/pengaturan', [DataController::class, 'pengaturan'])->name('pengaturan');
 });
 
 // APIs
+
+
 Route::get('/api/wilayah', function () {
     Log::info('Wilayah data NOT fetched from database', ['timestamp' => now()]);
     $data = Cache::rememberForever('wilayah_data', function () {
@@ -58,6 +67,15 @@ Route::get('/api/wilayah', function () {
     return response()->json($data);
 });
 
+// Komoditas
+// add komoditas
+// edit komo
+
+
+Route::post('/komoditas', [KomoditasController::class, 'store']); // Add Komoditas
+Route::put('/komoditas/{kd_komoditas}', [KomoditasController::class, 'update']); // Edit Komoditas
+Route::delete('/komoditas/{kd_komoditas}', [KomoditasController::class, 'destroy']); // Delete Komoditas
+
 Route::get('/api/komoditas', function () {
     Log::info('Komoditas data NOT fetched from database', ['timestamp' => now()]);
     $data = Cache::rememberForever('komoditas_data', function () {
@@ -69,10 +87,24 @@ Route::get('/api/komoditas', function () {
     return response()->json($data);
 });
 
+Route::get('/api/bulan_tahun', function () {
+    Log::info('BT aktif data NOT fetched from database', ['timestamp' => now()]);
+    $data = Cache::remember('bt_aktif', now()->addWeek(), function () {
+        Log::info('BT aktif fetched from database', ['timestamp' => now()]);
+        return [
+            'bt_aktif' => BulanTahun::where('aktif',1 )->first(),
+            'tahun' => BulanTahun::pluck('tahun')->unique()->all(),
+        ];
+
+    });
+
+    return response()->json($data);
+});
+
+Route::post('/update-bulan-tahun', [DataController::class, 'updateBulanTahun']);
+
 Route::get('/api/check-username', [RegisteredUserController::class, 'checkUsername']);
 
 Route::post('/api/inflasi-id', [DataController::class, 'findInflasiId']);
-
-
 
 require __DIR__.'/auth.php';

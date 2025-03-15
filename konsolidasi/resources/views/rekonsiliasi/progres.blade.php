@@ -1,4 +1,10 @@
-<x-app-layout>
+@extends('layouts.app')
+
+@section('vite')
+    @vite(['resources/css/app.css', 'resources/js/app.js', ])
+@endsection
+
+@section("content")
 <div x-data="webData">
     <!-- Main modal -->
     <div id="authentication-modal" x-show="modalOpen" @click.away="closeModal()" class="fixed inset-0 z-50 flex justify-center items-center w-full h-full bg-black bg-opacity-50">
@@ -243,4 +249,4 @@
         }));
     });
 </script>
-</x-app-layout>
+@endsection

@@ -1,4 +1,9 @@
 <x-two-panel-layout>
+
+@section('vite')
+    @vite(['resources/css/app.css', 'resources/js/alpine-init.js', 'resources/js/pemilihan.js', 'resources/js/alpine-start.js'])
+@endsection
+
     <x-slot name="sidebar">
         <div id="vizBuilderPanel" class="space-y-4 md:space-y-6 mt-4">
             <!-- Bulan & Tahun (Now in One Row) -->
@@ -70,25 +75,52 @@
     </x-slot>
 
     <div id="visualizationCanvas" class="w-full p-4 md:overflow-y-auto md:h-full transition-all duration-300 dark:bg-gray-900" :class="{ 'md:w-full': !isBuilderVisible }">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 lg:col-span-2 ">
+        <div class="grid grid-cols-1 md:grid-cols-10 gap-4">
+            <!-- Big Div: Inflasi Chart -->
+            <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
                 <button onclick="toggleFullscreen('multiAxisChart')" class="absolute top-2 right-2 p-2 hover:text-gray-200 text:hover:bg-gray-700">
                     <span id="fullscreenIconMultiAxisChart" class="material-symbols-outlined text-xl">fullscreen</span>
                 </button>
                 <button class="absolute top-2 right-12 p-2 hover:text-gray-200 text:hover:bg-gray-700">
                     <span class="material-symbols-outlined text-xl">download</span>
                 </button>
-
                 <h3 class="text-lg font-bold">Inflasi</h3>
                 <div class="flex justify-end space-x-2 mb-2">
                     <button onclick="showInflasiLine()" class="bg-blue-500 text-white px-4 py-2 rounded">Show Inflasi</button>
                     <button onclick="showAndilLine()" class="bg-green-500 text-white px-4 py-2 rounded">Show Andil</button>
-                    <button onclick="showBothLine()" class="bg-gray-500 text-white px-4 py-2 rounded">Show Both</button>
                 </div>
                 <canvas id="multiAxisChart" class="w-full max-h-96 md:h-auto"></canvas>
             </div>
 
-            <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 lg:col-span-2 xl:col-span-3">
+            <!-- 5 Mini Divs for Price Levels -->
+            <div class="bg-white p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-2">
+                <h4 class="text-md font-semibold">Harga Konsumen Kota</h4>
+                <p>Inflasi: <span class="font-bold">2.5%</span></p>
+                <p>Andil: <span class="font-bold">0.8%</span></p>
+            </div>
+            <div class="bg-white p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-2">
+                <h4 class="text-md font-semibold">Harga Konsumen Desa</h4>
+                <p>Inflasi: <span class="font-bold">2.1%</span></p>
+                <p>Andil: <span class="font-bold">0.6%</span></p>
+            </div>
+            <div class="bg-white p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-2">
+                <h4 class="text-md font-semibold">Harga Perdagangan Besar</h4>
+                <p>Inflasi: <span class="font-bold">3.0%</span></p>
+                <p>Andil: <span class="font-bold">1.2%</span></p>
+            </div>
+            <div class="bg-white p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-2">
+                <h4 class="text-md font-semibold">Harga Produsen Desa</h4>
+                <p>Inflasi: <span class="font-bold">1.8%</span></p>
+                <p>Andil: <span class="font-bold">0.5%</span></p>
+            </div>
+            <div class="bg-white p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-2">
+                <h4 class="text-md font-semibold">Harga Produsen</h4>
+                <p>Inflasi: <span class="font-bold">2.7%</span></p>
+                <p>Andil: <span class="font-bold">0.9%</span></p>
+            </div>
+
+            <!-- Big Div: Horizontal Bar Chart -->
+            <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
                 <button onclick="toggleFullscreen('horizontalBarChart')" class="absolute top-2 right-2 p-2 hover:text-gray-200 text:hover:bg-gray-700">
                     <span id="fullscreenIconHorizontalBarChart" class="material-symbols-outlined text-xl">fullscreen</span>
                 </button>
@@ -99,7 +131,8 @@
                 <canvas id="horizontalBarChart" class="w-full max-h-96 md:h-auto"></canvas>
             </div>
 
-            <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 lg:col-span-2 xl:col-span-3">
+            <!-- Big Div: Stacked Bar Chart -->
+            <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
                 <button onclick="toggleFullscreen('stackedBarChart')" class="absolute top-2 right-2 p-2 hover:text-gray-200 text:hover:bg-gray-700">
                     <span id="fullscreenIconStackedBarChart" class="material-symbols-outlined text-xl">fullscreen</span>
                 </button>
@@ -110,8 +143,9 @@
                 <canvas id="stackedBarChart" class="w-full max-h-96 md:h-auto"></canvas>
             </div>
 
-            <div class="flex gap-8 items-center bg-primary-700 md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 lg:col-span-2 xl:col-span-3">
-                <h3 class="flex-1 text-white  text-lg font-bold">Level Harga</h3>
+            <!-- Dropdown Div -->
+            <div class="flex gap-8 items-center bg-primary-700 md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
+                <h3 class="flex-1 text-white text-lg font-bold">Level Harga</h3>
                 <select class="w-64 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                     <option>Harga Konsumen Kota</option>
                     <option>Harga Konsumen Desa</option>
@@ -121,33 +155,34 @@
                 </select>
             </div>
 
-            <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800">
-
+            <!-- Inflasi Provinsi Bar -->
+            <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-5">
                 <h3 class="text-lg font-bold flex items-end gap-1">
                     Inflasi Provinsi
                     <span class="material-symbols-outlined text-base">swap_vert</span>
                 </h3>
                 <div class="max-h-64 overflow-y-auto">
-                    <div class="h-[1000px]"> <!-- Set a large height to make it scrollable -->
+                    <div class="h-[1000px]">
                         <canvas id="rankBarChartProvinsi" class="w-full h-full"></canvas>
                     </div>
                 </div>
             </div>
 
-            <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800">
-
+            <!-- Inflasi Kabupaten/Kota Bar -->
+            <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-5">
                 <h3 class="text-lg font-bold flex items-end gap-1">
                     Inflasi Kabupaten/Kota
                     <span class="material-symbols-outlined text-base">swap_vert</span>
                 </h3>
                 <div class="max-h-64 overflow-y-auto">
-                    <div class="h-[1000px]"> <!-- Set a large height to make it scrollable -->
+                    <div class="h-[1000px]">
                         <canvas id="rankBarChartProvinsi2" class="w-full h-full"></canvas>
                     </div>
                 </div>
             </div>
 
-            <div class="col-span-3 bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800">
+            <!-- Big Div: Map Provinsi -->
+            <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
                 <button onclick="toggleFullscreenMap('map')" class="absolute top-2 right-2 p-2 hover:text-gray-200 text:hover:bg-gray-700">
                     <span id="fullscreenIconMap" class="material-symbols-outlined text-xl">fullscreen</span>
                 </button>
@@ -158,7 +193,8 @@
                 <div id="map" class="h-64"></div>
             </div>
 
-            <div class="col-span-3 bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800">
+            <!-- Big Div: Map Kabkot -->
+            <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
                 <button onclick="toggleFullscreenMap('map2')" class="absolute top-2 right-2 p-2 hover:text-gray-200 text:hover:bg-gray-700">
                     <span id="fullscreenIconMap2" class="material-symbols-outlined text-xl">fullscreen</span>
                 </button>
@@ -653,19 +689,19 @@
             datasets: [
                 {
                     label: "Naik (↑)",
-                    data: [20, 40, 35, 20, 30], // Values for each harga level
+                    data: [20, 47, 35, 20, 30], // Values for each harga level
                     backgroundColor: "#36a2eb", // Blue
                     stack: "stack1"
                 },
                 {
                     label: "Stabil (-)",
-                    data: [35, 30, 40, 30, 30], // Values for each harga level
+                    data: [35, 30, 40, 22, 30], // Values for each harga level
                     backgroundColor: "#4bc0c0", // Green
                     stack: "stack1"
                 },
                 {
                     label: "Menurun (↓)",
-                    data: [45, 30, 25, 50, 40], // Values for each harga level
+                    data: [45, 4, 25, 50, 40], // Values for each harga level
                     backgroundColor: "red", // Red
                     stack: "stack1"
                 },

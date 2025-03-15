@@ -4,37 +4,37 @@
     @vite(['resources/css/app.css', 'resources/js/alpine-init.js', 'resources/js/pemilihan.js', 'resources/js/alpine-start.js'])
 @endsection
 
-<!-- Edit Harga Modal (Blade Component) -->
+<!-- Modals -->
 <x-modal name="confirm-add" focusable title="Konfirmasi Penambahan Data">
-            <div class="px-6 py-4">
-                <p x-show="modalContent.success" x-text="`Tambah ${modalContent.items.length} item?`"></p>
-                <div x-show="!modalContent.success">
-                    <p class="text-red-600">Beberapa data tidak ditemukan:</p>
-                    <ul class="list-disc pl-5 mt-2">
-                        <template x-for="missing in modalContent.missingItems" :key="missing">
-                            <li x-text="missing"></li>
-                        </template>
-                    </ul>
-                </div>
-                <div class="mt-6 flex justify-end gap-3">
-                    <x-secondary-button x-on:click="$dispatch('close')">Batal</x-secondary-button>
-                    <x-primary-button x-show="modalContent.success" @click="confirmAddToTable">Tambah</x-primary-button>
-                </div>
-            </div>
-        </x-modal>
+    <div class="px-6 py-4">
+        <p x-show="modalContent.success" x-text="`Tambah ${modalContent.items.length} item?`"></p>
+        <div x-show="!modalContent.success">
+            <p class="text-red-600">Beberapa data tidak ditemukan:</p>
+            <ul class="list-disc pl-5 mt-2">
+                <template x-for="missing in modalContent.missingItems" :key="missing">
+                    <li x-text="missing"></li>
+                </template>
+            </ul>
+        </div>
+        <div class="mt-6 flex justify-end gap-3">
+            <x-secondary-button x-on:click="$dispatch('close')">Batal</x-secondary-button>
+            <x-primary-button x-show="modalContent.success" @click="confirmAddToTable">Tambah</x-primary-button>
+        </div>
+    </div>
+</x-modal>
 
-        <x-modal name="error-modal" focusable title="Kesalahan">
-            <div class="px-6 py-4">
-                <div x-show="!modalContent.success">
-                    <p class="text-red-600">Pilih minimal satu provinsi atau kabupaten</p>
-                </div>
-                <div class="mt-6 flex justify-end gap-3">
-                    <x-secondary-button x-on:click="$dispatch('close')">Mengerti</x-secondary-button>
-                </div>
-            </div>
-        </x-modal>
+<x-modal name="error-modal" focusable title="Kesalahan">
+    <div class="px-6 py-4">
+        <div x-show="!modalContent.success">
+            <p class="text-red-600">Pilih minimal satu provinsi atau kabupaten</p>
+        </div>
+        <div class="mt-6 flex justify-end gap-3">
+            <x-secondary-button x-on:click="$dispatch('close')">Mengerti</x-secondary-button>
+        </div>
+    </div>
+</x-modal>
 
-
+<!-- sidebar -->
 <x-slot name="sidebar">
     <div class="space-y-4 md:space-y-6 mt-4">
         <!-- Bulan & Tahun -->
@@ -71,77 +71,77 @@
             </select>
         </div>
 
-<!-- Wilayah: Provinsi -->
-<div>
-    <div class="flex justify-between items-center mb-2">
-        <label class="text-sm font-medium text-gray-900 dark:text-white">Provinsi</label>
-        <div class="flex items-center p-2 rounded-sm hover:bg-gray-100 dark:hover:bg-gray-600">
-            <input type="checkbox" id="select-all-provinces" :checked="selectAllProvincesChecked" @click="selectAllProvinces($event.target.checked)" class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-primary-500 dark:focus:ring-primary-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500">
-            <label for="select-all-provinces" class="w-full ms-2 text-sm font-medium text-gray-900 rounded-sm dark:text-gray-300">Pilih Semua</label>
-        </div>
-    </div>
-
-    <div class="bg-white rounded-lg shadow-sm w-full border border-gray-300 dark:bg-gray-700 dark:border-gray-600">
-        <div class="p-3">
-            <label for="input-group-search-provinsi" class="sr-only">Search</label>
-            <div class="relative">
-                <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
-                    <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
-                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
-                    </svg>
-                </div>
-                <input type="text" id="input-group-search-provinsi" @input="searchProvince($event.target.value)" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full ps-10 p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" placeholder="Search provinsi">
+    <!-- Wilayah: Provinsi -->
+    <div>
+        <div class="flex justify-between items-center mb-2">
+            <label class="text-sm font-medium text-gray-900 dark:text-white">Provinsi</label>
+            <div class="flex items-center p-2 rounded-sm hover:bg-gray-100 dark:hover:bg-gray-600">
+                <input type="checkbox" id="select-all-provinces" :checked="selectAllProvincesChecked" @click="selectAllProvinces($event.target.checked)" class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-primary-500 dark:focus:ring-primary-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500">
+                <label for="select-all-provinces" class="w-full ms-2 text-sm font-medium text-gray-900 rounded-sm dark:text-gray-300">Pilih Semua</label>
             </div>
         </div>
-        <ul class="max-h-48 px-3 pb-3 overflow-y-auto text-sm text-gray-700 dark:text-gray-200">
-            <template x-for="provinsi in filteredProvinces" :key="provinsi.kd_wilayah">
-                <li>
-                    <div class="flex items-center p-2 rounded-sm hover:bg-gray-100 dark:hover:bg-gray-600">
-                        <input type="checkbox" :id="'provinsi-' + provinsi.kd_wilayah" :checked="selectedProvinces.some(p => p.kd_wilayah === provinsi.kd_wilayah)" @click="toggleProvince(provinsi)" class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-primary-500 dark:focus:ring-primary-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500">
-                        <label :for="'provinsi-' + provinsi.kd_wilayah" class="w-full ms-2 text-sm font-medium text-gray-900 rounded-sm dark:text-gray-300" x-text="provinsi.nama_wilayah"></label>
-                    </div>
-                </li>
-            </template>
-        </ul>
-    </div>
-</div>
 
-<!-- Wilayah: Kabupaten/Kota -->
-<div x-show="selectedKdLevel === '01'" class="mb-4">
-    <div class="flex justify-between items-center mb-2">
-        <label class="text-sm font-medium text-gray-900 dark:text-white">Kabupaten/Kota</label>
-        <div class="flex items-center p-2 rounded-sm hover:bg-gray-100 dark:hover:bg-gray-600">
-            <input type="checkbox" id="select-all-kabkots" :checked="selectAllKabkotsChecked" @click="selectAllKabkots($event.target.checked)" class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-primary-500 dark:focus:ring-primary-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500">
-            <label for="select-all-kabkots" class="w-full ms-2 text-sm font-medium text-gray-900 rounded-sm dark:text-gray-300">Pilih Semua</label>
+        <div class="bg-white rounded-lg shadow-sm w-full border border-gray-300 dark:bg-gray-700 dark:border-gray-600">
+            <div class="p-3">
+                <label for="input-group-search-provinsi" class="sr-only">Search</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
+                        <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
+                        </svg>
+                    </div>
+                    <input type="text" id="input-group-search-provinsi" @input="searchProvince($event.target.value)" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full ps-10 p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" placeholder="Search provinsi">
+                </div>
+            </div>
+            <ul class="max-h-48 px-3 pb-3 overflow-y-auto text-sm text-gray-700 dark:text-gray-200">
+                <template x-for="provinsi in filteredProvinces" :key="provinsi.kd_wilayah">
+                    <li>
+                        <div class="flex items-center p-2 rounded-sm hover:bg-gray-100 dark:hover:bg-gray-600">
+                            <input type="checkbox" :id="'provinsi-' + provinsi.kd_wilayah" :checked="selectedProvinces.some(p => p.kd_wilayah === provinsi.kd_wilayah)" @click="toggleProvince(provinsi)" class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-primary-500 dark:focus:ring-primary-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500">
+                            <label :for="'provinsi-' + provinsi.kd_wilayah" class="w-full ms-2 text-sm font-medium text-gray-900 rounded-sm dark:text-gray-300" x-text="provinsi.nama_wilayah"></label>
+                        </div>
+                    </li>
+                </template>
+            </ul>
         </div>
     </div>
 
-    <div class="bg-white rounded-lg shadow-sm w-full border border-gray-300 dark:bg-gray-700 dark:border-gray-600">
-        <div class="p-3">
-            <label for="input-group-search-kabkot" class="sr-only">Search</label>
-            <div class="relative">
-                <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
-                    <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
-                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
-                    </svg>
-                </div>
-                <input type="text" id="input-group-search-kabkot" @input="searchKabkot($event.target.value)" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full ps-10 p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" placeholder="Search kabupaten/kota">
+    <!-- Wilayah: Kabupaten/Kota -->
+    <div x-show="selectedKdLevel === '01'" class="mb-4">
+        <div class="flex justify-between items-center mb-2">
+            <label class="text-sm font-medium text-gray-900 dark:text-white">Kabupaten/Kota</label>
+            <div class="flex items-center p-2 rounded-sm hover:bg-gray-100 dark:hover:bg-gray-600">
+                <input type="checkbox" id="select-all-kabkots" :checked="selectAllKabkotsChecked" @click="selectAllKabkots($event.target.checked)" class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-primary-500 dark:focus:ring-primary-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500">
+                <label for="select-all-kabkots" class="w-full ms-2 text-sm font-medium text-gray-900 rounded-sm dark:text-gray-300">Pilih Semua</label>
             </div>
         </div>
-        <ul class="max-h-48 px-3 pb-3 overflow-y-auto text-sm text-gray-700 dark:text-gray-200">
-            <template x-for="kabkot in filteredKabkots" :key="kabkot.kd_wilayah">
-                <li>
-                    <div class="flex items-center p-2 rounded-sm hover:bg-gray-100 dark:hover:bg-gray-600">
-                        <input type="checkbox" :id="'kabkot-' + kabkot.kd_wilayah" :checked="selectedKabkots.some(k => k.kd_wilayah === kabkot.kd_wilayah)" @click="toggleKabkot(kabkot)" class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-primary-500 dark:focus:ring-primary-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500">
-                        <label :for="'kabkot-' + kabkot.kd_wilayah" class="w-full ms-2 text-sm font-medium text-gray-900 rounded-sm dark:text-gray-300" x-text="kabkot.nama_wilayah"></label>
-                    </div>
-                </li>
-            </template>
-        </ul>
-    </div>
-</div>
 
-<!-- Komoditas -->
+        <div class="bg-white rounded-lg shadow-sm w-full border border-gray-300 dark:bg-gray-700 dark:border-gray-600">
+            <div class="p-3">
+                <label for="input-group-search-kabkot" class="sr-only">Search</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
+                        <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
+                        </svg>
+                    </div>
+                    <input type="text" id="input-group-search-kabkot" @input="searchKabkot($event.target.value)" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full ps-10 p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" placeholder="Search kabupaten/kota">
+                </div>
+            </div>
+            <ul class="max-h-48 px-3 pb-3 overflow-y-auto text-sm text-gray-700 dark:text-gray-200">
+                <template x-for="kabkot in filteredKabkots" :key="kabkot.kd_wilayah">
+                    <li>
+                        <div class="flex items-center p-2 rounded-sm hover:bg-gray-100 dark:hover:bg-gray-600">
+                            <input type="checkbox" :id="'kabkot-' + kabkot.kd_wilayah" :checked="selectedKabkots.some(k => k.kd_wilayah === kabkot.kd_wilayah)" @click="toggleKabkot(kabkot)" class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-primary-500 dark:focus:ring-primary-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500">
+                            <label :for="'kabkot-' + kabkot.kd_wilayah" class="w-full ms-2 text-sm font-medium text-gray-900 rounded-sm dark:text-gray-300" x-text="kabkot.nama_wilayah"></label>
+                        </div>
+                    </li>
+                </template>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Komoditas -->
         <div>
             <div class="flex justify-between items-center mb-2">
                 <label class="text-sm font-medium text-gray-900 dark:text-white">Komoditas</label>
@@ -186,7 +186,7 @@
                 </div>
             </template>
             <button type="submit" class="w-full bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 text-white font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">Konfirmasi Rekonsiliasi</button>
-</form>
+        </form>
     </div>
 </x-slot>
 
@@ -241,4 +241,3 @@
     </div>
 </div>
 </x-two-panel-layout>
-

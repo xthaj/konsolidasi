@@ -14,6 +14,7 @@
                     request()->routeIs('rekon.pemilihan') => 'Pemilihan Rekonsiliasi',
                     request()->routeIs('rekon.progres') => 'Progres Rekonsiliasi',
                     request()->routeIs('profile.edit') => 'Akun',
+                    request()->routeIs('settings') => 'Pengaturan',
                     default => 'Beranda'
                 };
             @endphp
@@ -60,6 +61,7 @@
                         </ul>
                     </div>
                 </li>
+
             @endif
                 <li>
                     <button id="dropdownNavbarLink3" data-dropdown-toggle="dropdownRekon" class="flex items-center justify-between w-full py-2 px-3 rounded-sm md:p-0 md:w-auto {{ request()->routeIs('rekon.pemilihan') || request()->routeIs('rekon.progres') ? 'text-primary-700 dark:text-primary-500' : 'text-gray-900 hover:bg-gray-100 md:hover:bg-transparent md:hover:text-primary-700 dark:text-white md:dark:hover:text-primary-500 dark:hover:bg-gray-700 dark:hover:text-white' }}">Rekonsiliasi
@@ -80,6 +82,14 @@
                         </ul>
                     </div>
                 </li>
+
+            @if (auth()->user()->isPusat())
+                <li>
+                    <a href="{{ route('pengaturan') }}" class="block py-2 px-3 rounded-sm md:p-0 {{ request()->routeIs('pengaturan') ? 'text-white bg-primary-700 md:bg-transparent md:text-primary-700 dark:text-white md:dark:text-primary-500' : 'text-gray-900 hover:bg-gray-100 md:hover:bg-transparent md:hover:text-primary-700 dark:text-white md:dark:hover:text-primary-500 dark:hover:bg-gray-700 dark:hover:text-white' }}" aria-current="page">Pengaturan</a>
+                </li>
+            @endif
+
+
                 <li>
                     <button id="dropdownNavbarLink4" data-dropdown-toggle="dropdownAkun" class="flex items-center justify-between w-full py-2 px-3 rounded-sm md:p-0 md:w-auto {{ request()->routeIs('profile.edit') ? 'text-primary-700 dark:text-primary-500' : 'text-gray-900 hover:bg-gray-100 md:hover:bg-transparent md:hover:text-primary-700 dark:text-white md:dark:hover:text-primary-500 dark:hover:bg-gray-700 dark:hover:text-white' }}">Akun
                         <svg class="w-2.5 h-2.5 ms-2.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
@@ -100,6 +110,7 @@
                         </ul>
                     </div>
                 </li>
+
             </ul>
         </div>
     </div>

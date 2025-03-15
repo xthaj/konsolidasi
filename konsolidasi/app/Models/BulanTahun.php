@@ -10,6 +10,7 @@ class BulanTahun extends Model
     use HasFactory;
 
     protected $table = 'bulan_tahun';
+    protected $primaryKey = 'bulan_tahun_id';
     protected $fillable = ['bulan', 'tahun','aktif'];
 
     public function inflasi()
