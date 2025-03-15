@@ -14,6 +14,9 @@ use App\Models\BulanTahun;
 use App\Models\Komoditas;
 use App\Models\Wilayah;
 use Illuminate\Support\Facades\Cache;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\KomoditasExport;
+use App\Exports\WilayahExport;
 
 // Route::get('/', function () {
 //     return view('welcome');
@@ -85,6 +88,15 @@ Route::get('/api/komoditas', function () {
     });
 
     return response()->json($data);
+});
+
+
+Route::get('/komoditas/export', function () {
+    return Excel::download(new KomoditasExport, 'master_komoditas.xlsx');
+});
+
+Route::get('/wilayah/export', function () {
+    return Excel::download(new WilayahExport, 'master_wilayah.xlsx');
 });
 
 Route::get('/api/bulan_tahun', function () {

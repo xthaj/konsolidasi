@@ -35,10 +35,22 @@
                         </div>
                     @endif
 
-                    <!-- Download Template -->
-                    <a href="#" class="text-primary-600 hover:underline font-medium">
-                        Download Template
-                    </a>
+                    <div class="gap-4">
+                        <!-- Download Template -->
+                         <p>Download</p>
+                        <a href="#" class="text-primary-600 hover:underline font-medium">
+                            Template
+                        </a>
+
+                        <a href="/komoditas/export" class="text-primary-600 hover:underline font-medium">
+                            Master Komoditas
+                        </a>
+
+                        <a href="/wilayah/export" class="text-primary-600 hover:underline font-medium">
+                            Master Wilayah
+                        </a>
+                    </div>
+
 
                     <!-- Upload Form -->
                     <form action="{{ route('data.upload') }}" method="POST" enctype="multipart/form-data">

@@ -21,7 +21,7 @@
 
         confirmMessage: '',
         confirmDetails: null,
-        confirmAction: null, // Callback to execute on "OK"
+        confirmAction: null,
 
         get isActivePeriod() {
             return this.bulan === this.activeBulan && this.tahun === this.activeTahun;
