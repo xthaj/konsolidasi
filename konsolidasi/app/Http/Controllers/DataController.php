@@ -156,7 +156,10 @@ class DataController extends Controller
 
     public function upload(Request $request)
     {
-        $request->validate([
+        // checks for: file, bulan, tahun, level terisi & normal
+        $request->merge(['bulan' => (int) $request->bulan]);
+
+        $validated = $request->validate([
             'file' => 'required|file|mimes:xlsx,xls',
             'bulan' => 'required|integer|between:1,12',
             'tahun' => 'required|integer|min:2000|max:2100',
@@ -167,46 +170,85 @@ class DataController extends Controller
         ini_set('max_execution_time', 300);
 
         try {
-            $import = new DataImport($request->bulan, $request->tahun, $request->level);
+            $import = new DataImport($validated['bulan'], $validated['tahun'], $validated['level']);
             Excel::import($import, $request->file('file'));
 
+            $summary = $import->getSummary();
             if ($import->getErrors()->isNotEmpty()) {
-                return redirect()->back()->with('errors', $import->getErrors());
+                $failedRow = $summary['failed_row'];
+                $chunkSize = 100; // Matches DataImport::chunkSize()
+                $lastSuccessfulRow = floor(($failedRow - 1) / $chunkSize) * $chunkSize;
+
+                $errors = $import->getErrors()->all();
+                $firstError = $errors[0] ?? '';
+                $errorMessages = [];
+
+                // Check if failure is in the first chunk (likely header-related if row 2 fails)
+                if ($failedRow === 2 && str_contains($firstError, 'kd_komoditas kosong')) {
+                    $errorMessages = [
+                        "File mungkin tidak memiliki header yang benar. Perbaiki sesuai template",
+                        "Kesalahan ditemukan di baris $failedRow: $firstError",
+                    ];
+                } else {
+                    $errorMessages = [
+                        "Terdapat kesalahan di baris $failedRow",
+                        ...$errors,
+                        "Upload berhasil sampai dengan baris $lastSuccessfulRow",
+                        "Hapus data sampai baris $lastSuccessfulRow (opsional), perbaiki baris selanjutnya.",
+                    ];
+
+                    // Add summary info only if there's partial success
+                    if ($summary['updated'] > 0 || $summary['inserted'] > 0) {
+                        $errorMessages[] = "Data yang berhasil diproses sebelum kesalahan: {$summary['updated']} update (jika ada perubahan), {$summary['inserted']} data baru.";
+                    }
+                }
+
+                return redirect()->back()->with('error', $errorMessages);
             }
 
-            return redirect()->back()->with('success', 'Data imported successfully.');
+            if ($summary['updated'] === 0 && $summary['inserted'] === 0) {
+                $messageLines = [
+                    "Apakah file kosong? Tidak ada data yang berhasil diimpor.",
+                    "Periksa file Anda dan coba lagi.",
+                ];
+                return redirect()->back()->with('error', $messageLines);
+            }
+
+            $message = "Data berhasil diproses: {$summary['updated']} update, {$summary['inserted']} data baru.";
+            return redirect()->back()->with('success', $message);
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Error importing data: ' . $e->getMessage());
         }
     }
 
-    public function hapus(Request $request)
-    {
-        // TODO: error stuff
-        $request->validate([
-            'bulan' => 'required|integer|between:1,12',
-            'tahun' => 'required|integer|min:2000|max:2100',
-            'level' => 'required|string|in:01,02,03,04,05',
-        ]);
 
-        try {
-            $bulanTahun = BulanTahun::where('bulan', $request->bulan)
-                ->where('tahun', $request->tahun)
-                ->first();
+        public function hapus(Request $request)
+        {
+            // TODO: error stuff
+            $request->validate([
+                'bulan' => 'required|integer|between:1,12',
+                'tahun' => 'required|integer|min:2000|max:2100',
+                'level' => 'required|string|in:01,02,03,04,05',
+            ]);
 
-            if ($bulanTahun) {
-                Inflasi::where('bulan_tahun_id', $bulanTahun->bulan_tahun_id)
-                    ->where('kd_level', $request->level)
-                    ->delete();
+            try {
+                $bulanTahun = BulanTahun::where('bulan', $request->bulan)
+                    ->where('tahun', $request->tahun)
+                    ->first();
 
-                return redirect()->back()->with('success', 'Data deleted successfully.');
-            } else {
-                return redirect()->back()->with('error', 'No data found for the specified period.');
+                if ($bulanTahun) {
+                    Inflasi::where('bulan_tahun_id', $bulanTahun->bulan_tahun_id)
+                        ->where('kd_level', $request->level)
+                        ->delete();
+
+                    return redirect()->back()->with('success', 'Data deleted successfully.');
+                } else {
+                    return redirect()->back()->with('error', 'No data found for the specified period.');
+                }
+            } catch (\Exception $e) {
+                return redirect()->back()->with('error', 'Error deleting data: ' . $e->getMessage());
             }
-        } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Error deleting data: ' . $e->getMessage());
         }
-    }
 
     public function findInflasiId(Request $request)
 {
@@ -280,7 +322,7 @@ class DataController extends Controller
                     'level_harga' => $level_harga,
                     'nama_komoditas' => $nama_komoditas,
                     'inflasi_id' => $inflasi->inflasi_id,
-                    'harga' => $inflasi->harga
+                    'inflasi' => $inflasi->inflasi
                 ];
             } else {
                 $results[] = [
@@ -298,7 +340,7 @@ class DataController extends Controller
 
         return response()->json($results, 200);
     } catch (\Exception $e) {
-        \Log::error('Error in findInflasiId: ' . $e->getMessage(), [
+        Log::error('Error in findInflasiId: ' . $e->getMessage(), [
             'combinations' => $request->json()->all()
         ]);
 
@@ -312,12 +354,12 @@ class DataController extends Controller
     public function update(Request $request, $id)
     {
         $request->validate([
-            'harga' => 'required|numeric',
+            'inflasi' => 'required|numeric',
         ]);
 
         try {
             $inflasi = Inflasi::findOrFail($id);
-            $inflasi->harga = $request->harga;
+            $inflasi->inflasi = $request->inflasi;
             $inflasi->save();
 
             return redirect()->back()->with('success', 'Data updated successfully.');
@@ -334,7 +376,7 @@ class DataController extends Controller
             'kd_level' => 'required|string|in:01,02,03,04,05',
             'kd_wilayah' => 'required|string',
             'kd_komoditas' => 'required|integer',
-            'harga' => 'required|numeric',
+            'inflasi' => 'required|numeric',
         ]);
 
         try {
@@ -348,7 +390,7 @@ class DataController extends Controller
                 'kd_level' => $request->kd_level,
                 'kd_wilayah' => $request->kd_wilayah,
                 'kd_komoditas' => $request->kd_komoditas,
-                'harga' => $request->harga,
+                'inflasi' => $request->inflasi,
             ]);
 
             return redirect()->back()->with('success', 'Data added successfully.');
@@ -360,7 +402,7 @@ class DataController extends Controller
     public function confirmRekonsiliasi(Request $request)
     {
         // Log incoming data for debugging
-        \Log::info('Request data:', $request->all());
+        Log::info('Request data:', $request->all());
 
         $validated = $request->validate([
             'inflasi_ids' => 'required|array',
@@ -387,7 +429,7 @@ class DataController extends Controller
                 'message' => 'Rekonsiliasi berhasil dikonfirmasi.'
             ], 200);
         } catch (\Exception $e) {
-            \Log::error('Rekonsiliasi failed:', ['error' => $e->getMessage()]);
+            Log::error('Rekonsiliasi failed:', ['error' => $e->getMessage()]);
             return response()->json([
                 'success' => false,
                 'message' => 'Rekonsiliasi gagal: ' . $e->getMessage()
