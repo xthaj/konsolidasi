@@ -13,7 +13,7 @@ class User extends Authenticatable
 
     protected $table = 'user';
     protected $primaryKey = 'user_id';
-    protected $fillable = ['username', 'password', 'nama_lengkap', 'is_pusat', 'kd_wilayah'];
+    protected $fillable = ['username', 'password', 'nama_lengkap', 'is_pusat', 'is_admin', 'kd_wilayah'];
 
     public function wilayah()
     {

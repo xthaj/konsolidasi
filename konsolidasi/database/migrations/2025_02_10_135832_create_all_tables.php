@@ -30,6 +30,7 @@ return new class extends Migration
             $table->string('password', 255);
             $table->string('nama_lengkap', 255);
             $table->tinyInteger('is_pusat');
+            $table->tinyInteger('is_admin');
             $table->string('kd_wilayah', 10)->nullable();
             $table->timestamps(); // created_at and updated_at added
             $table->foreign('kd_wilayah')->references('kd_wilayah')->on('wilayah')->nullOnDelete();
@@ -61,7 +62,7 @@ return new class extends Migration
             $table->string('kd_wilayah', 10);
             $table->unsignedBigInteger('bulan_tahun_id');
             $table->string('kd_level', 2);
-            $table->decimal('harga', 15, 2)->nullable();
+            $table->decimal('inflasi', 15, 2)->nullable();
             $table->decimal('andil', 15, 2)->nullable();
             $table->timestamps();
 

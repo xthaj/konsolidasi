@@ -81,6 +81,7 @@ class RegisteredUserController extends Controller
             'password' => Hash::make($request->password),
             'nama_lengkap' => $request->nama_lengkap,
             'is_pusat' => $request->is_pusat,
+            'is_admin' => 0,
             'kd_wilayah' => $request->kd_wilayah,
         ]);
 
