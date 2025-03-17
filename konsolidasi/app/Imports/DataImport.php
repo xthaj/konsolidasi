@@ -22,6 +22,7 @@ class DataImport implements ToCollection, WithHeadingRow, WithChunkReading
     private $bulanTahunId;
     private $errors;
     private $rowNumber;
+
     private $level;
     private $existingInflasi;
     private $updatedCount = 0;
@@ -29,6 +30,8 @@ class DataImport implements ToCollection, WithHeadingRow, WithChunkReading
     private $failedRow = null;
     private $seenKeys = []; // Track keys to detect in-file duplicates
 
+    // for phantom rows or messy formatting.
+    private $stopAfterSmallChunk = false;
     public function __construct($bulan, $tahun, $level)
     {
 
@@ -60,6 +63,11 @@ class DataImport implements ToCollection, WithHeadingRow, WithChunkReading
     public function collection(Collection $rows)
     {
         Log::info("Starting import process, total rows: " . count($rows));
+
+        if ($this->stopAfterSmallChunk) {
+            Log::info("Stopping further chunks after a previous small chunk");
+            return;
+        }
 
         if ($this->failedRow !== null) {
             Log::warning("Skipping chunk because of a previous failure at row {$this->failedRow}");
@@ -176,6 +184,11 @@ class DataImport implements ToCollection, WithHeadingRow, WithChunkReading
                     }
                 }
                 DB::commit();
+
+                if (count($rows) < 100) {
+                    Log::info("Chunk with fewer than 100 rows processed, stopping further chunks");
+                    $this->stopAfterSmallChunk = true;
+                }
             } catch (\Exception $e) {
                 DB::rollBack();
                 $this->errors->add("row_{$this->rowNumber}", "Database error: " . $e->getMessage());
