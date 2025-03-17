@@ -18,9 +18,6 @@ use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\KomoditasExport;
 use App\Exports\WilayahExport;
 
-// Route::get('/', function () {
-//     return view('welcome');
-// });
 
 Route::get('/dashboard', function () {
     return view('dashboard');
@@ -71,10 +68,6 @@ Route::get('/api/wilayah', function () {
 });
 
 // Komoditas
-// add komoditas
-// edit komo
-
-
 Route::post('/komoditas', [KomoditasController::class, 'store']); // Add Komoditas
 Route::put('/komoditas/{kd_komoditas}', [KomoditasController::class, 'update']); // Edit Komoditas
 Route::delete('/komoditas/{kd_komoditas}', [KomoditasController::class, 'destroy']); // Delete Komoditas

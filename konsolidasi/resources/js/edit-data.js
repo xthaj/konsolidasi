@@ -1,4 +1,11 @@
 Alpine.data('webData', () => ({
+    bulan: '',
+    tahun: '',
+    activeBulan: '', // Store the active bulan
+    activeTahun: '', // Store the active tahun
+    tahunOptions: [],
+
+
     provinces: [],
     kabkots: [],
     komoditas: [],
@@ -12,6 +19,10 @@ Alpine.data('webData', () => ({
     sortColumn: '{{ request(\'sort\', \'kd_komoditas\') }}',
     sortDirection: '{{ request(\'direction\', \'asc\') }}',
 
+    get isActivePeriod() {
+        return this.bulan === this.activeBulan && this.tahun === this.activeTahun;
+    },
+
     async init() {
         try {
             const wilayahResponse = await fetch('/api/wilayah');
@@ -22,7 +33,20 @@ Alpine.data('webData', () => ({
             const komoditasResponse = await fetch('/api/komoditas');
             const komoditasData = await komoditasResponse.json();
             this.komoditas = komoditasData || [];
-            console.log('here');
+
+            // Fetch Bulan and Tahun
+            const bulanTahunResponse = await fetch('/api/bulan_tahun');
+            const bulanTahunData = await bulanTahunResponse.json();
+
+            const aktifData = bulanTahunData.bt_aktif; // First active record
+            this.bulan = aktifData ? String(aktifData.bulan).padStart(2, '0') : '';
+            this.tahun = aktifData ? aktifData.tahun : '';
+
+            this.activeBulan = this.bulan;
+            this.activeTahun = this.tahun;
+
+            // Populate tahunOptions, fallback if tahun is missing
+            this.tahunOptions = bulanTahunData.tahun || (aktifData ? [aktifData.tahun] : []);
         } catch (error) {
             console.error('Failed to load data:', error);
         }

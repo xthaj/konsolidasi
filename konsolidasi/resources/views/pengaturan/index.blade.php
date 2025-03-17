@@ -36,20 +36,7 @@
         </div>
     </x-modal>
 
-    <x-modal name="confirm-action" focusable title="Konfirmasi">
-        <div class="px-6 py-4">
-            <p x-text="confirmMessage"></p>
-            <template x-if="confirmDetails">
-                <div class="mt-2 text-sm text-gray-600">
-                    <p x-text="confirmDetails"></p>
-                </div>
-            </template>
-            <div class="mt-6 flex justify-end gap-3">
-                <x-secondary-button x-on:click="$dispatch('close')">Batal</x-secondary-button>
-                <x-primary-button @click="executeConfirmAction">OK</x-primary-button>
-            </div>
-        </div>
-    </x-modal>
+
 
     <!-- Modal for Adding Komoditas -->
     <x-modal name="add-komoditas" focusable title="Konfirmasi Penambahan Komoditas">

@@ -155,100 +155,104 @@ class DataController extends Controller
     }
 
     public function upload(Request $request)
+{
+    $request->merge(['bulan' => (int) $request->bulan]);
+
+    $validated = $request->validate([
+        'file' => 'required|file|mimes:xlsx,xls',
+        'bulan' => 'required|integer|between:1,12',
+        'tahun' => 'required|integer|min:2000|max:2100',
+        'level' => 'required|string|in:01,02,03,04,05',
+    ]);
+
+    ini_set('memory_limit', '512M');
+    ini_set('max_execution_time', 300);
+
+    try {
+        $import = new DataImport($validated['bulan'], $validated['tahun'], $validated['level']);
+        Excel::import($import, $request->file('file'));
+
+        $summary = $import->getSummary();
+        if ($import->getErrors()->isNotEmpty()) {
+            $failedRow = $summary['failed_row'];
+            $chunkSize = 100; // Matches DataImport::chunkSize()
+            $lastSuccessfulRow = floor(($failedRow - 1) / $chunkSize) * $chunkSize;
+
+            $errors = $import->getErrors()->all();
+            $firstError = $errors[0] ?? '';
+            $errorMessages = [];
+
+            if ($failedRow === 2 && str_contains($firstError, 'kd_komoditas kosong')) {
+                $errorMessages = [
+                    "File mungkin tidak memiliki header yang benar. Perbaiki sesuai template",
+                    "Kesalahan ditemukan di baris $failedRow: $firstError",
+                ];
+            } else {
+                $errorMessages = [
+                    "Terdapat kesalahan di baris $failedRow",
+                    ...$errors,
+                    "Upload berhasil sampai dengan baris $lastSuccessfulRow",
+                    "Hapus data sampai baris $lastSuccessfulRow (opsional), perbaiki baris selanjutnya.",
+                ];
+
+                if ($summary['updated'] > 0 || $summary['inserted'] > 0) {
+                    $errorMessages[] = "Data yang berhasil diproses sebelum kesalahan: {$summary['updated']} update (jika ada perubahan), {$summary['inserted']} data baru.";
+                }
+            }
+
+            return redirect()->back()->withErrors($errorMessages);
+        }
+
+        if ($summary['updated'] === 0 && $summary['inserted'] === 0) {
+            $messageLines = [
+                "Apakah file kosong? Tidak ada data yang berhasil diimpor.",
+                "Periksa file Anda dan coba lagi.",
+            ];
+            return redirect()->back()->withErrors($messageLines);
+        }
+
+        $message = "Data berhasil diproses: {$summary['updated']} update, {$summary['inserted']} data baru.";
+        return redirect()->back()->with('success', $message);
+    } catch (\Exception $e) {
+        return redirect()->back()->withErrors(['Error importing data: ' . $e->getMessage()]);
+    }
+}
+
+    public function hapus(Request $request)
     {
-        // checks for: file, bulan, tahun, level terisi & normal
+        Log::info('Hapus method started', $request->all());
+
         $request->merge(['bulan' => (int) $request->bulan]);
 
-        $validated = $request->validate([
-            'file' => 'required|file|mimes:xlsx,xls',
+        $request->validate([
             'bulan' => 'required|integer|between:1,12',
             'tahun' => 'required|integer|min:2000|max:2100',
             'level' => 'required|string|in:01,02,03,04,05',
         ]);
 
-        ini_set('memory_limit', '512M');
-        ini_set('max_execution_time', 300);
-
         try {
-            $import = new DataImport($validated['bulan'], $validated['tahun'], $validated['level']);
-            Excel::import($import, $request->file('file'));
+            $bulanTahun = BulanTahun::where('bulan', $request->bulan)
+                ->where('tahun', $request->tahun)
+                ->first();
 
-            $summary = $import->getSummary();
-            if ($import->getErrors()->isNotEmpty()) {
-                $failedRow = $summary['failed_row'];
-                $chunkSize = 100; // Matches DataImport::chunkSize()
-                $lastSuccessfulRow = floor(($failedRow - 1) / $chunkSize) * $chunkSize;
-
-                $errors = $import->getErrors()->all();
-                $firstError = $errors[0] ?? '';
-                $errorMessages = [];
-
-                // Check if failure is in the first chunk (likely header-related if row 2 fails)
-                if ($failedRow === 2 && str_contains($firstError, 'kd_komoditas kosong')) {
-                    $errorMessages = [
-                        "File mungkin tidak memiliki header yang benar. Perbaiki sesuai template",
-                        "Kesalahan ditemukan di baris $failedRow: $firstError",
-                    ];
-                } else {
-                    $errorMessages = [
-                        "Terdapat kesalahan di baris $failedRow",
-                        ...$errors,
-                        "Upload berhasil sampai dengan baris $lastSuccessfulRow",
-                        "Hapus data sampai baris $lastSuccessfulRow (opsional), perbaiki baris selanjutnya.",
-                    ];
-
-                    // Add summary info only if there's partial success
-                    if ($summary['updated'] > 0 || $summary['inserted'] > 0) {
-                        $errorMessages[] = "Data yang berhasil diproses sebelum kesalahan: {$summary['updated']} update (jika ada perubahan), {$summary['inserted']} data baru.";
-                    }
-                }
-
-                return redirect()->back()->with('error', $errorMessages);
+            if (!$bulanTahun) {
+                return redirect()->back()->withErrors(['No data found for the specified period.']);
             }
 
-            if ($summary['updated'] === 0 && $summary['inserted'] === 0) {
-                $messageLines = [
-                    "Apakah file kosong? Tidak ada data yang berhasil diimpor.",
-                    "Periksa file Anda dan coba lagi.",
-                ];
-                return redirect()->back()->with('error', $messageLines);
-            }
+            $deletedRows = Inflasi::where('bulan_tahun_id', $bulanTahun->bulan_tahun_id)
+                ->where('kd_level', $request->level)
+                ->delete();
 
-            $message = "Data berhasil diproses: {$summary['updated']} update, {$summary['inserted']} data baru.";
-            return redirect()->back()->with('success', $message);
+            if ($deletedRows > 0) {
+                return redirect()->back()->with('success', ["Data deleted successfully. Deleted rows: $deletedRows"]);
+            } else {
+                return redirect()->back()->withErrors(['No matching records found to delete.']);
+            }
         } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Error importing data: ' . $e->getMessage());
+            return redirect()->back()->withErrors(['Error deleting data: ' . $e->getMessage()]);
         }
     }
 
-
-        public function hapus(Request $request)
-        {
-            // TODO: error stuff
-            $request->validate([
-                'bulan' => 'required|integer|between:1,12',
-                'tahun' => 'required|integer|min:2000|max:2100',
-                'level' => 'required|string|in:01,02,03,04,05',
-            ]);
-
-            try {
-                $bulanTahun = BulanTahun::where('bulan', $request->bulan)
-                    ->where('tahun', $request->tahun)
-                    ->first();
-
-                if ($bulanTahun) {
-                    Inflasi::where('bulan_tahun_id', $bulanTahun->bulan_tahun_id)
-                        ->where('kd_level', $request->level)
-                        ->delete();
-
-                    return redirect()->back()->with('success', 'Data deleted successfully.');
-                } else {
-                    return redirect()->back()->with('error', 'No data found for the specified period.');
-                }
-            } catch (\Exception $e) {
-                return redirect()->back()->with('error', 'Error deleting data: ' . $e->getMessage());
-            }
-        }
 
     public function findInflasiId(Request $request)
 {

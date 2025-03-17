@@ -1,13 +1,13 @@
 // document.addEventListener('alpine:init', () => {
 
     Alpine.data('webData', () => ({
+        loading: true,
         bulan: '',
         tahun: '',
-
         activeBulan: '', // Store the active bulan
         activeTahun: '', // Store the active tahun
-
         tahunOptions: [],
+
         komoditasData: [],
         wilayahData: [],
         newKomoditas: { kd_komoditas: '', nama_komoditas: '' },
@@ -28,6 +28,7 @@
         },
 
         async init() {
+            this.loading = true; // Ensure loading is true at start
             try {
                 // Fetch Komoditas
                 const komoditasResponse = await fetch('/api/komoditas');
@@ -52,10 +53,10 @@
 
                 // Populate tahunOptions, fallback if tahun is missing
                 this.tahunOptions = bulanTahunData.tahun || (aktifData ? [aktifData.tahun] : []);
-
-                // console.log('Initialized:', { bulanTahunData });
             } catch (error) {
                 console.error('Failed to load data:', error);
+            } finally {
+                this.loading = false; // Turn off loading after initialization
             }
         },
 
