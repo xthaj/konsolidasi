@@ -69,6 +69,7 @@ $maxWidth = [
 
     <!-- Modal Content -->
     <div
+        x-cloak
         x-show="show"
         class="mb-6 bg-white rounded-lg overflow-hidden shadow-xl transform transition-all sm:w-full {{ $maxWidth }} sm:mx-auto z-50 relative"
         x-transition:enter="ease-out duration-300"
