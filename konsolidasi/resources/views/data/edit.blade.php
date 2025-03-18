@@ -3,100 +3,75 @@
         @vite(['resources/css/app.css', 'resources/js/alpine-init.js', 'resources/js/edit-data.js', 'resources/js/alpine-start.js'])
     @endsection
 
-    <!-- Edit Harga Modal (Blade Component) -->
-    <x-modal name="edit-harga" focusable title="{{ __('Edit Harga') }}">
-        <form id="edit-harga-form" method="POST" action="" class="px-6 py-4">
-            @csrf
-            @method('PATCH')
-
-            <!-- Hidden Input for inflasi_id -->
-            <input type="hidden" name="inflasi_id" x-bind:value="item.id">
-
-            <!-- Tidy Text Presentation -->
-            <div class="mt-4 grid grid-cols-1 gap-y-2 sm:grid-cols-3 sm:gap-x-3">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">
-                        {{ __('Wilayah') }}
-                    </label>
-                    <p class="mt-1 text-sm text-gray-900" x-text="item.wilayah"></p>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">
-                        {{ __('Level Harga') }}
-                    </label>
-                    <p class="mt-1 text-sm text-gray-900" x-text="item.levelHarga"></p>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">
-                        {{ __('Komoditas') }}
-                    </label>
-                    <p class="mt-1 text-sm text-gray-900" x-text="item.komoditas"></p>
-                </div>
+    <x-modal name="confirm-delete" focusable title="Konfirmasi Hapus Inflasi " x-cloak>
+        <div class="px-6 py-4">
+            <p x-text="'Hapus inflasi komoditas ' + modalData.komoditas + '?'"></p>
+            <div class="mt-4">
+                <label class="flex items-center">
+                    <input
+                        type="checkbox"
+                        x-model="deleteRekonsiliasi"
+                        class="rounded border-gray-300 text-red-600 shadow-sm focus:ring-red-500"
+                    >
+                    <span class="ml-2 text-sm text-gray-600">Hapus juga rekonsiliasi berkaitan (wajib)</span>
+                </label>
             </div>
-
-            <!-- Input for New Harga -->
-            <div class="mt-6">
-                <x-input-label for="harga" :value="__('Nilai Inflasi Baru')" />
-                <x-text-input
-                    id="harga"
-                    name="harga"
-                    type="text"
-                    class="mt-1 block w-full"
-                    x-bind:value="item.harga"
-                    required
-                />
-                <x-input-error :messages="$errors->get('harga')" class="mt-2" />
-            </div>
-
-            <!-- Form Actions -->
             <div class="mt-6 flex justify-end gap-3">
-                <x-secondary-button x-on:click="$dispatch('close')">
-                    {{ __('Cancel') }}
-                </x-secondary-button>
-
-                <x-primary-button type="submit">
-                    {{ __('Edit Nilai Inflasi') }}
+                <x-secondary-button x-on:click="$dispatch('close-modal', 'confirm-delete')">Batal</x-secondary-button>
+                <x-primary-button
+                    @click="confirmDelete()"
+                    x-bind:disabled="!deleteRekonsiliasi"
+                    x-bind:class="{ 'opacity-50 cursor-not-allowed': !deleteRekonsiliasi }"
+                >
+                    Hapus
                 </x-primary-button>
             </div>
-        </form>
+        </div>
     </x-modal>
 
     <x-slot name="sidebar">
         <form id="filter-form" x-ref="filterForm" method="GET" action="{{ route('data.edit') }}">
-            <div id="vizBuilderPanel" class="space-y-4 md:space-y-6 mt-4">
+            <div class="space-y-4 md:space-y-6 mt-4">
                 <!-- Bulan & Tahun -->
+                 <div>
                 <div class="flex gap-4">
                     <div class="w-1/2">
                         <label class="block mb-2 text-sm font-medium text-gray-900">Bulan<span class="text-red-500 ml-1">*</span></label>
-                        <select name="bulan" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
-                            @foreach(['Januari' => '01', 'Februari' => '02', 'Maret' => '03', 'April' => '04', 'Mei' => '05', 'Juni' => '06', 'Juli' => '07', 'Agustus' => '08', 'September' => '09', 'Oktober' => '10', 'November' => '11', 'Desember' => '12'] as $nama => $bulan)
-                                <option value="{{ $bulan }}" @selected(request('bulan') == $bulan)>{{ $nama }}</option>
-                            @endforeach
-                        </select>
+                        <select name="bulan" x-model="bulan" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5 focus:ring-primary-500 focus:border-primary-500">
+                @foreach(['Januari' => '01', 'Februari' => '02', 'Maret' => '03', 'April' => '04', 'Mei' => '05', 'Juni' => '06', 'Juli' => '07', 'Agustus' => '08', 'September' => '09', 'Oktober' => '10', 'November' => '11', 'Desember' => '12'] as $nama => $bln)
+                    <option value="{{ $bln }}" @selected(request('bulan') == $bln)>{{ $nama }}</option>
+                @endforeach
+            </select>
                     </div>
                     <div class="w-1/2">
                         <label class="block mb-2 text-sm font-medium text-gray-900">Tahun<span class="text-red-500 ml-1">*</span></label>
-                        <select name="tahun" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
-                            @for ($year = 2020; $year <= 2025; $year++)
-                                <option value="{{ $year }}" @selected(request('tahun') == $year)>{{ $year }}</option>
-                            @endfor
-                        </select>
+                        <select name="tahun" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5 focus:ring-primary-500 focus:border-primary-500">
+                        <template x-for="year in tahunOptions" :key="year">
+                            <option :value="year" :selected="year === tahun" x-text="year"></option>
+                        </template>
+                    </select>
+                    </div>
                     </div>
                 </div>
+
+                <p id="helper-text-explanation" class="text-sm text-gray-500" x-show="isActivePeriod">Periode aktif</p>
 
                 <!-- Level Harga -->
                 <div>
                     <label class="block mb-2 text-sm font-medium text-gray-900">Level Harga<span class="text-red-500 ml-1">*</span></label>
                     <select name="kd_level" x-model="selectedKdLevel" @change="updateKdWilayah()" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
+                        <option value="05" @selected(request('kd_level') == '05')>Harga Produsen</option>
                         <option value="01" @selected(request('kd_level') == '01')>Harga Konsumen Kota</option>
                         <option value="02" @selected(request('kd_level') == '02')>Harga Konsumen Desa</option>
                         <option value="03" @selected(request('kd_level') == '03')>Harga Perdagangan Besar</option>
                         <option value="04" @selected(request('kd_level') == '04')>Harga Produsen Desa</option>
-                        <option value="05" @selected(request('kd_level') == '05')>Harga Produsen</option>
+                        <option value="all" @selected(request('kd_level') == 'all')>Semua Level Harga</option>
                     </select>
                 </div>
 
+
                 <!-- Wilayah -->
+                 <!-- this shoudnt be checkbox just dropdown level -->
                 <div>
                     <label class="block mb-2 text-sm font-medium text-gray-900">Wilayah</label>
                     <div class="flex items-start mb-6">
@@ -109,10 +84,17 @@
                     <!-- Provinsi Dropdown -->
                 <div x-show="!isPusat" class="mb-4">
                     <label class="block mb-2 text-sm font-medium text-gray-900">Provinsi<span class="text-red-500 ml-1">*</span></label>
-                    <select x-model="selectedProvince" @change="selectedKabkot = ''; updateKdWilayah()" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
+                    <select
+                        x-model="selectedProvince"
+                        @change="selectedKabkot = ''; updateKdWilayah()"
+                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5"
+                    >
                         <option value="" selected>Pilih Provinsi</option>
                         <template x-for="province in provinces" :key="province.kd_wilayah">
-                            <option :value="province.kd_wilayah" x-text="province.nama_wilayah" :selected="province.kd_wilayah == '{{ request('kd_wilayah') }}'"></option>
+                            <option
+                                :value="province.kd_wilayah"
+                                x-text="province.nama_wilayah"
+                            ></option>
                         </template>
                     </select>
                 </div>
@@ -146,8 +128,8 @@
                     </select>
                 </div>
 
-                <!-- Sorting (Optional, defaults to kd_komoditas ascending) -->
-                <div class="flex gap-4">
+                <!-- Sorting -->
+                <div x-show="selectedKdLevel !== 'all'" class="flex gap-4">
                     <div class="w-1/2">
                         <label class="block mb-2 text-sm font-medium text-gray-900">Urut Berdasarkan</label>
                         <select name="sort" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
@@ -165,36 +147,142 @@
                 </div>
 
                 <!-- Buttons -->
-                <button type="submit" class="w-full bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 text-white font-medium rounded-lg text-sm px-5 py-2.5 text-center">Tampilkan</button>
-                <!-- <button type="button" x-on:click="$dispatch('open-modal', 'tambah-harga')" class="w-full bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 text-white font-medium rounded-lg text-sm px-5 py-2.5 text-center">Tambah</button> -->
+                <div class="mt-4">
+                     <!-- Helper text for validation -->
+                     <div x-show="!checkFormValidity()" class="my-2 text-sm text-red-600">
+                        <span x-text="getValidationMessage()"></span>
+                    </div>
+
+                    <button type="submit"
+                    :disabled="!checkFormValidity()"  type="submit" class="w-full bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 text-white font-medium rounded-lg text-sm px-5 py-2.5 text-center">Tampilkan</button>
+
+                    </button>
+
+                </div>
             </div>
         </form>
     </x-slot>
 
-    @if($status === 'no_filters')
-        <div class="bg-white px-6 py-4 rounded-lg shadow-sm text-center text-gray-500">
-            {{ $message }}
-        </div>
-    @elseif($status === 'no_data')
-        <div class="bg-white px-6 py-4 rounded-lg shadow-sm text-center text-gray-500">
-            {{ $message }}
-        </div>
-    @elseif($status === 'success')
-        <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-            <div class="relative overflow-x-auto shadow-md sm:rounded-lg">
-                <table class="w-full text-sm text-left rtl:text-right text-gray-500">
-                    <thead class="text-xs text-gray-700 uppercase bg-gray-50">
-                        <tr>
-                            <th scope="col" class="px-6 py-3">Kode Komoditas</th>
-                            <th scope="col" class="px-6 py-3">Komoditas</th>
-                            <th scope="col" class="px-6 py-3">Inflasi</th>
-                            @if ($inflasi->first()->kd_wilayah == 0)
-                                <th scope="col" class="px-6 py-3">Andil</th>
-                            @endif
-                            <th scope="col" class="px-6 py-3"><span class="sr-only">Edit</span></th>
-                        </tr>
-                    </thead>
-                    <tbody>
+@if($status === 'no_filters')
+    <div class="bg-white px-6 py-4 rounded-lg shadow-sm text-center text-gray-500">
+        {{ $message }}
+    </div>
+@elseif($status === 'no_data')
+    <div class="bg-white px-6 py-4 rounded-lg shadow-sm text-center text-gray-500">
+        {{ $message }}
+    </div>
+@elseif($status === 'success')
+
+<div class="mb-1">
+    <h2 class="text-l font-semibold mb-2">{{ $title }}</h2>
+</div>
+
+<div class="bg-white md:overflow-hidden shadow-sm sm:rounded-lg">
+    <div class="relative overflow-x-auto shadow-md sm:rounded-lg md:max-h-[90vh] overflow-y-auto">
+        @if($kd_level === 'all')
+            <!-- Table for "Semua Level Harga" -->
+            <table class="w-full text-sm text-left rtl:text-right text-gray-500">
+                <colgroup>
+                    <col span="2">
+                </colgroup>
+                <colgroup class="bg-gray-50">
+                    <col span="2">
+                </colgroup>
+                <colgroup>
+                    <col span="2">
+                </colgroup>
+                <colgroup class="bg-gray-50">
+                    <col span="2">
+                </colgroup>
+                <colgroup>
+                    <col span="2">
+                </colgroup>
+                <colgroup class="bg-gray-50">
+                    <col span="2">
+                </colgroup>
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0 z-10 shadow-sm">
+                    <tr>
+                        <th scope="col" class="px-6 py-3">Kode Komoditas</th>
+                        <th scope="col" class="px-6 py-3">Komoditas</th>
+                        <th scope="col" class="px-6 py-3 bg-gray-50" colspan="2">Harga Produsen</th>
+                        <th scope="col" class="px-6 py-3" colspan="2">Harga Produsen Desa</th>
+                        <th scope="col" class="px-6 py-3 bg-gray-50" colspan="2">Harga Perdagangan Besar</th>
+                        <th scope="col" class="px-6 py-3" colspan="2">Harga Konsumen Desa</th>
+                        <th scope="col" class="px-6 py-3 bg-gray-50" colspan="2">Harga Konsumen Kota</th>
+                    </tr>
+                    <tr>
+                        <th scope="col" class="px-6 py-3"></th>
+                        <th scope="col" class="px-6 py-3"></th>
+                        <th scope="col" class="px-6 py-3 bg-gray-50">Inflasi</th>
+                        <th scope="col" class="px-6 py-3 bg-gray-50">Andil</th>
+                        <th scope="col" class="px-6 py-3">Inflasi</th>
+                        <th scope="col" class="px-6 py-3">Andil</th>
+                        <th scope="col" class="px-6 py-3 bg-gray-50">Inflasi</th>
+                        <th scope="col" class="px-6 py-3 bg-gray-50">Andil</th>
+                        <th scope="col" class="px-6 py-3">Inflasi</th>
+                        <th scope="col" class="px-6 py-3">Andil</th>
+                        <th scope="col" class="px-6 py-3 bg-gray-50">Inflasi</th>
+                        <th scope="col" class="px-6 py-3 bg-gray-50">Andil</th>
+                    </tr>
+                </thead>
+                <tbody>
+                        @foreach($inflasi as $item)
+                            <tr class="bg-white border-b border-gray-200">
+                                <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
+                                    {{ $item->kd_komoditas }}
+                                </th>
+                                <td class="px-6 py-4">
+                                    {{ $item->komoditas->nama_komoditas }}
+                                </td>
+                                <td class="px-6 py-4 text-right bg-gray-50">
+                                    {{ $item->inflasi_05 !== null ? number_format($item->inflasi_05, 2, '.', '') : '-' }}
+                                </td>
+                                <td class="px-6 py-4 text-right bg-gray-50">
+                                    {{ $item->andil_05 !== null ? number_format($item->andil_05, 2, '.', '') : '-' }}
+                                </td>
+                                <td class="px-6 py-4 text-right">
+                                    {{ $item->inflasi_04 !== null ? number_format($item->inflasi_04, 2, '.', '') : '-' }}
+                                </td>
+                                <td class="px-6 py-4 text-right">
+                                    {{ $item->andil_04 !== null ? number_format($item->andil_04, 2, '.', '') : '-' }}
+                                </td>
+                                <td class="px-6 py-4 text-right bg-gray-50">
+                                    {{ $item->inflasi_03 !== null ? number_format($item->inflasi_03, 2, '.', '') : '-' }}
+                                </td>
+                                <td class="px-6 py-4 text-right bg-gray-50">
+                                    {{ $item->andil_03 !== null ? number_format($item->andil_03, 2, '.', '') : '-' }}
+                                </td>
+                                <td class="px-6 py-4 text-right">
+                                    {{ $item->inflasi_02 !== null ? number_format($item->inflasi_02, 2, '.', '') : '-' }}
+                                </td>
+                                <td class="px-6 py-4 text-right">
+                                    {{ $item->andil_02 !== null ? number_format($item->andil_02, 2, '.', '') : '-' }}
+                                </td>
+                                <td class="px-6 py-4 text-right bg-gray-50">
+                                    {{ $item->inflasi_01 !== null ? number_format($item->inflasi_01, 2, '.', '') : '-' }}
+                                </td>
+                                <td class="px-6 py-4 text-right bg-gray-50">
+                                    {{ $item->andil_01 !== null ? number_format($item->andil_01, 2, '.', '') : '-' }}
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+            </table>
+        @else
+            <!-- Original Table for Specific Level -->
+            <table class="w-full text-sm text-left rtl:text-right text-gray-500">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0 z-10 shadow-sm">
+                    <tr>
+                        <th scope="col" class="px-6 py-3">Kode Komoditas</th>
+                        <th scope="col" class="px-6 py-3">Komoditas</th>
+                        <th scope="col" class="px-6 py-3">Inflasi</th>
+                        @if ($inflasi->first() && $inflasi->first()->kd_wilayah == 0)
+                            <th scope="col" class="px-6 py-3">Andil</th>
+                        @endif
+                        <th scope="col" class="px-6 py-3"><span class="sr-only">Actions</span></th>
+                    </tr>
+                </thead>
+                <tbody>
                         @foreach($inflasi as $item)
                             <tr class="bg-white border-b border-gray-200">
                                 <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
@@ -204,28 +292,34 @@
                                     {{ $item->komoditas->nama_komoditas }}
                                 </td>
                                 <td class="px-6 py-4 text-right">
-                                    {{ number_format($item->harga, 2, '.', '') }}
+                                    {{ $item->inflasi !== null ? number_format($item->inflasi, 2, '.', '') : '-' }}
                                 </td>
                                 @if ($item->kd_wilayah == 0)
                                     <td class="px-6 py-4 text-right">
-                                        {{ number_format($item->inflasi, 2, '.', '') }}
+                                        {{ $item->andil !== null ? number_format($item->andil, 2, '.', '') : '-' }}
                                     </td>
                                 @endif
                                 <td class="px-6 py-4 text-right">
-                                    <button @click="setItem('{{ $item->inflasi_id }}', '{{ $item->komoditas->nama_komoditas }}', '{{ $item->harga }}', '{{ $item->kd_wilayah }}', '{{ $item->kd_level }}'); $dispatch('open-modal', 'edit-harga')" class="font-medium text-primary-600 hover:underline">
-                                        Edit
-                                    </button>
-                                </td>
-                            </tr>
+                                <button
+                                            @click="openDeleteModal('{{ $item->inflasi_id }}', '{{ $item->komoditas->nama_komoditas }}')"
+                                            class="font-medium text-red-600 hover:underline"
+                                        >
+                                            Delete
+                                        </button>
+                            </td>
                         @endforeach
                     </tbody>
-                </table>
+            </table>
+        @endif
+    </div>
+</div>
+
+@if($inflasi->hasPages())
+            <div class="mt-4">
+                {{ $inflasi->appends(request()->query())->links() }}
             </div>
-        </div>
-        <div class="mt-4">
-            {{ $inflasi->appends(request()->query())->links() }}
-        </div>
-    @endif
+        @endif
+@endif
 
 </div>
 </x-two-panel-layout>

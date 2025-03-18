@@ -11,21 +11,6 @@ Alpine.data('webData', () => ({
     confirmDetails: '',
     formEvent: null,
 
-            initDelete(event) {
-                this.formEvent = event;
-                this.confirmMessage = 'Are you sure you want to delete this data?';
-                this.confirmDetails = 'Seluruh rekonsiliasi terkait akan dihapus dan tidak bisa dikembalikan. Untuk memperbarui data, lakukan update/upload.';
-                this.$dispatch('open-modal', 'confirm-action');
-            },
-
-            executeConfirmAction() {
-                if (this.formEvent) {
-                    this.$refs.deleteForm.submit();
-                }
-                this.$dispatch('close');
-            },
-
-
     get isActivePeriod() {
         return this.bulan === this.activeBulan && this.tahun === this.activeTahun;
     },

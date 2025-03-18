@@ -36,8 +36,6 @@
         </div>
     </x-modal>
 
-
-
     <!-- Modal for Adding Komoditas -->
     <x-modal name="add-komoditas" focusable title="Konfirmasi Penambahan Komoditas">
         <div class="px-6 py-4">
