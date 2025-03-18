@@ -25,8 +25,10 @@
             </div>
 
             <!-- Main Content -->
-            <main class="w-full p-4 md:overflow-y-auto md:h-full transition-all duration-300 dark:bg-gray-900"
-                :class="{ 'md:w-2/3': isSidebarVisible, 'md:w-full': !isSidebarVisible }">
+            <main
+                :class="{ 'md:w-2/3': isSidebarVisible, 'md:w-full': !isSidebarVisible }"
+                class="{{ $mainClass ?? 'w-full md:overflow-hidden p-4 md:overflow-y-auto md:h-full transition-all duration-300 dark:bg-gray-900 md:w-2/3' }}"
+            >
                 {{ $slot }}
             </main>
         </div>
