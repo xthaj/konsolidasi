@@ -40,7 +40,7 @@
                                 <template x-for="(alasan, index) in alasanList" :key="index">
                                     <li>
                                         <div class="flex items-center p-2 rounded-sm hover:bg-gray-100 dark:hover:bg-gray-600">
-                                            <input type="checkbox" :id="'alasan-' + index" :value="alasan" x-model="selectedAlasan" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500">
+                                            <input type="checkbox" :id="'alasan-' + index" x-model="selectedAlasan" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500">
                                             <label :for="'alasan-' + index" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300" x-text="alasan"></label>
                                         </div>
                                     </li>
@@ -69,10 +69,28 @@
         </div>
     </div>
 
+    <x-modal name="confirm-add" focusable title="Konfirmasi Penambahan Data">
+        <div class="px-6 py-4">
+            <p x-show="modalContent.success" x-text="`Tambah ${modalContent.items.length} item?`"></p>
+            <div x-show="!modalContent.success">
+                <p class="text-red-600">Beberapa data tidak ditemukan:</p>
+                <ul class="list-disc pl-5 mt-2">
+                    <template x-for="missing in modalContent.missingItems" :key="missing">
+                        <li x-text="missing"></li>
+                    </template>
+                </ul>
+            </div>
+            <div class="mt-6 flex justify-end gap-3">
+                <x-secondary-button x-on:click="$dispatch('close')">Batal</x-secondary-button>
+                <x-primary-button x-show="modalContent.success" @click="confirmAddToTable">Tambah</x-primary-button>
+            </div>
+        </div>
+    </x-modal>
+
     @if (auth()->user()->isPusat())
     <x-slot name="sidebar">
-        <form id="filter-form" x-ref="filterForm" method="GET" action="{{ route('data.edit') }}">
-            <div class="space-y-4 md:space-y-6 mt-4">
+        <form id="filter-form" x-ref="filterForm" method="GET" action="{{ route('rekon.progres') }}">
+            <f class="space-y-4 md:space-y-6 mt-4">
                 <!-- Bulan & Tahun -->
                 <div>
                     <div class="flex gap-4">
@@ -101,7 +119,7 @@
                 <div>
                     <label class="block mb-2 text-sm font-medium text-gray-900">Level Harga<span class="text-red-500 ml-1">*</span></label>
                     <select name="kd_level" x-model="selectedKdLevel" @change="updateKdWilayah()" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
-                        <option value="all" @selected(request('kd_level')=='all' )>Semua Level Harga</option>
+                        <!-- table structure makes it hard to show all, settle with this -->
                         <option value="01" @selected(request('kd_level')=='01' )>Harga Konsumen Kota</option>
                         <option value="02" @selected(request('kd_level')=='02' )>Harga Konsumen Desa</option>
                         <option value="03" @selected(request('kd_level')=='03' )>Harga Perdagangan Besar</option>
@@ -154,7 +172,7 @@
                 </div>
 
                 <button class="w-full bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 text-white font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">Filter</button>
-
+        </form>
     </x-slot>
     @else
     whatver for now
@@ -166,7 +184,7 @@
     </div>
 
     <div class="relative overflow-x-auto shadow-md sm:rounded-lg">
-        <table class="w-full  text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
             <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                 <tr>
                     <th scope="col" class="px-6 py-3">No</th>
@@ -175,93 +193,78 @@
                     <th scope="col" class="px-6 py-3">Kode Komoditas</th>
                     <th scope="col" class="px-6 py-3">Komoditas</th>
                     <th scope="col" class="px-6 py-3">Level Harga</th>
-                    <th scope="col" class="px-6 py-3">Inflasi/RH Kabupaten</th>
-                    <th scope="col" class="px-6 py-3">Inflasi/RH Desa</th>
-                    <th scope="col" class="px-6 w-1/4 py-3">Alasan</th>
+                    @if ($filters['kdLevel'] === '01' || $filters['kdLevel'] === '02')
+                    <th scope="col" class="px-6 py-3">Inflasi Kota</th>
+                    <th scope="col" class="px-6 py-3">Inflasi Desa</th>
+                    @else
+                    <th scope="col" class="px-6 py-3">Inflasi</th>
+                    @endif
+                    <th scope="col" class="px-6 py-3 w-1/4">Alasan</th>
                     <th scope="col" class="px-6 py-3">Detail</th>
                     <th scope="col" class="px-6 py-3">Media</th>
-                    <th scope="col" class="px-6 py-3"><span class="sr-only">Edit</span></th>
+                    <th scope="col" class="px-6 py-3" x-show="isActivePeriod"><span class="sr-only">Edit</span></th>
                 </tr>
             </thead>
             <tbody>
-                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200">
-                    <td class="px-6 py-4">1</td>
-                    <td class="px-6 py-4">1277</td>
-                    <td class="px-6 py-4">KOTA PADANGSIDIMPUAN</td>
-                    <td class="px-6 py-4">006</td>
-                    <td class="px-6 py-4">Beras Premium</td>
-                    <td class="px-6 py-4">Harga Konsumen Kota</td>
-                    <td class="px-6 py-4">3.10%</td>
-                    <td class="px-6 py-4">Naik</td>
+                @forelse ($rekonsiliasi as $index => $item)
+                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td class="px-6 py-4">{{ $rekonsiliasi->firstItem() + $index }}</td>
+                    <td class="px-6 py-4">{{ $item->inflasi->kd_wilayah }}</td>
+                    <td class="px-6 py-4">{{ $item->inflasi->wilayah ? ucwords(strtolower($item->inflasi->wilayah->nama_wilayah)) : 'Tidak Dikenal' }}</td>
+                    <td class="px-6 py-4">{{ $item->inflasi->kd_komoditas }}</td>
+                    <td class="px-6 py-4">{{ $item->inflasi->komoditas->nama_komoditas ?? 'N/A' }}</td>
                     <td class="px-6 py-4">
-                        <span id="badge-dismiss-default" class="inline-flex items-center px-2 py-1 me-2 my-1 text-sm font-medium text-blue-800 bg-blue-100 rounded-sm dark:bg-blue-900 dark:text-blue-300">stok melimpah</span>
-                        <span id="badge-dismiss-default" class="inline-flex items-center px-2 py-1 me-2 my-1 text-sm font-medium text-blue-800 bg-blue-100 rounded-sm dark:bg-blue-900 dark:text-blue-300">persaingan harga</span>
+                        {{ $item->inflasi->kd_level === '01' ? 'Harga Konsumen Kota' : ($item->inflasi->kd_level === '02' ? 'Harga Desa' : 'Harga Perdagangan Besar') }}
+                    </td>
+                    @if ($filters['kdLevel'] === '01' || $filters['kdLevel'] === '02')
+                    <td class="px-6 py-4">
+                        {{ $item->inflasi->inflasi ? number_format($item->inflasi->inflasi, 2) . '%' : '-' }}
                     </td>
                     <td class="px-6 py-4">
-                        Ada promo pada tarif angkutan udara maskapai garuda Indonesia
-                        <!-- , selain itu pada tarif angkutan udara maskapai Super Jet juga ada promo di minggu ke 3 Okt hingga minggu pertama Nov, ada persaingan harga dengan Citilink yg mulai ada rute penerbangan dari Banda Aceh ke Medan. -->
+                        {{ $inflasi_opposite->get($item->inflasi->kd_komoditas)?->inflasi ? number_format($inflasi_opposite->get($item->inflasi->kd_komoditas)->inflasi, 2) . '%' : '-' }}
                     </td>
-
-                    <!-- <td class="px-6 py-4"><a "https://sport.detik.com/sepakbola/liga-indonesia/d-7781510/timnas-indonesia-u-20-dihukum-uzbekistan-kalah-tersingkir"></a></td> -->
+                    @else
                     <td class="px-6 py-4">
-                        <a href="https://sport.detik.com/sepakbola/liga-indonesia/d-7781510/timnas-indonesia-u-20-dihukum-uzbekistan-kalah-tersingkir" class="text-blue-600 hover:underline">
-                            detik.com
+                        {{ $item->inflasi->inflasi ? number_format($item->inflasi->inflasi, 2) . '%' : '-' }}
+                    </td>
+                    @endif
+                    <td class="px-6 py-4">
+                        @if ($item->alasan)
+                        <span class="inline-flex items-center px-2 py-1 me-2 my-1 text-sm font-medium text-blue-800 bg-blue-100 rounded-sm dark:bg-blue-900 dark:text-blue-300">
+                            {{ $item->alasan }}
+                        </span>
+                        @endif
+                    </td>
+                    <td class="px-6 py-4">{{ $item->detail ?? '-' }}</td>
+                    <td class="px-6 py-4">
+                        @if ($item->media)
+                        <a href="{{ $item->media }}" class="text-blue-600 hover:underline" target="_blank">
+                            {{ parse_url($item->media, PHP_URL_HOST) }}
                         </a>
+                        @else
+                        -
+                        @endif
                     </td>
-                    <td class="px-6 py-4 text-right">
-                        <button @click="openModal()" class="font-medium text-primary-600 dark:text-primary-500 hover:underline">Edit</button>
-                    </td>
-                </tr>
-                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200">
-                    <td class="px-6 py-4">2</td>
-                    <td class="px-6 py-4">1371</td>
-                    <td class="px-6 py-4">KOTA PADANG</td>
-                    <td class="px-6 py-4">010</td>
-                    <td class="px-6 py-4">Jagung</td>
-                    <td class="px-6 py-4">Harga Perdagangan Besar</td>
-                    <td class="px-6 py-4">4.2%</td>
-                    <td class="px-6 py-4">Turun</td>
-                    <td class="px-6 py-4"> </td>
-                    <td class="px-6 py-4"> </td>
-                    <td class="px-6 py-4"> </td>
-                    <td class="px-6 py-4 text-right">
-                        <a href="#" class="font-medium text-primary-600 dark:text-primary-500 hover:underline">Edit</a>
+                    <td class="px-6 py-4 text-right" x-show="isActivePeriod">
+                        <button @click="$dispatch('open-modal', { id: {{ $item->rekonsiliasi_id }} })" class="font-medium text-indigo-600 dark:text-indigo-500 hover:underline">Edit</button>
                     </td>
                 </tr>
-                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200">
-                    <td class="px-6 py-4">2</td>
-                    <td class="px-6 py-4">1371</td>
-                    <td class="px-6 py-4">KOTA PADANG</td>
-                    <td class="px-6 py-4">010</td>
-                    <td class="px-6 py-4">Jagung</td>
-                    <td class="px-6 py-4">Harga Perdagangan Besar</td>
-                    <td class="px-6 py-4">4.2%</td>
-                    <td class="px-6 py-4">Turun</td>
-                    <td class="px-6 py-4"> </td>
-                    <td class="px-6 py-4"> </td>
-                    <td class="px-6 py-4"> </td>
-                    <td class="px-6 py-4 text-right">
-                        <a href="#" class="font-medium text-primary-600 dark:text-primary-500 hover:underline">Edit</a>
+                @empty
+                <tr class="bg-white dark:bg-gray-800">
+                    <td colspan="{{ $filters['kdLevel'] === '01' || $filters['kdLevel'] === '02' ? 12 : 11 }}" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                        {{ $message }}
                     </td>
                 </tr>
-                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200">
-                    <td class="px-6 py-4">2</td>
-                    <td class="px-6 py-4">1371</td>
-                    <td class="px-6 py-4">KOTA PADANG</td>
-                    <td class="px-6 py-4">010</td>
-                    <td class="px-6 py-4">Jagung</td>
-                    <td class="px-6 py-4">Harga Perdagangan Besar</td>
-                    <td class="px-6 py-4">4.2%</td>
-                    <td class="px-6 py-4">Turun</td>
-                    <td class="px-6 py-4"> </td>
-                    <td class="px-6 py-4"> </td>
-                    <td class="px-6 py-4"> </td>
-                    <td class="px-6 py-4 text-right">
-                        <a href="#" class="font-medium text-primary-600 dark:text-primary-500 hover:underline">Edit</a>
-                    </td>
-                </tr>
+                @endforelse
             </tbody>
         </table>
     </div>
+
+    <!-- Pagination -->
+    @if ($rekonsiliasi && $rekonsiliasi->hasPages())
+    <div class="mt-4 flex justify-center">
+        {{ $rekonsiliasi->appends(request()->query())->links() }}
+    </div>
+    @endif
 
 </x-two-panel-layout>

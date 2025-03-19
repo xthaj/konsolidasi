@@ -32,7 +32,7 @@ Route::middleware(['pusat'])->group(function () {
     Route::get('/data/upload', [DataController::class, 'create'])->name('data.create');
     Route::post('/data/upload', [DataController::class, 'upload'])->name('data.upload');
     Route::post('/data/hapus', [DataController::class, 'hapus'])->name('data.hapus'); // New route for hapus
-    Route::delete('/data/delete/{id}', [DataController::class, 'delete'])->name('data.delete');// New route for hapus
+    Route::delete('/data/delete/{id}', [DataController::class, 'delete'])->name('data.delete'); // New route for hapus
     Route::post('/data/store', [DataController::class, 'store'])->name('data.store');
     Route::patch('/data/update/{id}', [DataController::class, 'update'])->name('data.update');
 });
@@ -78,7 +78,6 @@ Route::get('/api/komoditas', function () {
     $data = Cache::rememberForever('komoditas_data', function () {
         Log::info('Komoditas data fetched from database', ['timestamp' => now()]);
         return Komoditas::all();
-
     });
 
     return response()->json($data);
@@ -98,10 +97,9 @@ Route::get('/api/bulan_tahun', function () {
     $data = Cache::remember('bt_aktif', now()->addWeek(), function () {
         Log::info('BT aktif fetched from database', ['timestamp' => now()]);
         return [
-            'bt_aktif' => BulanTahun::where('aktif',1 )->first(),
+            'bt_aktif' => BulanTahun::where('aktif', 1)->first(),
             'tahun' => BulanTahun::pluck('tahun')->unique()->all(),
         ];
-
     });
 
     return response()->json($data);
@@ -113,4 +111,4 @@ Route::get('/api/check-username', [RegisteredUserController::class, 'checkUserna
 
 Route::post('/api/inflasi-id', [DataController::class, 'findInflasiId']);
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';

@@ -295,7 +295,7 @@ Alpine.data("webData", () => ({
             console.log("Server response:", result);
 
             if (result.success) {
-                alert("Rekonsiliasi berhasil!");
+                alert("Pemilihan komoditas berhasil!");
                 this.tableData = []; // Clear table after success
             } else {
                 alert(
