@@ -169,7 +169,7 @@
     @elseif($status === 'success')
 
     <div class="mb-1">
-        <h2 class="text-l font-semibold mb-2">{{ $title }}</h2>
+        <h2 class="text-l font-semibold mb-2">{{ $title ?? 'Inflasi'}}</h2>
     </div>
 
     <div class="bg-white md:overflow-hidden shadow-sm sm:rounded-lg">

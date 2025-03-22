@@ -41,7 +41,7 @@
             <div class="flex gap-4">
                 <div class="w-1/2">
                     <label class="block mb-2 text-sm font-medium text-gray-900">Bulan<span class="text-red-500 ml-1">*</span></label>
-                    <select name="bulan" x-model="bulan" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5 focus:ring-primary-500 focus:border-primary-500">
+                    <select name="bulan" x-model="bulan" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5 focus:ring-primary-500 focus:border-primary-500" disabled>
                         @foreach(['Januari' => '01', 'Februari' => '02', 'Maret' => '03', 'April' => '04', 'Mei' => '05', 'Juni' => '06', 'Juli' => '07', 'Agustus' => '08', 'September' => '09', 'Oktober' => '10', 'November' => '11', 'Desember' => '12'] as $nama => $bln)
                         <option value="{{ $bln }}" @selected(request('bulan')==$bln)>{{ $nama }}</option>
                         @endforeach
@@ -49,7 +49,7 @@
                 </div>
                 <div class="w-1/2">
                     <label class="block mb-2 text-sm font-medium text-gray-900">Tahun<span class="text-red-500 ml-1">*</span></label>
-                    <select name="tahun" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5 focus:ring-primary-500 focus:border-primary-500">
+                    <select name="tahun" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5 focus:ring-primary-500 focus:border-primary-500" disabled>
                         <template x-for="year in tahunOptions" :key="year">
                             <option :value="year" :selected="year === tahun" x-text="year"></option>
                         </template>
@@ -57,7 +57,6 @@
                 </div>
             </div>
 
-            <p id="helper-text-explanation" class="text-sm text-gray-500" x-show="isActivePeriod">Periode aktif</p>
 
             <!-- Level Harga -->
             <div>
@@ -70,6 +69,7 @@
                     <option value="05" @selected(request('kd_level')=='05' )>Harga Produsen</option>
                 </select>
             </div>
+
 
             <!-- Wilayah: Provinsi -->
             <div class="flex justify-between items-center mb-2">

@@ -63,7 +63,7 @@ return new class extends Migration
             $table->unsignedBigInteger('bulan_tahun_id');
             $table->string('kd_level', 2);
             $table->decimal('inflasi', 15, 2)->nullable();
-            $table->decimal('andil', 15, 2)->nullable();
+            $table->decimal('andil', 15, 4)->nullable();
             $table->timestamps();
 
             $table->foreign('kd_komoditas')->references('kd_komoditas')->on('komoditas')->cascadeOnDelete();
