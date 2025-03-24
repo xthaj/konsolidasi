@@ -1,7 +1,7 @@
 <x-two-panel-layout>
 
     @section('vite')
-    @vite(['resources/css/app.css', 'resources/js/alpine-init.js', 'resources/js/harmonisasi.js', 'resources/js/alpine-start.js'])
+    @vite(['resources/css/app.css', 'resources/js/alpine-init.js', 'resources/js/harmonisasi.js'])
     @endsection
 
 
@@ -16,14 +16,14 @@
     <!-- Modals -->
     <x-modal name="data-not-found" focusable title="Data Tidak Ditemukan">
         <div class="px-6 py-4">
-            <div>
+            <!-- <div>
                 <p class="text-red-600">Beberapa data tidak ditemukan:</p>
                 <ul class="list-disc pl-5 mt-2">
                     <template x-for="missing in modalContent.missingItems" :key="missing">
                         <li x-text="missing"></li>
                     </template>
                 </ul>
-            </div>
+            </div> -->
             <div class="mt-6 flex justify-end gap-3">
                 <x-secondary-button x-on:click="$dispatch('close')">Batal</x-secondary-button>
             </div>
@@ -150,61 +150,6 @@
             </div>
             @endif
 
-
-
-            <!-- <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
-                <div id="heatMap" class="w-full h-96"></div>
-            </div>
-
-            <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
-                <div id="verticalBarChart" class="w-full h-96"></div>
-            </div>
-
-            <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
-                <div id="stackedBarChart" class="w-full h-96"></div>
-            </div>
-
-            <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
-                <div id="doubleVerticalBarChart" class="w-full h-96"></div>
-            </div> -->
-
-            <!-- Dropdown Div -->
-            <div class="flex gap-8 items-center bg-primary-700 md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
-                <h3 class="flex-1 text-white text-lg font-bold">Level Harga</h3>
-                <select class="w-64 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                    <option>Harga Konsumen Kota</option>
-                    <option>Harga Konsumen Desa</option>
-                    <option>Harga Perdagangan Besar</option>
-                    <option>Harga Produsen Desa</option>
-                    <option>Harga Produsen</option>
-                </select>
-            </div>
-
-            <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
-                <div id="provinsiChoropleth" class="w-full h-96"></div>
-            </div>
-
-            <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
-                <div id="kabkotChoropleth" class="w-full h-96"></div>
-            </div>
-
-            <!-- Big Div: Inflasi Chart -->
-            <!-- <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
-                <button @click="toggleFullscreen('multiAxisChart')" class="absolute top-2 right-2 p-2">
-                    <span id="fullscreenIconMultiAxisChart" class="material-symbols-outlined text-xl">fullscreen</span>
-                </button>
-                <button class="absolute top-2 right-12 p-2 hover:text-gray-200 text:hover:bg-gray-700">
-                    <span class="material-symbols-outlined text-xl">download</span>
-                </button>
-                <h3 class="text-lg font-bold">Inflasi</h3>
-                <div class="flex justify-end space-x-2 mb-2">
-                    <button @click="showInflasiLine()" class="bg-blue-500 text-white px-4 py-2 rounded">Show Inflasi</button>
-                    <button @click="showAndilLine()" class="bg-green-500 text-white px-4 py-2 rounded">Show Andil</button>
-                </div>
-                <div id="multiAxisChart" class="w-full h-96"></div>
-            </div> -->
-
-            <!-- 5 Mini Divs for Price Levels -->
             <div class="bg-white p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-2">
                 <h4 class="text-md font-semibold">Harga Konsumen Kota</h4>
                 <p>Inflasi: <span class="font-bold">2.5%</span></p>
@@ -231,158 +176,153 @@
                 <p>Andil: <span class="font-bold">0.9%</span></p>
             </div>
 
-            <!-- Heatmap -->
-            <!-- <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
-                <h3 class="text-lg font-bold flex items-end gap-1 mb-4">
-                    Inflasi per Tingkat Harga di Seluruh Provinsi
-                    <span class="material-symbols-outlined text-base">swap_vert</span>
-                </h3>
-                <div id="inflationHeatmap" class="w-full h-[600px]"></div>
-            </div> -->
-
-            <!-- Small Multiples (Replace with ECharts) -->
-            <!-- <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
-                <h3 class="text-lg font-bold flex items-end gap-1 mb-4">
-                    Inflasi per Tingkat Harga di Seluruh Provinsi
-                    <span class="material-symbols-outlined text-base">swap_vert</span>
-                </h3>
-                <div class="max-h-64 overflow-y-auto overflow-x-auto">
-                    <div class="h-[1000px] flex flex-row gap-4">
-                        <div class="relative w-[350px]">
-                            <h4 class="text-sm font-semibold mb-2">Harga Produsen</h4>
-                            <div id="priceLevelChart1" class="w-full h-full"></div>
-                            <button @click="toggleFullscreen('priceLevelChart1')" class="absolute top-2 right-2 p-2">
-                                <span id="fullscreenIconPriceLevelChart1" class="material-symbols-outlined text-xl">fullscreen</span>
-                            </button>
-                        </div>
-                        <div class="relative w-[210px]">
-                            <h4 class="text-sm font-semibold mb-2">Harga Produsen Desa</h4>
-                            <div id="priceLevelChart2" class="w-full h-full"></div>
-                            <button @click="toggleFullscreen('priceLevelChart2')" class="absolute top-2 right-2 p-2">
-                                <span id="fullscreenIconPriceLevelChart2" class="material-symbols-outlined text-xl">fullscreen</span>
-                            </button>
-                        </div>
-                        <div class="relative w-[210px]">
-                            <h4 class="text-sm font-semibold mb-2">Harga Perdagangan Besar</h4>
-                            <div id="priceLevelChart3" class="w-full h-full"></div>
-                            <button @click="toggleFullscreen('priceLevelChart3')" class="absolute top-2 right-2 p-2">
-                                <span id="fullscreenIconPriceLevelChart3" class="material-symbols-outlined text-xl">fullscreen</span>
-                            </button>
-                        </div>
-                        <div class="relative w-[210px]">
-                            <h4 class="text-sm font-semibold mb-2">Harga Konsumen Desa</h4>
-                            <div id="priceLevelChart4" class="w-full h-full"></div>
-                            <button @click="toggleFullscreen('priceLevelChart4')" class="absolute top-2 right-2 p-2">
-                                <span id="fullscreenIconPriceLevelChart4" class="material-symbols-outlined text-xl">fullscreen</span>
-                            </button>
-                        </div>
-                        <div class="relative w-[210px]">
-                            <h4 class="text-sm font-semibold mb-2">Harga Konsumen Kota</h4>
-                            <div id="priceLevelChart5" class="w-full h-full"></div>
-                            <button @click="toggleFullscreen('priceLevelChart5')" class="absolute top-2 right-2 p-2">
-                                <span id="fullscreenIconPriceLevelChart5" class="material-symbols-outlined text-xl">fullscreen</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div> -->
-
-            <!-- Big Div: Horizontal Bar Chart -->
-            <!-- <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
-                <button @click="toggleFullscreen('horizontalBarChart')" class="absolute top-2 right-2 p-2">
-                    <span id="fullscreenIconHorizontalBarChart" class="material-symbols-outlined text-xl">fullscreen</span>
-                </button>
-                <button class="absolute top-2 right-12 p-2 hover:text-gray-200 text:hover:bg-gray-700">
-                    <span class="material-symbols-outlined text-xl">download</span>
-                </button>
-                <h3 class="text-lg font-bold">Inflasi & Andil Maret 2025</h3>
+            @if(!empty($data['horizontalBar']))
+            <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
                 <div id="horizontalBarChart" class="w-full h-96"></div>
-            </div> -->
+            </div>
+            @endif
 
-            <!-- Big Div: Stacked Bar Chart -->
-            <!-- <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
-                <button @click="toggleFullscreen('stackedBarChart')" class="absolute top-2 right-2 p-2">
-                    <span id="fullscreenIconStackedBarChart" class="material-symbols-outlined text-xl">fullscreen</span>
-                </button>
-                <button class="absolute top-2 right-12 p-2 hover:text-gray-200 text:hover:bg-gray-700">
-                    <span class="material-symbols-outlined text-xl">download</span>
-                </button>
-                <h3 class="text-lg font-bold">Jumlah Provinsi berdasarkan Arah Inflasi</h3>
+            @if(!empty($data['heatmap']))
+            <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
+                <div id="heatmapChart" class="w-full h-96"></div>
+            </div>
+            @endif
+
+            @if(!empty($data['heatmap']))
+            <!-- 5 Mini Divs for Price Levels -->
+            <div class="bg-white p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-2">
+                <div id="barChart1" class="w-full h-96"></div>
+            </div>
+            <div class="bg-white p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-2">
+                <div id="barChart2" class="w-full h-96"></div>
+
+            </div>
+            <div class="bg-white p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-2">
+                <div id="barChart3" class="w-full h-96"></div>
+
+            </div>
+            <div class="bg-white p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-2">
+                <div id="barChart4" class="w-full h-96"></div>
+
+            </div>
+            <div class="bg-white p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-2">
+                <div id="barChart5" class="w-full h-96"></div>
+            </div>
+            @endif
+
+            @if(!empty($data['stackedBar']))
+            <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
                 <div id="stackedBarChart" class="w-full h-96"></div>
-            </div> -->
+            </div>
+            @endif
+
+
+
+            <!-- <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
+                <div id="verticalBarChart" class="w-full h-96"></div>
+            </div>
+
+            <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
+                <div id="stackedBarChart" class="w-full h-96"></div>
+            </div>
+
+            <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
+                <div id="doubleVerticalBarChart" class="w-full h-96"></div>
+            </div>  -->
 
             <!-- Dropdown Div -->
-            <!-- <div class="flex gap-8 items-center bg-primary-700 md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
+            <div class="flex gap-8 items-center bg-primary-700 md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
                 <h3 class="flex-1 text-white text-lg font-bold">Level Harga</h3>
-                <select class="w-64 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                <select id="levelHargaSelect" class="w-64 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                     <option>Harga Konsumen Kota</option>
                     <option>Harga Konsumen Desa</option>
                     <option>Harga Perdagangan Besar</option>
                     <option>Harga Produsen Desa</option>
                     <option>Harga Produsen</option>
                 </select>
-            </div> -->
+            </div>
 
-            <!-- Inflasi Provinsi Bar -->
-            <!-- <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-5">
-                <h3 class="text-lg font-bold flex items-end gap-1">
-                    Inflasi Provinsi
-                    <span class="material-symbols-outlined text-base">swap_vert</span>
-                </h3>
-                <div class="max-h-64 overflow-y-auto">
-                    <div class="h-[1000px]">
-                        <div id="rankBarChartProvinsi" class="w-full h-full"></div>
-                    </div>
-                </div>
-            </div> -->
+            @if(!empty($data['provHorizontalBar']) && !empty($data['kabkotHorizontalBar']))
+            <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-5">
+                <div id="provHorizontalBarChart" class="w-full h-96"></div>
+            </div>
+            <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-5">
+                <div id="kabkotHorizontalBarChart" class="w-full h-96"></div>
+            </div>
+            @endif
 
-            <!-- Inflasi Kabupaten/Kota Bar -->
-            <!-- <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-5">
-                <h3 class="text-lg font-bold flex items-end gap-1">
-                    Inflasi Kabupaten/Kota
-                    <span class="material-symbols-outlined text-base">swap_vert</span>
-                </h3>
-                <div class="max-h-64 overflow-y-auto">
-                    <div class="h-[1000px]">
-                        <div id="rankBarChartProvinsi2" class="w-full h-full"></div>
-                    </div>
-                </div>
-            </div> -->
 
-            <!-- Big Div: Map Provinsi (Choropleth) -->
-            <!-- <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
-                <button @click="toggleFullscreen('map')" class="absolute top-2 right-2 p-2">
-                    <span id="fullscreenIconMap" class="material-symbols-outlined text-xl">fullscreen</span>
-                </button>
-                <button class="absolute top-2 right-12 p-2 hover:text-gray-200 text:hover:bg-gray-700">
-                    <span class="material-symbols-outlined text-xl">download</span>
-                </button>
-                <h3 class="text-lg font-bold">Map Provinsi</h3>
-                <div id="map" class="h-64"></div>
-            </div> -->
+            <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
+                <div id="provinsiChoropleth" class="w-full h-96"></div>
+            </div>
 
-            <!-- Big Div: Map Kabkot (Choropleth) -->
-            <!-- <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
-                <button @click="toggleFullscreen('map2')" class="absolute top-2 right-2 p-2">
-                    <span id="fullscreenIconMap2" class="material-symbols-outlined text-xl">fullscreen</span>
-                </button>
-                <button class="absolute top-2 right-12 p-2 hover:text-gray-200 text:hover:bg-gray-700">
-                    <span class="material-symbols-outlined text-xl">download</span>
-                </button>
-                <h3 class="text-lg font-bold">Map Kabkot</h3>
-                <div id="map2" class="h-64"></div>
-            </div> -->
+            <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
+                <div id="kabkotChoropleth" class="w-full h-96"></div>
+            </div>
+
         </div>
     </div>
 
-    <!-- Pass data to JavaScript -->
     <script>
-        // Define global variables for JS to use
         window.chartTitle = @json($title);
-        @if(isset($data['stackedLine']) && !isset($message))
+        @if(isset($data['stackedLine']))
         window.stackedLineData = @json($data['stackedLine']);
         @else
-        window.stackedLineData = null; // Explicitly set to null if no data or message exists
+        window.stackedLineData = null;
+        @endif
+        @if(isset($data['horizontalBar']))
+        window.horizontalBarData = @json($data['horizontalBar']);
+        @else
+        window.horizontalBarData = null;
+        @endif
+        @if(isset($data['heatmap']))
+        window.heatmapData = @json($data['heatmap']);
+        heatMapValues = heatmapData.values.map((item) => [
+            item[0],
+            item[1],
+            item[2] || "-",
+        ]);
+        console.log('Heatmap Values:', heatMapValues);
+        @else
+        window.heatmapData = null;
+        @endif
+
+        @if(isset($data['barCharts']))
+        window.barChartsData = @json($data['barCharts']);
+        @else
+        window.barChartsData = null;
+        @endif
+
+        @if(isset($data['stackedBar']))
+        window.stackedBarData = @json($data['stackedBar']);
+        @else
+        window.stackedBarData = null;
+        @endif
+        console.log('Stacked Line Data:', window.stackedLineData);
+        console.log('Horizontal Bar Data:', window.horizontalBarData);
+        console.log('Heatmap Data:', window.heatmapData);
+
+        @if(!empty($data['errors']))
+        document.addEventListener('DOMContentLoaded', () => {
+            window.modalContent = {
+                missingItems: @json($data['errors'])
+            };
+            window.dispatchEvent(new CustomEvent('open-modal', {
+                detail: 'data-not-found'
+            }));
+        });
+        @endif
+
+        @if(isset($data['provHorizontalBar']))
+        window.provHorizontalBarData = @json($data['provHorizontalBar']);
+        @else
+        window.provHorizontalBarData = null;
+        @endif
+
+        @if(isset($data['kabkotHorizontalBar']))
+        window.kabkotHorizontalBarData = @json($data['kabkotHorizontalBar']);
+        @else
+        window.kabkotHorizontalBarData = null;
         @endif
     </script>
 </x-two-panel-layout>
