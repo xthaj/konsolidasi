@@ -128,7 +128,6 @@ class DataImport implements ToCollection, WithHeadingRow, WithChunkReading
             Log::info("Inflasi normalized to 2 decimal places: $inflasi");
 
             // Validation: andil
-            // Validation: andil
             $andilRaw = $row['andil'] ?? null;
             $andil = null;
             if (isset($andilRaw) && $andilRaw !== '') {
@@ -254,6 +253,12 @@ class DataImport implements ToCollection, WithHeadingRow, WithChunkReading
                 }
 
                 DB::commit();
+
+                if (count($rows) < $this->chunkSize()) {
+                    Log::info("Partial chunk of " . count($rows) . " rows processed, stopping further chunks");
+                    $this->stopAfterSmallChunk = true;
+                }
+
                 Log::info("Transaction committed");
             } catch (\Exception $e) {
                 DB::rollBack();
