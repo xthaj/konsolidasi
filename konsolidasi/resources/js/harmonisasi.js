@@ -1482,144 +1482,6 @@ Alpine.data("webData", () => ({
 
 Alpine.start();
 
-//         kabkotChoropleth: async () => {
-//             charts.choropleth.showLoading();
-//             try {
-//                 // Fetch the GeoJSON data
-//                 const kabkotResponse = await fetch(
-//                     "/geojson/kab_indo_dummy4.json"
-//                 );
-//                 if (!kabkotResponse.ok) {
-//                     throw new Error(
-//                         `Failed to fetch GeoJSON: ${kabkotResponse.status}`
-//                     );
-//                 }
-//                 const kabkotData = await kabkotResponse.json();
-//                 console.log("GeoJSON Loaded:", kabkotData);
-
-//                 // Check GeoJSON structure
-//                 if (
-//                     !kabkotData.features ||
-//                     !Array.isArray(kabkotData.features)
-//                 ) {
-//                     throw new Error(
-//                         "GeoJSON does not contain 'features' array"
-//                     );
-//                 }
-//                 console.log("Number of Features:", kabkotData.features.length);
-
-//                 // Log sample feature properties
-//                 console.log(
-//                     "Sample Feature Properties:",
-//                     kabkotData.features[0].properties
-//                 );
-
-//                 // Assign random values and map data using 'nmkab'
-//                 const mapData = kabkotData.features.map((feature) => {
-//                     const name = feature.properties.nmkab; // Use 'nmkab' from your GeoJSON
-//                     if (!name) {
-//                         console.warn(`Feature missing 'nmkab':`, feature);
-//                     }
-//                     const value = Math.floor(Math.random() * 15) - 7;
-//                     return { name, value };
-//                 });
-//                 console.log(
-//                     "Mapped Data (first 5 entries):",
-//                     mapData.slice(0, 5)
-//                 );
-
-//                 // Register the map
-//                 echarts.registerMap("Kabkot_Indonesia", kabkotData);
-//                 console.log("Map Registered: Kabkot_Indonesia");
-
-//                 // Define chart options
-//                 const option = {
-//                     title: {
-//                         text: "Indonesia Kabupaten Data (Random Values)",
-//                         subtext: "Generated Random Data",
-//                         left: "right",
-//                     },
-//                     tooltip: {
-//                         trigger: "item",
-//                         showDelay: 0,
-//                         transitionDuration: 0.2,
-//                         formatter: (params) =>
-//                             `${params.name}: ${
-//                                 params.value !== undefined
-//                                     ? params.value
-//                                     : "No Data"
-//                             }`,
-//                     },
-//                     visualMap: {
-//                         left: "right",
-//                         min: -7,
-//                         max: 7,
-//                         inRange: {
-//                             color: [
-//                                 "#313695",
-//                                 "#4575b4",
-//                                 "#74add1",
-//                                 "#abd9e9",
-//                                 "#e0f3f8",
-//                                 "#ffffbf",
-//                                 "#fee090",
-//                                 "#fdae61",
-//                                 "#f46d43",
-//                                 "#d73027",
-//                                 "#a50026",
-//                             ],
-//                         },
-//                         text: ["High", "Low"],
-//                         calculable: true,
-//                     },
-//                     toolbox: {
-//                         show: true,
-//                         left: "left",
-//                         top: "top",
-//                         feature: {
-//                             dataView: { readOnly: false },
-//                             restore: {},
-//                             saveAsImage: {},
-//                         },
-//                     },
-//                     series: [
-//                         {
-//                             name: "Kabupaten Data",
-//                             type: "map",
-//                             map: "Kabkot_Indonesia",
-//                             emphasis: { label: { show: true } },
-//                             data: mapData,
-//                             nameProperty: "nmkab", // Tell ECharts to use 'nmkab' as the name field in GeoJSON
-//                         },
-//                     ],
-//                 };
-
-//                 // Apply options and hide loading
-//                 console.log(
-//                     "Applying Chart Options with Data Length:",
-//                     mapData.length
-//                 );
-//                 charts.choropleth.setOption(option, true); // Force re-render
-//                 charts.choropleth.hideLoading();
-//             } catch (error) {
-//                 console.error("Error in Kabkot Choropleth:", error);
-//                 charts.choropleth.hideLoading();
-//             }
-//         },
-//     };
-
-//     // Apply chart options
-//     charts.stackedLine.setOption(chartOptions.stackedLine);
-//     charts.heatMap.setOption(chartOptions.heatMap);
-//     charts.verticalBar.setOption(chartOptions.verticalBar);
-//     charts.stackedBar.setOption(chartOptions.stackedBar);
-//     chartOptions.kabkotChoropleth();
-//     // Handle window resize for all charts
-//     window.addEventListener("resize", () => {
-//         Object.values(charts).forEach((chart) => chart.resize());
-//     });
-// });
-
 document.addEventListener("DOMContentLoaded", async () => {
     // DOM Elements
     const stackedLineChartElement = document.getElementById("stackedLineChart");
@@ -1810,12 +1672,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     const stackedLineOptions = {
         // title: { text: window.chartTitle || "Inflasi" },
         tooltip: { trigger: "axis" },
-        legend: { data: stackedLineData.series.map((s) => s.name) },
-        grid: { left: "3%", right: "4%", bottom: "3%", containLabel: true },
+        legend: {
+            bottom: 0,
+            data: stackedLineData.series.map((s) => s.name),
+        },
+        grid: { left: "3%", right: "4%", bottom: "20%", containLabel: true },
         toolbox: { feature: { saveAsImage: { title: "Save as PNG" } } },
         xAxis: {
             type: "category",
-            boundaryGap: false,
             data: stackedLineData.xAxis,
         },
         yAxis: { type: "value", name: "Inflasi (%)" },
@@ -1823,13 +1687,11 @@ document.addEventListener("DOMContentLoaded", async () => {
             ...series,
             type: "line",
             stack: "Total",
-            areaStyle: {},
         })),
     };
 
     // Horizontal Bar Chart Configuration (Inflasi and Andil)
     const horizontalBarOptions = {
-        title: { text: "Inflasi dan Andil (Latest Period)" },
         tooltip: {
             trigger: "axis",
             axisPointer: { type: "shadow" },
@@ -1841,8 +1703,18 @@ document.addEventListener("DOMContentLoaded", async () => {
                 return result;
             },
         },
+        toolbox: {
+            feature: {
+                magicType: {
+                    type: ["line", "bar", "stack"],
+                },
+            },
+        },
         legend: { bottom: 0, data: ["Inflasi", "Andil"] },
-        grid: { left: "15%", right: "10%", bottom: "15%", top: "10%" },
+        grid: {
+            containLabel: true,
+            left: "5%",
+        },
         xAxis: { type: "value", name: "Value (%)" },
         yAxis: {
             type: "category",
@@ -1851,6 +1723,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         },
         series: [
             {
+                label: {
+                    show: true,
+                },
                 name: "Inflasi",
                 type: "bar",
                 data: horizontalBarData.datasets.map(
@@ -1859,6 +1734,9 @@ document.addEventListener("DOMContentLoaded", async () => {
                 itemStyle: { color: "#5470C6" },
             },
             {
+                label: {
+                    show: true,
+                },
                 name: "Andil",
                 type: "bar",
                 data: horizontalBarData.datasets.map(
@@ -1872,7 +1750,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Heatmap Chart Configuration (Inflasi by Province)
     const heatmapOptions = {
         tooltip: { position: "top" },
-        grid: { height: "80%", top: "10%" },
+        grid: { left: 0, containLabel: true },
         xAxis: {
             type: "category",
             data: heatmapData.xAxis,
@@ -1884,13 +1762,21 @@ document.addEventListener("DOMContentLoaded", async () => {
             splitArea: { show: true },
         },
         visualMap: {
-            min: -2,
-            max: 3,
+            type: "continuous",
+            min: 0,
+            max: 0,
+            precision: 2,
             calculable: true,
             orient: "horizontal",
             left: "center",
-            bottom: "15%",
+            bottom: 0,
         },
+        dataZoom: [
+            {
+                type: "slider",
+                orient: "vertical",
+            },
+        ],
         series: [
             {
                 name: "Inflasi",
@@ -2095,7 +1981,6 @@ document.addEventListener("DOMContentLoaded", async () => {
                     ...series,
                     type: "line",
                     stack: "Total",
-                    areaStyle: {},
                 })
             );
             stackedLineChart.setOption(stackedLineOptions, true);
@@ -2116,17 +2001,45 @@ document.addEventListener("DOMContentLoaded", async () => {
             horizontalBarChart.setOption(horizontalBarOptions, true);
         }
 
-        if (updatedHeatmap.xAxis && updatedHeatmap.values) {
+        if (
+            updatedHeatmap.xAxis &&
+            updatedHeatmap.yAxis &&
+            updatedHeatmap.values
+        ) {
             heatmapOptions.xAxis.data = updatedHeatmap.xAxis;
             heatmapOptions.yAxis.data = updatedHeatmap.yAxis;
             heatmapOptions.series[0].data = updatedHeatmap.values.map(
                 (item) => [item[0], item[1], item[2] || "-"]
             );
+
+            const values = updatedHeatmap.values
+                .map((item) => item[2])
+                .filter(
+                    (value) =>
+                        value !== null &&
+                        value !== undefined &&
+                        value !== "-" &&
+                        !isNaN(value)
+                );
+
+            const minValue = values.length > 0 ? Math.min(...values) : 0;
+            const maxValue = values.length > 0 ? Math.max(...values) : 10;
+            const padding = (maxValue - minValue) * 0.1 || 1;
+
+            console.log("Values array:", values);
+            console.log("Min value:", minValue);
+            console.log("Max value:", maxValue);
+            console.log("Padding:", padding);
+            console.log("visualMap.min:", minValue - padding);
+            console.log("visualMap.max:", maxValue + padding);
+
+            heatmapOptions.visualMap.min = minValue - padding;
+            heatmapOptions.visualMap.max = maxValue + padding;
+
             heatmapChart.setOption(heatmapOptions, true);
         }
     }
 
-    // Function to update bar charts
     // Function to update bar charts
     window.updateBarCharts = function (newBarChartData) {
         const updatedData = newBarChartData || barChartData;
@@ -2251,6 +2164,34 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
 
         if (heatmapData.values) {
+            // Set initial data
+            heatmapOptions.xAxis.data = heatmapData.xAxis;
+            heatmapOptions.yAxis.data = heatmapData.yAxis;
+            heatmapOptions.series[0].data = heatmapData.values.map((item) => [
+                item[0],
+                item[1],
+                item[2] || "-",
+            ]);
+
+            // Calculate min/max for visualMap
+            const values = heatmapData.values
+                .map((item) => item[2])
+                .filter(
+                    (value) =>
+                        value !== null &&
+                        value !== undefined &&
+                        value !== "-" &&
+                        !isNaN(value)
+                );
+
+            const minValue = values.length > 0 ? Math.min(...values) : 0;
+            const maxValue = values.length > 0 ? Math.max(...values) : 10;
+            const padding = (maxValue - minValue) * 0.1 || 1;
+
+            heatmapOptions.visualMap.min = minValue - padding;
+            heatmapOptions.visualMap.max = maxValue + padding;
+
+            // Apply options to chart
             heatmapChart.setOption(heatmapOptions);
         } else {
             console.warn("No valid heatmap data provided.");
@@ -2268,21 +2209,31 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     // Handle window resize
-    window.addEventListener("resize", () => {
-        stackedLineChart.resize();
-        horizontalBarChart.resize();
-        heatmapChart.resize();
-        // chartsBar.forEach((chart) => chart.resize());
-        stackedBarChart.resize();
-        provHorizontalBarChart.resize();
-        kabkotHorizontalBarChart.resize();
-        provHorizontalBarChart.resize();
-        kabkotHorizontalBarChart.resize();
-        provinsiChoropleth.resize();
-        kabkotChoropleth.resize();
+    // window.addEventListener("resize", () => {
+    //     console.log('Resizing charts...');
+    //     const chartElement = document.getElementById('stackedLineChart');
+    //     const parentDiv = chartElement.parentElement; // <div class="bg-white ...">
+    //     const mainElement = parentDiv.closest('main'); // <main> with md:w-2/3 or md:w-full
 
-        barChartInstance.resize();
-    });
+    //     console.log('Viewport width:', window.innerWidth);
+    //     console.log('Main width:', mainElement.offsetWidth);
+    //     console.log('Parent div width:', parentDiv.offsetWidth);
+    //     console.log('Chart div width:', chartElement.offsetWidth);
+    //     console.log('Chart width before resize:', stackedLineChart.getWidth());
+
+    //     // Use parentDiv.offsetWidth for now, adjust if needed
+    //     stackedLineChart.resize({ width: parentDiv.offsetWidth });
+    //     horizontalBarChart.resize({ width: parentDiv.offsetWidth });
+    //     heatmapChart.resize({ width: parentDiv.offsetWidth });
+    //     stackedBarChart.resize({ width: parentDiv.offsetWidth });
+    //     provHorizontalBarChart.resize({ width: parentDiv.offsetWidth });
+    //     kabkotHorizontalBarChart.resize({ width: parentDiv.offsetWidth });
+    //     provinsiChoropleth.resize({ width: parentDiv.offsetWidth });
+    //     kabkotChoropleth.resize({ width: parentDiv.offsetWidth });
+    //     barChartInstance.resize({ width: parentDiv.offsetWidth });
+
+    //     console.log('Chart width after resize:', stackedLineChart.getWidth());
+    // });
 
     // Expose update functions globally
     window.updateCharts = updateCharts;
@@ -2294,4 +2245,67 @@ document.addEventListener("DOMContentLoaded", async () => {
     console.log("Initial Horizontal Bar Data:", horizontalBarData);
     console.log("Initial Heatmap Data:", heatmapData);
     console.log("Initial Bar Chart Data:", provHorizontalBarData);
+});
+
+const charts = {};
+
+// Initialize charts
+function initializeCharts() {
+    const chartConfigs = [
+        { id: "stackedLineChart", parentId: "stackedLineChartParent" },
+        { id: "horizontalBarChart", parentId: "horizontalBarChartParent" },
+        { id: "heatmapChart", parentId: "heatmapChartParent" },
+        { id: "barChartsContainer", parentId: "barChartsContainerParent" },
+        { id: "stackedBarChart", parentId: "stackedBarChartParent" },
+    ];
+
+    chartConfigs.forEach((config) => {
+        const chartDiv = document.getElementById(config.id);
+        if (chartDiv && !charts[config.id]) {
+            charts[config.id] = echarts.init(chartDiv);
+            // Set initial options (replace with your actual chart data/options)
+            charts[config.id].setOption({
+                xAxis: { type: "category", data: ["A", "B", "C"] },
+                yAxis: { type: "value" },
+                series: [
+                    {
+                        type: config.id.includes("bar") ? "bar" : "line",
+                        data: [10, 20, 30],
+                    },
+                ],
+            });
+        }
+    });
+}
+
+// Resize all charts based on parent dimensions
+function resizeCharts() {
+    const paddingX = 32; // 16px left + 16px right (p-4)
+    const paddingY = 32; // 16px top + 16px bottom (p-4)
+
+    Object.keys(charts).forEach((chartId) => {
+        const chart = charts[chartId];
+        const parentDiv = document.getElementById(`${chartId}Parent`);
+        if (chart && !chart.isDisposed() && parentDiv) {
+            const width = parentDiv.clientWidth - paddingX;
+            const height = parentDiv.clientHeight - paddingY;
+            chart.resize({
+                width: width > 0 ? width : 0, // Prevent negative width
+                height: height > 0 ? height : 0, // Prevent negative height
+            });
+            console.log(`Resized ${chartId}: ${width}x${height}`);
+        }
+    });
+}
+
+// Initialize charts on page load
+document.addEventListener("DOMContentLoaded", () => {
+    initializeCharts();
+    resizeCharts(); // Initial resize
+});
+
+// Resize charts when toggle is clicked (via window 'resize' event)
+window.addEventListener("resize", () => {
+    clearTimeout(window.resizeTimeout);
+    window.resizeTimeout = setTimeout(resizeCharts, 100); // Debounce for smoother transitions
 });

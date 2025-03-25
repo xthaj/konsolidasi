@@ -4,7 +4,6 @@
     @vite(['resources/css/app.css', 'resources/js/alpine-init.js', 'resources/js/harmonisasi.js'])
     @endsection
 
-
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
         crossorigin="" />
@@ -134,36 +133,46 @@
 
     <div id="visualizationCanvas" class="w-full p-4 md:overflow-y-auto md:h-full transition-all duration-300 dark:bg-gray-900">
         <div class="grid grid-cols-1 md:grid-cols-10 gap-4">
-            <h2>{{ $title }}</h2>
+            <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
+                <h2>{{ $title }}</h2>
+            </div>
 
             <!-- Display message if present -->
-            @if(isset($message) && !empty($message['errors']))
-            <div class="col-span-1 md:col-span-10 p-4 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded-lg">
+            @if(!empty($errors))
+            <div id="alert-box" class="col-span-1 md:col-span-10 p-4 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded-lg relative">
+                @if(!empty($message))
+                <p>{{ $message }}</p> <!-- Display general message if set -->
+                @endif
                 <ul class="flex flex-wrap gap-2">
-                    @foreach($message['errors'] as $error)
+                    @foreach($errors as $error)
                     <li>
-                        <span id="badge-dismiss-{{ $loop->index }}" class="inline-flex items-center px-2 py-1 text-sm font-medium text-yellow-800 bg-yellow-100 rounded-sm">
+                        <p>
                             {{ $error }}
-                            <button type="button" class="inline-flex items-center p-1 ms-2 text-yellow-400 bg-transparent rounded-xs hover:bg-yellow-200 hover:text-yellow-900" data-dismiss-target="#badge-dismiss-{{ $loop->index }}" aria-label="Remove">
-                                <svg class="w-2 h-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
-                                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6" />
-                                </svg>
-                                <span class="sr-only">Remove badge</span>
-                            </button>
-                        </span>
+                        </p>
                     </li>
                     @endforeach
                 </ul>
+                <!-- Dismiss button outside the loop -->
+                <button type="button" class="absolute top-2 right-2 p-1 text-yellow-400 bg-transparent rounded-full hover:bg-yellow-200 hover:text-yellow-900"
+                    data-dismiss-target="#alert-box" aria-label="Close">
+                    <svg class="w-4 h-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6" />
+                    </svg>
+                    <span class="sr-only">Close alert</span>
+                </button>
             </div>
             @endif
 
-            <!-- Show stacked line chart only if data is successful -->
+
+            <!-- Stacked Line Chart -->
+            <!-- add button to "Lihat Andil", to update data with andil data . exchangable between the 2 -->
             @if(!empty($data['stackedLine']))
-            <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
+            <div id="stackedLineChartParent" class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
                 <div id="stackedLineChart" class="w-full h-96"></div>
             </div>
             @endif
 
+            <!-- make these fill up with real data please -->
             <div class="bg-white p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-2">
                 <h4 class="text-md font-semibold">Harga Konsumen Kota</h4>
                 <p>Inflasi: <span class="font-bold">2.5%</span></p>
@@ -190,60 +199,34 @@
                 <p>Andil: <span class="font-bold">0.9%</span></p>
             </div>
 
+            <!-- Horizontal Bar Chart -->
             @if(!empty($data['horizontalBar']))
-            <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
+            <div id="horizontalBarChartParent" class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
                 <div id="horizontalBarChart" class="w-full h-96"></div>
             </div>
             @endif
 
+            <!-- Heatmap Chart -->
             @if(!empty($data['heatmap']))
-            <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
-                <div id="heatmapChart" class="w-full h-96"></div>
+            <div id="heatmapChartParent" class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
+                <div id="heatmapChart" class="w-full h-[600px]"></div>
+
             </div>
             @endif
 
+            <!-- Bar Charts Container -->
             @if(!empty($data['heatmap']))
-            <!-- 5 Mini Divs for Price Levels -->
-            <div class="bg-white p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-10">
-                <div id="barChartsContainer" style="width: 100%; height: 400px;">
-                </div>
+            <div id="barChartsContainerParent" class="bg-white p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-10">
+                <div id="barChartsContainer" class="w-full h-96"></div>
             </div>
-            <!-- <div class="bg-white p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-2">
-                <div id="barChart2" class="w-full h-96"></div>
-
-            </div>
-            <div class="bg-white p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-2">
-                <div id="barChart3" class="w-full h-96"></div>
-
-            </div>
-            <div class="bg-white p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-2">
-                <div id="barChart4" class="w-full h-96"></div>
-
-            </div>
-            <div class="bg-white p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-2">
-                <div id="barChart5" class="w-full h-96"></div>
-            </div> -->
             @endif
 
+            <!-- Stacked Bar Chart -->
             @if(!empty($data['stackedBar']))
-            <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
-                <div id="stackedBarChart" class="w-full h-96"></div>
+            <div id="stackedBarChartParent" class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
+                <div id="stackedBarChart" class="w-full h-96"></div> <!-- Fixed syntax: `width=100%` → `w-full` -->
             </div>
             @endif
-
-
-
-            <!-- <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
-                <div id="verticalBarChart" class="w-full h-96"></div>
-            </div>
-
-            <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
-                <div id="stackedBarChart" class="w-full h-96"></div>
-            </div>
-
-            <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
-                <div id="doubleVerticalBarChart" class="w-full h-96"></div>
-            </div>  -->
 
             <!-- Dropdown Div -->
             <div class="flex gap-8 items-center bg-primary-700 md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
@@ -254,6 +237,7 @@
                     <option>Harga Perdagangan Besar</option>
                     <option>Harga Produsen Desa</option>
                     <option>Harga Produsen</option>
+                    <!-- help on if data is anything but HK, then dont show the kabkot horizontal bar (col span to 10) & kabkot choropleth -->
                 </select>
             </div>
 
