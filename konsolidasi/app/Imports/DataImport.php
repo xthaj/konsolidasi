@@ -32,14 +32,17 @@ class DataImport implements ToCollection, WithHeadingRow, WithChunkReading
 
     // for phantom rows or messy formatting.
     private $stopAfterSmallChunk = false;
-    public function __construct($bulan, $tahun, $level)
-    {
 
+    private $debugMode = false; // Toggle this to true for row-by-row debugging
+
+    public function __construct($bulan, $tahun, $level, $debugMode = false)
+    {
         $this->validKdWilayah = Wilayah::pluck('kd_wilayah')->toArray();
         $this->validKdKomoditas = Komoditas::pluck('kd_komoditas')->toArray();
         $this->errors = new MessageBag();
         $this->rowNumber = 1;
         $this->level = $level;
+        $this->debugMode = $debugMode;
 
         $bulanTahun = BulanTahun::where('bulan', $bulan)->where('tahun', $tahun)->first();
         if ($bulanTahun) {
@@ -49,17 +52,12 @@ class DataImport implements ToCollection, WithHeadingRow, WithChunkReading
             $this->bulanTahunId = $bulanTahun->bulan_tahun_id;
         }
 
-        // Load existing data for the month
         $this->existingInflasi = Inflasi::where('bulan_tahun_id', $this->bulanTahunId)
             ->where('kd_level', $this->level)
             ->get()
             ->keyBy(fn($item) => "{$item->kd_komoditas}-{$item->kd_wilayah}");
     }
 
-    /**
-     * Process a chunk of Excel rows
-     * Validates data, queues updates/inserts, stops at first failure or duplicate.
-     */
     public function collection(Collection $rows)
     {
         Log::info("Processing chunk, rows: " . count($rows) . ", starting at row {$this->rowNumber}");
@@ -74,91 +72,98 @@ class DataImport implements ToCollection, WithHeadingRow, WithChunkReading
             return;
         }
 
+
+
         $updates = [];
         $inserts = [];
 
         foreach ($rows as $row) {
             $this->rowNumber++;
-            Log::info("Processing row {$this->rowNumber}: " . json_encode($row));
+            $rowData = $row->toArray();
+            Log::info("Processing row {$this->rowNumber}: " . json_encode($row->toArray()));
 
-            if ($this->failedRow !== null) {
-                Log::warning("Stopping import due to previous failure at row {$this->failedRow}");
+            if (empty(array_filter($rowData, fn($value) => $value !== null && $value !== ''))) {
+                Log::info("Detected end of file at row {$this->rowNumber}");
+                $this->stopAfterSmallChunk = true;
                 break;
             }
 
             // Validation: kd_wilayah
-            $kd_wilayah = $row['kd_wilayah'] ?? '0';
-            if (is_null($kd_wilayah) || $kd_wilayah === '') {
+            $kd_wilayah = trim($row['kd_wilayah'] ?? '0');
+            if ($kd_wilayah === '') {
                 $kd_wilayah = '0';
             }
-            Log::info("kd_wilayah after processing: {$kd_wilayah}");
             if (!in_array($kd_wilayah, $this->validKdWilayah)) {
-                $this->errors->add("row_{$this->rowNumber}", "kd_wilayah '$kd_wilayah' tidak valid. Cek master wilayah");
+                $this->errors->add("row_{$this->rowNumber}", "kd_wilayah '$kd_wilayah' tidak valid");
                 $this->failedRow = $this->rowNumber;
-                Log::error("Invalid kd_wilayah: {$kd_wilayah} at row {$this->rowNumber}");
                 break;
             }
 
             // Validation: kd_komoditas
-            if (!isset($row['kd_komoditas']) || $row['kd_komoditas'] === '' || $row['kd_komoditas'] === null) {
+            $kd_komoditasRaw = trim($row['kd_komoditas'] ?? '');
+            if ($kd_komoditasRaw === '') {
                 $this->errors->add("row_{$this->rowNumber}", "kd_komoditas kosong");
                 $this->failedRow = $this->rowNumber;
-                Log::error("kd_komoditas is required at row {$this->rowNumber}");
                 break;
             }
-            $kd_komoditas = str_pad((string) $row['kd_komoditas'], 3, '0', STR_PAD_LEFT);
-            Log::info("kd_komoditas after normalization: {$kd_komoditas}");
+            $kd_komoditas = str_pad($kd_komoditasRaw, 3, '0', STR_PAD_LEFT);
             if (!in_array($kd_komoditas, $this->validKdKomoditas)) {
-                $this->errors->add("row_{$this->rowNumber}", "kd_komoditas '{$row['kd_komoditas']}' tidak valid (telah diperbaiki menjadi '$kd_komoditas'). Cek master komoditas");
+                $this->errors->add("row_{$this->rowNumber}", "kd_komoditas '$kd_komoditas' tidak valid");
                 $this->failedRow = $this->rowNumber;
-                Log::error("Invalid kd_komoditas: {$kd_komoditas} at row {$this->rowNumber}");
                 break;
             }
 
             // Validation: inflasi
-            $inflasiRaw = $row['inflasi'] ?? null;
-            if (!isset($inflasiRaw) || !is_numeric($inflasiRaw)) {
+            $inflasiRaw = trim($row['inflasi'] ?? '');
+            if ($inflasiRaw === '' || !is_numeric($inflasiRaw)) {
                 $this->errors->add("row_{$this->rowNumber}", "Inflasi harus numerik");
                 $this->failedRow = $this->rowNumber;
-                Log::error("Invalid inflasi at row {$this->rowNumber}: " . json_encode($inflasiRaw ?? 'null'));
+                Log::error("Invalid inflasi at row {$this->rowNumber}: " . json_encode($inflasiRaw));
                 break;
             }
-            // Round to 2 decimal places to match database precision
-            $inflasi = round((float) $inflasiRaw, 2);
-            Log::info("Inflasi normalized to 2 decimal places: $inflasi");
+            $inflasiClean = str_replace(',', '.', $inflasiRaw);
+            if (!is_numeric($inflasiClean)) {
+                $this->errors->add("row_{$this->rowNumber}", "Inflasi tidak valid setelah normalisasi");
+                $this->failedRow = $this->rowNumber;
+                break;
+            }
+            $inflasi = round((float) $inflasiClean, 2);
 
             // Validation: andil
-            $andilRaw = $row['andil'] ?? null;
+            $andilRaw = trim($row['andil'] ?? '');
             $andil = null;
-            if (isset($andilRaw) && $andilRaw !== '') {
+            if ($andilRaw !== '') {
                 if (!is_numeric($andilRaw)) {
                     $this->errors->add("row_{$this->rowNumber}", "Andil harus numerik");
                     $this->failedRow = $this->rowNumber;
                     Log::error("Invalid andil at row {$this->rowNumber}: " . json_encode($andilRaw));
                     break;
                 }
-                // Round to 2 decimal places
-                $andil = round((float) $andilRaw, 2);
-                Log::info("Andil normalized to 2 decimal places: $andil");
+                $andilClean = str_replace(',', '.', $andilRaw);
+                if (!is_numeric($andilClean)) {
+                    $this->errors->add("row_{$this->rowNumber}", "Andil tidak valid setelah normalisasi");
+                    $this->failedRow = $this->rowNumber;
+                    break;
+                }
+                $andil = round((float) $andilClean, 2);
             }
 
-            // Check for duplicate key in the file
+            // Duplicate check
             $key = "{$kd_komoditas}-{$kd_wilayah}";
             if (isset($this->seenKeys[$key])) {
-                $this->errors->add("row_{$this->rowNumber}", "Duplikat ditemukan: kombinasi kd_komoditas '$kd_komoditas' dan kd_wilayah '$kd_wilayah' sudah ada.");
+                $this->errors->add("row_{$this->rowNumber}", "Duplikat: $key sudah ada");
                 $this->failedRow = $this->rowNumber;
-                Log::error("Duplicate key: {$key} at row {$this->rowNumber}");
                 break;
             }
             $this->seenKeys[$key] = true;
 
-            // Prepare data for DB
+            // Prepare data
             $data = [
                 'bulan_tahun_id' => $this->bulanTahunId,
                 'kd_level' => $this->level,
                 'kd_komoditas' => $kd_komoditas,
                 'kd_wilayah' => $kd_wilayah,
-                'inflasi' => (float) $row['inflasi'],
+                'inflasi' => $inflasi,
                 'andil' => $andil,
                 'updated_at' => now(),
             ];
@@ -169,105 +174,104 @@ class DataImport implements ToCollection, WithHeadingRow, WithChunkReading
                 $inserts[] = array_merge($data, ['created_at' => now()]);
             }
 
-            Log::error("Data preparation ok");
+            // Debug mode: Insert row-by-row
+            if ($this->debugMode && $this->failedRow === null) {
+                if (!empty($inserts)) {
+                    $this->processSingleInsert(end($inserts));
+                    $inserts = []; // Clear after processing
+                }
+                if (!empty($updates)) {
+                    $this->processSingleUpdate(end($updates));
+                    $updates = []; // Clear after processing
+                }
+            }
         }
 
-        // if ($this->failedRow === null && (!empty($updates) || !empty($inserts))) {
-        //     Log::error("Beginning transaction");
-        //     DB::beginTransaction();
-        //     try {
-        //         if (!empty($inserts)) {
-        //             foreach (array_chunk($inserts, 100) as $chunk) {
-        //                 Inflasi::insert($chunk);
-        //                 $this->insertedCount += count($chunk);
-        //             }
-        //             Log::error("Insert done");
-        //         }
-        //         if (!empty($updates)) {
-        //             Log::error("Update not empty");
-        //             foreach (array_chunk($updates, 100) as $chunk) {
-        //                 foreach ($chunk as $update) {
-        //                     DB::table('inflasi')
-        //                         ->where('inflasi_id', $update['inflasi_id'])
-        //                         ->update([
-        //                             'inflasi' => $update['inflasi'],
-        //                             'andil' => $update['andil'],
-        //                             'updated_at' => $update['updated_at']
-        //                         ]);
-        //                 }
-        //                 $this->updatedCount += count($chunk);
-        //                 Log::info("Updated {$this->updatedCount} rows");
-        //             }
-        //         }
-        //         DB::commit();
+        // Normal mode: Process in bulk
+        if (!$this->debugMode && $this->failedRow === null && (!empty($updates) || !empty($inserts))) {
+            $this->processBulk($inserts, $updates);
+        }
+    }
 
-        //         // if (count($rows) < $this->chunkSize()) {
-        //         //     Log::info("Partial chunk of " . count($rows) . " rows processed, stopping further chunks");
-        //         //     $this->stopAfterSmallChunk = true;
-        //         // }
-        //     } catch (\Exception $e) {
-        //         DB::rollBack();
-        //         $this->errors->add("row_{$this->rowNumber}", "Database error: " . $e->getMessage());
-        //         $this->failedRow = $this->rowNumber;
-        //         Log::error("Database error at row {$this->rowNumber}: " . $e->getMessage());
-        //     }
+    private function processSingleInsert(array $data)
+    {
+        Log::info("Debug: Attempting to insert row {$this->rowNumber}: " . json_encode($data));
+        try {
+            DB::table('inflasi')->insert($data);
+            $this->insertedCount++;
+            Log::info("Debug: Successfully inserted row {$this->rowNumber}");
+        } catch (\Exception $e) {
+            $this->errors->add("row_{$this->rowNumber}", "Insert failed: " . $e->getMessage());
+            $this->failedRow = $this->rowNumber;
+            Log::error("Debug: Insert failed at row {$this->rowNumber}: " . $e->getMessage(), [
+                'data' => $data,
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
+    }
 
-        //     Log::info("Chunk completed, inserted: {$this->insertedCount}, updated: {$this->updatedCount}, errors: " . $this->errors->count());
-        // }
-
-        if ($this->failedRow === null && (!empty($updates) || !empty($inserts))) {
-            Log::info("Preparing to process: " . count($inserts) . " inserts, " . count($updates) . " updates");
-            Log::info("Beginning transaction");
-            DB::beginTransaction();
-            try {
-                if (!empty($inserts)) {
-                    Log::info("Inserting " . count($inserts) . " rows");
-                    // Enable query logging
-                    DB::enableQueryLog();
-                    Log::info("DB query log enabled");
-                    Inflasi::insert($inserts);
-                    $queries = DB::getQueryLog();
-                    Log::info("Executed insert query: " . json_encode($queries));
-                    $this->insertedCount += count($inserts);
-                    Log::info("Inserted {$this->insertedCount} rows");
-                } else {
-                    Log::info("No inserts to process");
-                }
-
-                if (!empty($updates)) {
-                    Log::info("Updating " . count($updates) . " rows");
-                    foreach ($updates as $update) {
-                        $affected = DB::table('inflasi')
-                            ->where('inflasi_id', $update['inflasi_id'])
-                            ->update([
-                                'inflasi' => $update['inflasi'],
-                                'andil' => $update['andil'],
-                                'updated_at' => $update['updated_at']
-                            ]);
-                        $this->updatedCount += $affected;
-                        Log::info("Update for inflasi_id {$update['inflasi_id']} affected $affected rows");
-                    }
-                    Log::info("Updated total {$this->updatedCount} rows");
-                } else {
-                    Log::info("No updates to process");
-                }
-
-                DB::commit();
-
-                if (count($rows) < $this->chunkSize()) {
-                    Log::info("Partial chunk of " . count($rows) . " rows processed, stopping further chunks");
-                    $this->stopAfterSmallChunk = true;
-                }
-
-                Log::info("Transaction committed");
-            } catch (\Exception $e) {
-                DB::rollBack();
-                $this->errors->add("row_{$this->rowNumber}", "Database error: " . $e->getMessage());
-                $this->failedRow = $this->rowNumber;
-                Log::error("Database error at row {$this->rowNumber}: " . $e->getMessage(), [
-                    'exception' => $e->getTraceAsString()
+    private function processSingleUpdate(array $data)
+    {
+        Log::info("Debug: Attempting to update row {$this->rowNumber}: " . json_encode($data));
+        try {
+            $affected = DB::table('inflasi')
+                ->where('inflasi_id', $data['inflasi_id'])
+                ->update([
+                    'inflasi' => $data['inflasi'],
+                    'andil' => $data['andil'],
+                    'updated_at' => $data['updated_at']
                 ]);
+            if ($affected > 0) {
+                $this->updatedCount++;
+                Log::info("Debug: Successfully updated row {$this->rowNumber}");
+            } else {
+                Log::warning("Debug: No rows updated for inflasi_id {$data['inflasi_id']}");
             }
+        } catch (\Exception $e) {
+            $this->errors->add("row_{$this->rowNumber}", "Update failed: " . $e->getMessage());
+            $this->failedRow = $this->rowNumber;
+            Log::error("Debug: Update failed at row {$this->rowNumber}: " . $e->getMessage(), [
+                'data' => $data,
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
+    }
+
+    private function processBulk(array $inserts, array $updates)
+    {
+        Log::info("Bulk processing: " . count($inserts) . " inserts, " . count($updates) . " updates");
+        DB::beginTransaction();
+        try {
+            if (!empty($inserts)) {
+                Log::info("Inserting " . count($inserts) . " rows");
+                Inflasi::insert($inserts);
+                $this->insertedCount += count($inserts);
+                Log::info("Inserted {$this->insertedCount} rows");
+            }
+            if (!empty($updates)) {
+                Log::info("Updating " . count($updates) . " rows");
+                foreach ($updates as $update) {
+                    $affected = DB::table('inflasi')
+                        ->where('inflasi_id', $update['inflasi_id'])
+                        ->update([
+                            'inflasi' => $update['inflasi'],
+                            'andil' => $update['andil'],
+                            'updated_at' => $update['updated_at']
+                        ]);
+                    $this->updatedCount += $affected;
+                }
+                Log::info("Updated total {$this->updatedCount} rows");
+            }
+            DB::commit();
+            Log::info("Bulk transaction committed");
+            if (count($inserts) + count($updates) < $this->chunkSize()) {
+                $this->stopAfterSmallChunk = true;
+            }
+        } catch (\Exception $e) {
+            DB::rollBack();
+            $this->errors->add("row_{$this->rowNumber}", "Bulk error: " . $e->getMessage());
+            $this->failedRow = $this->rowNumber;
+            Log::error("Bulk error: " . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
         }
     }
 

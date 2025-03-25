@@ -225,12 +225,16 @@ class DataController extends Controller
 
     public function upload(Request $request)
     {
+
+        Log::info('Upload Request Data:', $request->all());
+        Log::info('Uploaded File:', [$request->hasFile('file'), $request->file('file')]);
+
         $request->merge(['bulan' => (int) $request->bulan]);
 
         $validated = $request->validate([
             'file' => 'required|file|mimes:xlsx,xls',
             'bulan' => 'required|integer|between:1,12',
-            'tahun' => 'required|integer|min:2000|max:2100',
+            'tahun' => 'required|integer',
             'level' => 'required|string|in:01,02,03,04,05',
         ]);
 

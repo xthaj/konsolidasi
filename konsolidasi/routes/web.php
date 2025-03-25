@@ -25,7 +25,7 @@ Route::get('/dashboard', function () {
 
 //visualisasi
 Route::get('/viz', [VisualisasiController::class, 'create'])->name('visualisasi.create');
-
+Route::post('/visualisasi/cek-data', [VisualisasiController::class, 'cekData']);
 // Data routes, protected by both auth and ispusat middleware
 Route::middleware(['pusat'])->group(function () {
     Route::get('/data/edit', [DataController::class, 'edit'])->name('data.edit');

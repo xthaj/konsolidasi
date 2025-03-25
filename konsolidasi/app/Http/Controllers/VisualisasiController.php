@@ -7,6 +7,7 @@ use App\Models\Inflasi;
 use App\Models\Wilayah;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Illuminate\Support\Facades\Log;
 
 class VisualisasiController extends Controller
 {
@@ -18,75 +19,397 @@ class VisualisasiController extends Controller
             'bulan' => $request->input('bulan', ''),
             'tahun' => $request->input('tahun', ''),
             'kd_wilayah' => $request->input('kd_wilayah', '0'),
-            'kd_komoditas' => $request->input('kd_komoditas', '00'),
+            'kd_komoditas' => $request->input('kd_komoditas', '000'),
         ];
 
-        // Determine bulan_tahun_id
-        $bulan = $response['bulan'];
-        $tahun = $response['tahun'];
-        if ($bulan && $tahun) {
-            $bulanTahun = BulanTahun::where('bulan', $bulan)
-                ->where('tahun', $tahun)
-                ->first();
-        } else {
-            $bulanTahun = BulanTahun::where('aktif', 1)->first();
-            if ($bulanTahun) {
-                $response['bulan'] = $bulanTahun->bulan;
-                $response['tahun'] = $bulanTahun->tahun;
-            }
-        }
+        // Log initial request inputs for debugging
+        Log::info('Request Inputs:', $response);
 
-        $kd_wilayah = $response['kd_wilayah'];
-        $kd_komoditas = $response['kd_komoditas'];
-
-        // Check data availability
-        $bulanTahunId = $bulanTahun ? $bulanTahun->bulan_tahun_id : null;
-        $dataCheck = $this->cekDataLogic($bulanTahunId, $kd_wilayah, $kd_komoditas);
-
-        // If no bulanTahun, return with error
-        if (!$bulanTahun) {
-            $response['message'] = $dataCheck['errors'][0];
+        // Determine BulanTahun
+        $bulanTahunRecord = $this->resolveBulanTahun($response['bulan'], $response['tahun']);
+        if (!$bulanTahunRecord) {
+            $response['message'] = 'Bulan dan tahun tidak ditemukan.';
+            Log::warning('BulanTahun not found for bulan: ' . $response['bulan'] . ', tahun: ' . $response['tahun']);
             return view('visualisasi.harmonisasi', $response);
         }
 
-        // Set title and update request
-        $request->merge(['bulan' => $bulanTahun->bulan, 'tahun' => $bulanTahun->tahun]);
+        // Update response with resolved values
+        $response['bulan'] = $bulanTahunRecord->bulan;
+        $response['tahun'] = $bulanTahunRecord->tahun;
+        $request->merge(['bulan' => $bulanTahunRecord->bulan, 'tahun' => $bulanTahunRecord->tahun]);
+        Log::info('Resolved BulanTahun:', ['bulan' => $response['bulan'], 'tahun' => $response['tahun'], 'bulan_tahun_id' => $bulanTahunRecord->bulan_tahun_id]);
+
+        // Check data and prepare visualization
+        $dataCheck = $this->cekDataLogic(
+            $bulanTahunRecord->bulan_tahun_id,
+            $response['kd_wilayah'],
+            $response['kd_komoditas']
+        );
+        Log::info('DataCheck Result:', $dataCheck);
+
+        // Set title and data
         $response['title'] = $this->generatePageTitle($request);
+        $response['data'] = $dataCheck['data'];
 
-        // Prepare data for available charts
-        $response['data'] = [];
-        if (in_array('stackedLine', $dataCheck['charts'])) {
-            $response['data']['stackedLine'] = $this->buildStackedLine($bulanTahunId, $kd_wilayah, $kd_komoditas);
-        }
-        if (in_array('barChart', $dataCheck['charts'])) {
-            // $response['data']['barChart'] = $this->buildBarChart($bulanTahunId, $kd_wilayah, $kd_komoditas); // Add this method
-        }
-        if (in_array('futureChart', $dataCheck['charts'])) {
-            // $response['data']['barChart'] = $this->buildBarChart($bulanTahunId, $kd_wilayah, $kd_komoditas); // Add this method
-        }
-
-        // Include errors in response if any
+        // Handle errors
         if (!empty($dataCheck['errors'])) {
             $response['message'] = 'Beberapa data hilang: ' . implode(', ', $dataCheck['errors']);
+            Log::warning('Errors found in dataCheck:', $dataCheck['errors']);
+        } else {
+            Log::info('No errors, data should be passed:', $response['data']);
         }
 
         return view('visualisasi.harmonisasi', $response);
     }
 
-    private function cekDataLogic($bulanTahunId, $kd_wilayah, $kd_komoditas)
+    private function resolveBulanTahun(?string $bulan, ?string $tahun): ?BulanTahun
     {
-        // Get the current BulanTahun
-        $bulanTahun = BulanTahun::find($bulanTahunId);
-        if (!$bulanTahun) {
+        if ($bulan && $tahun) {
+            return BulanTahun::where('bulan', $bulan)->where('tahun', $tahun)->first();
+        }
+        return BulanTahun::where('aktif', 1)->first();
+    }
+
+    private function cekDataLogic($bulanTahunId, $kd_wilayah, $kd_komoditas): array
+    {
+        $bulanTahunRecord = BulanTahun::find($bulanTahunId);
+        if (!$bulanTahunRecord) {
             return [
                 'charts' => [],
+                'data' => [],
                 'errors' => ['Bulan dan tahun tidak ditemukan.'],
-                'bulanTahun' => null,
             ];
         }
 
-        // Month names
-        $monthNames = (new BulanTahun())->monthNames ?? [
+        $monthNames = (new BulanTahun())->monthNames ?? $this->defaultMonthNames();
+        $levelNames = $this->defaultLevelNames();
+
+        $monthsData = $this->getPreviousMonths($bulanTahunRecord->bulan, $bulanTahunRecord->tahun, 5);
+        if (empty($monthsData['ids'])) {
+            return [
+                'charts' => [],
+                'data' => [],
+                'errors' => ["Data untuk bulan {$bulanTahunRecord->bulan} tahun {$bulanTahunRecord->tahun} tidak ditemukan."],
+            ];
+        }
+
+        $errors = [];
+        $kabkotMissingCount = 0; // Counter for missing kabkot data
+        $missingKabkots = []; // Array to store names of missing kabkots
+        $stackedLineData = ['series' => [], 'xAxis' => array_map(fn($m) => $monthNames[$m], $monthsData['bulans'])];
+        $horizontalBarData = ['labels' => array_map(fn($m) => $monthNames[$m], $monthsData['bulans']), 'datasets' => []];
+
+        // Fetch all provinces and kabkots
+        $provinces = Wilayah::whereRaw('LEN(kd_wilayah) = 2')->get()->pluck('nama_wilayah', 'kd_wilayah')->toArray();
+        $kabkots = Wilayah::whereRaw('LEN(kd_wilayah) = 4')->get()->pluck('nama_wilayah', 'kd_wilayah')->toArray();
+        $heatmapData = ['provinces' => [], 'values' => []];
+
+        // Original charts for the selected kd_wilayah
+        foreach ($levelNames as $kd => $name) {
+            $inflasiSeriesData = [];
+            $andilData = [];
+            $levelComplete = true;
+
+            foreach ($monthsData['ids'] as $index => $id) {
+                $record = Inflasi::where('bulan_tahun_id', $id)
+                    ->where('kd_wilayah', $kd_wilayah)
+                    ->where('kd_level', $kd)
+                    ->where('kd_komoditas', $kd_komoditas)
+                    ->select('inflasi', 'andil')
+                    ->first();
+
+                $dataExists = $record && !is_null($record->inflasi) && !is_null($record->andil);
+                $inflasi = $dataExists ? $record->inflasi : 0;
+                $andil = $dataExists ? $record->andil : 0;
+
+                $inflasiSeriesData[] = $inflasi;
+                $andilData[] = $andil;
+
+                if (!$dataExists) {
+                    $monthName = $monthNames[$monthsData['bulans'][$index]];
+                    $errors[] = "Bulan {$monthName} tahun {$monthsData['tahuns'][$index]}, Level {$name}: Data inflasi atau andil hilang.";
+                    $levelComplete = false;
+                }
+            }
+
+            $stackedLineData['series'][] = ['name' => $name, 'data' => $inflasiSeriesData];
+            $horizontalBarData['datasets'][] = [
+                'label' => $name,
+                'inflasi' => $inflasiSeriesData,
+                'andil' => $andilData,
+            ];
+        }
+
+        // Define kd_levels for heatmap x-axis
+        $kdLevels = ['01', '02', '03', '04', '05'];
+        $latestMonthId = $monthsData['ids'][0]; // Use the latest month from monthsData
+
+        // Heatmap Data
+        $heatmapData = [
+            'xAxis' => $kdLevels,
+            'yAxis' => [],
+            'values' => []
+        ];
+
+        foreach ($provinces as $provKd => $provName) {
+            $heatmapData['yAxis'][] = $provName;
+            foreach ($kdLevels as $kdLevel) {
+                $record = Inflasi::where('bulan_tahun_id', $latestMonthId)
+                    ->where('kd_wilayah', $provKd)
+                    ->where('kd_level', $kdLevel)
+                    ->where('kd_komoditas', $kd_komoditas)
+                    ->select('inflasi')
+                    ->first();
+
+                $xIndex = array_search($kdLevel, $kdLevels);
+                $yIndex = array_search($provName, $heatmapData['yAxis']);
+
+                if ($record && !is_null($record->inflasi)) {
+                    $heatmapData['values'][] = [$xIndex, $yIndex, is_numeric($record->inflasi) ? (float)$record->inflasi : null];
+                } else {
+                    $heatmapData['values'][] = [$xIndex, $yIndex, null];
+                    $errors[] = "Provinsi {$provName}, Level {$kdLevel}: Data inflasi tidak tersedia.";
+                }
+            }
+        }
+
+        // Bar Chart Data
+        $barChartData = [];
+        foreach ($kdLevels as $index => $kdLevel) {
+            $barChart = [
+                'name' => $levelNames[$kdLevel] ?? "Level $kdLevel",
+                'provinces' => [],
+                'values' => [],
+            ];
+
+            foreach ($provinces as $provKd => $provName) {
+                $record = Inflasi::where('bulan_tahun_id', $latestMonthId)
+                    ->where('kd_wilayah', $provKd)
+                    ->where('kd_level', $kdLevel)
+                    ->where('kd_komoditas', $kd_komoditas)
+                    ->select('inflasi')
+                    ->first();
+
+                if ($record && !is_null($record->inflasi)) {
+                    $barChart['provinces'][] = $provName;
+                    $barChart['values'][] = (float)$record->inflasi;
+                }
+            }
+            $barChartData[] = $barChart;
+        }
+
+        // Stacked Bar Chart Data
+        $stackedBarData = [
+            'labels' => $kdLevels,
+            'datasets' => [
+                ['label' => 'Menurun (< 0)', 'stack' => 'inflation', 'data' => [], 'backgroundColor' => '#FF6B6B'],
+                ['label' => 'Stable (= 0)', 'stack' => 'inflation', 'data' => [], 'backgroundColor' => '#FFD93D'],
+                ['label' => 'Naik (> 0)', 'stack' => 'inflation', 'data' => [], 'backgroundColor' => '#6BCB77'],
+                ['label' => 'Not Available', 'stack' => 'inflation', 'data' => [], 'backgroundColor' => '#D3D3D3'],
+            ],
+        ];
+
+        foreach ($kdLevels as $kdLevel) {
+            $menurunCount = 0;
+            $stableCount = 0;
+            $naikCount = 0;
+            $notAvailableCount = 0;
+
+            foreach ($provinces as $provKd => $provName) {
+                $record = Inflasi::where('bulan_tahun_id', $latestMonthId)
+                    ->where('kd_wilayah', $provKd)
+                    ->where('kd_level', $kdLevel)
+                    ->where('kd_komoditas', $kd_komoditas)
+                    ->select('inflasi')
+                    ->first();
+
+                $inflasi = $record ? $record->inflasi : null;
+                if ($inflasi === null) {
+                    $notAvailableCount++;
+                } elseif ((float)$inflasi < 0) {
+                    $menurunCount++;
+                } elseif ((float)$inflasi == 0) {
+                    $stableCount++;
+                } elseif ((float)$inflasi > 0) {
+                    $naikCount++;
+                }
+            }
+
+            $stackedBarData['datasets'][0]['data'][] = $menurunCount;
+            $stackedBarData['datasets'][1]['data'][] = $stableCount;
+            $stackedBarData['datasets'][2]['data'][] = $naikCount;
+            $stackedBarData['datasets'][3]['data'][] = $notAvailableCount;
+        }
+
+        // Provinces and Kabkots with code and name
+        $provincesWithKey = Wilayah::whereRaw('LEN(kd_wilayah) = 2')
+            ->get()
+            ->mapWithKeys(function ($item) {
+                return [$item->kd_wilayah => ['name' => $item->nama_wilayah, 'code' => $item->kd_wilayah]];
+            })->toArray();
+
+        $kabkotsWithKey = Wilayah::whereRaw('LEN(kd_wilayah) = 4')
+            ->get()
+            ->mapWithKeys(function ($item) {
+                return [$item->kd_wilayah => ['name' => $item->nama_wilayah, 'code' => $item->kd_wilayah]];
+            })->toArray();
+
+        // Horizontal Bar Chart 1: Provinces
+        $provHorizontalBarData = [];
+        foreach ($kdLevels as $kdLevel) {
+            $dataset = [
+                'kd_level' => $kdLevel,
+                'regions' => [],
+                'names' => [],
+                'inflasi' => []
+            ];
+            foreach ($provincesWithKey as $provKd => $provData) {
+                $record = Inflasi::where('bulan_tahun_id', $latestMonthId)
+                    ->where('kd_wilayah', $provKd)
+                    ->where('kd_level', $kdLevel)
+                    ->where('kd_komoditas', $kd_komoditas)
+                    ->select('inflasi')
+                    ->first();
+
+                $dataset['regions'][] = $provData['code'];
+                $dataset['names'][] = $provData['name'];
+                $dataset['inflasi'][] = $record && !is_null($record->inflasi) ? (float)$record->inflasi : null;
+            }
+            $provHorizontalBarData[] = $dataset;
+        }
+
+        // Horizontal Bar Chart 2: Kabupaten/Kota with error tracking
+        $kabkotHorizontalBarData = [];
+        foreach ($kdLevels as $kdLevel) {
+            $dataset = [
+                'kd_level' => $kdLevel,
+                'regions' => [],
+                'names' => [],
+                'inflasi' => []
+            ];
+            foreach ($kabkotsWithKey as $kabKd => $kabData) {
+                $record = Inflasi::where('bulan_tahun_id', $latestMonthId)
+                    ->where('kd_wilayah', $kabKd)
+                    ->where('kd_level', $kdLevel)
+                    ->where('kd_komoditas', $kd_komoditas)
+                    ->select('inflasi')
+                    ->first();
+
+                $dataset['regions'][] = $kabData['code'];
+                $dataset['names'][] = $kabData['name'];
+                $inflasiValue = $record && !is_null($record->inflasi) ? (float)$record->inflasi : null;
+                $dataset['inflasi'][] = $inflasiValue;
+
+                // Track missing kabkots
+                if ($inflasiValue === null) {
+                    $kabkotMissingCount++;
+                    $missingKabkots[] = $kabData['name'];
+                }
+            }
+            $kabkotHorizontalBarData[] = $dataset;
+        }
+
+        // Add kabkot error message based on count
+        if ($kabkotMissingCount > 0) {
+            $totalKabkots = count($kabkotsWithKey);
+            // Convert bulan to a zero-padded two-digit string
+            $monthKey = sprintf('%02d', $bulanTahunRecord->bulan);
+            $monthName = $monthNames[$monthKey];
+            if ($kabkotMissingCount < 30) {
+                $missingList = implode(', ', $missingKabkots);
+                $errors[] = "Data inflasi tidak tersedia untuk Kabupaten/Kota berikut pada bulan {$monthName} {$bulanTahunRecord->tahun}: {$missingList}.";
+            } else {
+                $errors[] = "Data inflasi untuk {$kabkotMissingCount} dari {$totalKabkots} Kabupaten/Kota tidak tersedia pada bulan {$monthName} {$bulanTahunRecord->tahun}.";
+            }
+        }
+
+        // Define available charts
+        $charts = [];
+        if (!empty($stackedLineData['series'])) $charts[] = 'stackedLine';
+        if (!empty($horizontalBarData['datasets'])) $charts[] = 'horizontalBar';
+        if (!empty($heatmapData['values'])) $charts[] = 'heatmap';
+        if (!empty($barChartData)) $charts[] = 'barCharts';
+        if (!empty($stackedBarData['datasets'])) $charts[] = 'stackedBar';
+        if (!empty($provHorizontalBarData)) $charts[] = 'provHorizontalBar';
+        if (!empty($kabkotHorizontalBarData)) $charts[] = 'kabkotHorizontalBar';
+
+        // Prepare data array
+        $data = [
+            'stackedLine' => $stackedLineData,
+            'horizontalBar' => $horizontalBarData,
+            'heatmap' => $heatmapData,
+            'barCharts' => $barChartData,
+            'stackedBar' => $stackedBarData,
+            'provHorizontalBar' => $provHorizontalBarData,
+            'kabkotHorizontalBar' => $kabkotHorizontalBarData,
+        ];
+
+        // Log final data (optional, remove if not needed)
+        Log::info('Final Data Before Return:', [
+            'charts' => $charts,
+            'data_summary' => array_keys($data),
+            'errors' => $errors
+        ]);
+
+        // Return the result
+        return [
+            'charts' => array_unique($charts),
+            'data' => $data,
+            'errors' => $errors,
+        ];
+    }
+    private function getPreviousMonths(string $bulan, string $tahun, int $count): array
+    {
+        $ids = [];
+        $bulans = [];
+        $tahuns = [];
+        $currentBulan = (int) $bulan;
+        $currentTahun = (int) $tahun;
+
+        for ($i = 0; $i < $count; $i++) {
+            Log::info("Processing: currentBulan={$currentBulan}, currentTahun={$currentTahun}");
+            $bt = BulanTahun::where('bulan', sprintf('%02d', $currentBulan))
+                ->where('tahun', $currentTahun)
+                ->first();
+
+            $ids[] = $bt ? $bt->bulan_tahun_id : null;
+            $bulans[] = sprintf('%02d', $currentBulan);
+            $tahuns[] = $currentTahun;
+
+            // Move to previous month
+            $currentBulan = ($currentBulan == 1) ? 12 : $currentBulan - 1;
+            if ($currentBulan == 12) {
+                $currentTahun--;
+            }
+        }
+
+        return [
+            'ids' => array_reverse($ids),
+            'bulans' => array_reverse($bulans),
+            'tahuns' => array_reverse($tahuns),
+        ];
+    }
+
+    private function generatePageTitle(Request $request): string
+    {
+        $monthNames = (new BulanTahun())->monthNames ?? $this->defaultMonthNames();
+        $levelHargaMap = $this->defaultLevelNames();
+
+        $bulan = $request->bulan;
+        $tahun = $request->tahun;
+        $kd_level = $request->input('kd_level', 'all');
+        $kd_wilayah = $request->kd_wilayah;
+
+        $wilayah = $kd_wilayah === '0' ? 'Nasional' : (Wilayah::find($kd_wilayah)->nama_wilayah ?? 'Unknown');
+        $levelHarga = $levelHargaMap[$kd_level] ?? '';
+        $monthName = $monthNames[$bulan] ?? '';
+
+        return trim("Inflasi {$wilayah} {$levelHarga} {$monthName} {$tahun}");
+    }
+
+    private function defaultMonthNames(): array
+    {
+        return [
             '01' => 'Januari',
             '02' => 'Februari',
             '03' => 'Maret',
@@ -100,225 +423,16 @@ class VisualisasiController extends Controller
             '11' => 'November',
             '12' => 'Desember'
         ];
+    }
 
-        // Level names
-        $levelNames = [
-            '01' => 'Harga Konsumen Kota',
-            '02' => 'Harga Konsumen Desa',
-            '03' => 'Harga Perdagangan Besar',
-            '04' => 'Harga Produsen Desa',
-            '05' => 'Harga Produsen'
-        ];
-
-        // Get 5 months (current + 4 prior)
-        $monthsToCheck = [];
-        $currentBulan = (int) $bulanTahun->bulan;
-        $currentTahun = (int) $bulanTahun->tahun;
-
-        for ($i = 0; $i < 5; $i++) {
-            $bt = BulanTahun::where('bulan', sprintf('%02d', $currentBulan))
-                ->where('tahun', $currentTahun)
-                ->first();
-
-            if (!$bt) {
-                return [
-                    'charts' => [],
-                    'errors' => ["Data untuk bulan $currentBulan tahun $currentTahun tidak ditemukan."],
-                    'bulanTahun' => $bulanTahun,
-                ];
-            }
-            $monthsToCheck[] = $bt;
-
-            // Move to previous month
-            if ($currentBulan != 1) {
-                $currentBulan--;
-            } else {
-                $currentBulan = 12;
-                $currentTahun--;
-            }
-        }
-
-        // Data completeness check
-        $errors = [];
-        $stackedLineOk = true;
-        $barChartOk = true;
-
-        foreach ($monthsToCheck as $bt) {
-            $monthName = $monthNames[$bt->bulan] ?? "Bulan {$bt->bulan}";
-            foreach (['01', '02', '03', '04', '05'] as $level) {
-                // Base check: Does any data exist for this level in this month?
-                $levelExists = Inflasi::where('bulan_tahun_id', $bt->bulan_tahun_id)
-                    ->where('kd_level', $level)
-                    ->exists();
-
-                if (!$levelExists) {
-                    $errors[] = "Bulan {$monthName} tahun {$bt->tahun}, Level {$levelNames[$level]}: Tidak ada data.";
-                    $stackedLineOk = false;
-                    $barChartOk = false;
-
-                    continue;
-                }
-
-                // Check for current charts (stackedLine and barChart) at specified kd_wilayah
-                $query = Inflasi::where('bulan_tahun_id', $bt->bulan_tahun_id)
-                    ->where('kd_wilayah', $kd_wilayah)
-                    ->where('kd_level', $level)
-                    ->where('kd_komoditas', $kd_komoditas);
-
-                $dataExists = $query->whereNotNull('inflasi')
-                    ->whereNotNull('andil')
-                    ->exists();
-
-                if (!$dataExists) {
-                    $missingFields = [];
-                    if (!$query->whereNotNull('inflasi')->exists()) {
-                        $missingFields[] = 'inflasi';
-                    }
-                    if (!$query->whereNotNull('andil')->exists()) {
-                        $missingFields[] = 'andil';
-                    }
-                    $errors[] = "Bulan {$monthName} tahun {$bt->tahun}, Level {$levelNames[$level]}: " . implode(' dan ', $missingFields) . " hilang.";
-                    $stackedLineOk = false;
-                    $barChartOk = false;
-                }
-
-                // Optional province-level check for future charts
-                if ($kd_wilayah === '0') {
-                    $provinces = Wilayah::where('kd_wilayah', 'like', '__')->get();
-                    foreach ($provinces as $prov) {
-                        $futureDataExists = Inflasi::where('bulan_tahun_id', $bt->bulan_tahun_id)
-                            ->where('kd_wilayah', $prov->kd_wilayah)
-                            ->where('kd_level', $level)
-                            ->whereNotNull('inflasi')
-                            ->whereNotNull('andil')
-                            ->exists();
-                        if (!$futureDataExists) {
-                            $errors[] = "Bulan {$monthName} tahun {$bt->tahun}, Provinsi {$prov->nama_wilayah}, Level {$levelNames[$level]}: Inflasi atau andil hilang.";
-                            $futureChartsOk = false;
-                        }
-                    }
-                }
-            }
-        }
-
-        // Determine which charts can be shown
-        $charts = [];
-        if ($stackedLineOk) {
-            $charts[] = 'stackedLine';
-        }
-        if ($barChartOk) {
-            $charts[] = 'barChart';
-        }
-        if ($futureChartsOk) {
-            $charts[] = 'futureCharts'; // Placeholder for future use
-        }
-
+    private function defaultLevelNames(): array
+    {
         return [
-            'charts' => $charts,
-            'errors' => $errors,
-            'bulanTahun' => $bulanTahun,
-        ];
-    }
-
-    private function prepareVisualizationData($bulanTahun, Request $request)
-    {
-        $kd_wilayah = $request->kd_wilayah;
-        $kd_komoditas = $request->kd_komoditas;
-        $bulanTahunId = $bulanTahun->bulan_tahun_id;
-
-        return ['stackedLine' => $this->buildStackedLine($bulanTahunId, $kd_wilayah, $kd_komoditas)];
-    }
-
-    private function buildStackedLine($bulanTahunId, $kd_wilayah, $kd_komoditas)
-    {
-        $levels = [
             '01' => 'Harga Konsumen Kota',
             '02' => 'Harga Konsumen Desa',
             '03' => 'Harga Perdagangan Besar',
             '04' => 'Harga Produsen Desa',
             '05' => 'Harga Produsen'
         ];
-
-        // Month names for display
-        $monthNames = (new BulanTahun())->monthNames;
-
-        // Get the current BulanTahun
-        $bulanTahun = BulanTahun::find($bulanTahunId);
-        if (!$bulanTahun) {
-            return ['series' => [], 'xAxis' => []];
-        }
-
-        // Get 5 months (current + 4 prior)
-        $months = [];
-        $monthIds = [];
-        $currentBulan = (int) $bulanTahun->bulan;
-        $currentTahun = (int) $bulanTahun->tahun;
-
-        for ($i = 0; $i < 5; $i++) {
-            $bt = BulanTahun::where('bulan', sprintf('%02d', $currentBulan))
-                ->where('tahun', $currentTahun)
-                ->first();
-
-            if (!$bt) {
-                $months[] = "Bulan $currentBulan Tahun $currentTahun (Tidak Ada)";
-                $monthIds[] = null;
-            } else {
-                $months[] = $monthNames[$bt->bulan];
-                $monthIds[] = $bt->bulan_tahun_id;
-            }
-
-            // Move to the previous month
-            if ($currentBulan != 1) {
-                $currentBulan--;
-            } else {
-                $currentBulan = 12;
-                $currentTahun--;
-            }
-        }
-
-        // Reverse to show oldest to newest
-        $months = array_reverse($months);
-        $monthIds = array_reverse($monthIds);
-
-        // Build chart data
-        $data = ['series' => [], 'xAxis' => $months];
-        foreach ($levels as $kd => $name) {
-            $seriesData = [];
-            foreach ($monthIds as $id) {
-                $inflation = $id ? Inflasi::where('bulan_tahun_id', $id)
-                    ->where('kd_wilayah', $kd_wilayah)
-                    ->where('kd_level', $kd)
-                    ->where('kd_komoditas', $kd_komoditas ?: DB::raw('kd_komoditas'))
-                    ->value('inflasi') ?? 0 : 0;
-                $seriesData[] = $inflation;
-            }
-            $data['series'][] = ['name' => $name, 'data' => $seriesData];
-        }
-
-        return $data;
-    }
-
-    private function generatePageTitle(Request $request): string
-    {
-        $monthNames = (new BulanTahun())->monthNames;
-        $levelHargaMap = [
-            '01' => 'Harga Konsumen Kota',
-            '02' => 'Harga Konsumen Desa',
-            '03' => 'Harga Perdagangan Besar',
-            '04' => 'Harga Produsen Desa',
-            '05' => 'Harga Produsen',
-            'all' => 'Semua Level Harga'
-        ];
-
-        $bulan = $request->bulan;
-        $tahun = $request->tahun;
-        $kd_level = $request->input('kd_level', 'all');
-        $kd_wilayah = $request->kd_wilayah;
-
-        $wilayah = $kd_wilayah === '0' ? 'Nasional' : (Wilayah::find($kd_wilayah)->nama_wilayah ?? 'Unknown');
-        $levelHarga = $levelHargaMap[$kd_level] ?? '';
-        $monthName = $monthNames[$bulan] ?? '';
-
-        return trim("Inflasi {$wilayah} {$levelHarga} {$monthName} {$tahun}");
     }
 }

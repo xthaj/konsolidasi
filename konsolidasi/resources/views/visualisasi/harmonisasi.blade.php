@@ -137,9 +137,23 @@
             <h2>{{ $title }}</h2>
 
             <!-- Display message if present -->
-            @if(isset($message))
+            @if(isset($message) && !empty($message['errors']))
             <div class="col-span-1 md:col-span-10 p-4 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded-lg">
-                {{ $message }}
+                <ul class="flex flex-wrap gap-2">
+                    @foreach($message['errors'] as $error)
+                    <li>
+                        <span id="badge-dismiss-{{ $loop->index }}" class="inline-flex items-center px-2 py-1 text-sm font-medium text-yellow-800 bg-yellow-100 rounded-sm">
+                            {{ $error }}
+                            <button type="button" class="inline-flex items-center p-1 ms-2 text-yellow-400 bg-transparent rounded-xs hover:bg-yellow-200 hover:text-yellow-900" data-dismiss-target="#badge-dismiss-{{ $loop->index }}" aria-label="Remove">
+                                <svg class="w-2 h-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6" />
+                                </svg>
+                                <span class="sr-only">Remove badge</span>
+                            </button>
+                        </span>
+                    </li>
+                    @endforeach
+                </ul>
             </div>
             @endif
 
@@ -190,10 +204,11 @@
 
             @if(!empty($data['heatmap']))
             <!-- 5 Mini Divs for Price Levels -->
-            <div class="bg-white p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-2">
-                <div id="barChart1" class="w-full h-96"></div>
+            <div class="bg-white p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-10">
+                <div id="barChartsContainer" style="width: 100%; height: 400px;">
+                </div>
             </div>
-            <div class="bg-white p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-2">
+            <!-- <div class="bg-white p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-2">
                 <div id="barChart2" class="w-full h-96"></div>
 
             </div>
@@ -207,7 +222,7 @@
             </div>
             <div class="bg-white p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-2">
                 <div id="barChart5" class="w-full h-96"></div>
-            </div>
+            </div> -->
             @endif
 
             @if(!empty($data['stackedBar']))
@@ -232,7 +247,7 @@
 
             <!-- Dropdown Div -->
             <div class="flex gap-8 items-center bg-primary-700 md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
-                <h3 class="flex-1 text-white text-lg font-bold">Level Harga</h3>
+                <h3 class="flex-1 text-white text-lg font-bold">Inflasi</h3>
                 <select id="levelHargaSelect" class="w-64 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                     <option>Harga Konsumen Kota</option>
                     <option>Harga Konsumen Desa</option>

@@ -1626,11 +1626,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const horizontalBarChartElement =
         document.getElementById("horizontalBarChart");
     const heatmapChartElement = document.getElementById("heatmapChart");
-    const barChartElement1 = document.getElementById("barChart1");
-    const barChartElement2 = document.getElementById("barChart2");
-    const barChartElement3 = document.getElementById("barChart3");
-    const barChartElement4 = document.getElementById("barChart4");
-    const barChartElement5 = document.getElementById("barChart5");
+    const barChartsContainer = document.getElementById("barChartsContainer");
     const stackedBarChartElement = document.getElementById("stackedBarChart");
     const provHorizontalBarChartElement = document.getElementById(
         "provHorizontalBarChart"
@@ -1642,17 +1638,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         document.getElementById("provinsiChoropleth");
     const kabkotChoroplethElement = document.getElementById("kabkotChoropleth");
     const levelSelect = document.getElementById("levelHargaSelect");
-
     // Validate DOM elements (unchanged)
     if (
         !stackedLineChartElement ||
         !horizontalBarChartElement ||
         !heatmapChartElement ||
-        !barChartElement1 ||
-        !barChartElement2 ||
-        !barChartElement3 ||
-        !barChartElement4 ||
-        !barChartElement5 ||
+        !barChartsContainer ||
         !stackedBarChartElement ||
         !provHorizontalBarChartElement ||
         !kabkotHorizontalBarChartElement ||
@@ -1667,16 +1658,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     let stackedLineChart,
         horizontalBarChart,
         heatmapChart,
-        barChart1,
-        barChart2,
-        barChart3,
-        barChart4,
-        barChart5,
+        barChartInstance,
         stackedBarChart,
         provHorizontalBarChart,
         kabkotHorizontalBarChart,
-        provinsiChoropleth, // Moved to outer scope
-        kabkotChoropleth, // Moved to outer scope
+        provinsiChoropleth,
+        kabkotChoropleth,
         provinsiGeoJson,
         kabkotGeoJson;
 
@@ -1684,25 +1671,21 @@ document.addEventListener("DOMContentLoaded", async () => {
         stackedLineChart = echarts.init(stackedLineChartElement);
         horizontalBarChart = echarts.init(horizontalBarChartElement);
         heatmapChart = echarts.init(heatmapChartElement);
-        barChart1 = echarts.init(barChartElement1);
-        barChart2 = echarts.init(barChartElement2);
-        barChart3 = echarts.init(barChartElement3);
-        barChart4 = echarts.init(barChartElement4);
-        barChart5 = echarts.init(barChartElement5);
+        barChartInstance = echarts.init(barChartsContainer); // Assign directly to outer scope
         stackedBarChart = echarts.init(stackedBarChartElement);
         provHorizontalBarChart = echarts.init(provHorizontalBarChartElement);
         kabkotHorizontalBarChart = echarts.init(
             kabkotHorizontalBarChartElement
         );
-        provinsiChoropleth = echarts.init(provinsiChoroplethElement); // Assign to outer scope
-        kabkotChoropleth = echarts.init(kabkotChoroplethElement); // Assign to outer scope
+        provinsiChoropleth = echarts.init(provinsiChoroplethElement);
+        kabkotChoropleth = echarts.init(kabkotChoroplethElement);
     } catch (error) {
         console.error("Failed to initialize ECharts instances:", error);
         return;
     }
 
     // Array of bar chart instances
-    const chartsBar = [barChart1, barChart2, barChart3, barChart4, barChart5];
+    // const chartsBar = [barChart1, barChart2, barChart3, barChart4, barChart5];
 
     // Default data (fallback if no backend data)
     const defaultStackedLineData = {
@@ -1825,7 +1808,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Stacked Line Chart Configuration (Inflasi)
     const stackedLineOptions = {
-        title: { text: window.chartTitle || "Inflasi" },
+        // title: { text: window.chartTitle || "Inflasi" },
         tooltip: { trigger: "axis" },
         legend: { data: stackedLineData.series.map((s) => s.name) },
         grid: { left: "3%", right: "4%", bottom: "3%", containLabel: true },
@@ -1925,27 +1908,65 @@ document.addEventListener("DOMContentLoaded", async () => {
     };
 
     // Bar Chart Options
-    const barChartOptions = (level) => ({
-        title: { text: `Bar Chart - ${barChartData[level].name}` },
-        tooltip: { trigger: "axis" },
-        xAxis: {
+    // Grid setup for 1 row, 5 columns
+    const grids = [];
+    const xAxes = [];
+    const yAxes = [];
+    const series = [];
+    const titles = [];
+    const columnCount = 5;
+
+    barChartData.forEach((data, idx) => {
+        grids.push({
+            show: true,
+            borderWidth: 0,
+            left: `${(idx / columnCount) * 100 + 2}%`, // 2% padding
+            top: "10%",
+            width: `${(1 / columnCount) * 100 - 4}%`, // 4% total padding
+            height: "70%",
+        });
+        xAxes.push({
             type: "value",
             name: "Inflation (%)",
-        },
-        yAxis: {
+            gridIndex: idx,
+            min: 0,
+            max: Math.max(...data.values) * 1.2, // Dynamic max
+        });
+        yAxes.push({
             type: "category",
-            data: barChartData[level].provinces,
-            axisLabel: { interval: 0, rotate: 45 },
-        },
-        series: [
-            {
-                name: barChartData[level].name,
-                type: "bar",
-                data: barChartData[level].values,
-                itemStyle: { color: "#73C0DE" },
+            data: data.provinces,
+            gridIndex: idx,
+            axisLabel: {
+                show: idx === 0, // Show labels only on first and last
+                interval: 0,
+                rotate: 45,
             },
-        ],
+        });
+        series.push({
+            name: data.name,
+            type: "bar",
+            xAxisIndex: idx,
+            yAxisIndex: idx,
+            data: data.values,
+            itemStyle: { color: "#73C0DE" },
+        });
+        titles.push({
+            text: data.name,
+            textAlign: "center",
+            left: `${(idx / columnCount) * 100 + (1 / columnCount) * 50}%`,
+            top: "2%",
+            textStyle: { fontSize: 12, fontWeight: "normal" },
+        });
     });
+
+    const barChartOptions = {
+        title: titles,
+        grid: grids,
+        xAxis: xAxes,
+        yAxis: yAxes,
+        series: series,
+        tooltip: { trigger: "axis" },
+    };
 
     // Stacked Bar Chart Configuration
     const stackedBarOptions = {
@@ -2106,20 +2127,22 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     // Function to update bar charts
-    function updateBarCharts(newBarChartData) {
-        const updatedBarChart = newBarChartData || barChartData;
-        chartsBar.forEach((chart, index) => {
-            if (
-                updatedBarChart[index] &&
-                updatedBarChart[index].provinces.length > 0
-            ) {
-                barChartData[index] = updatedBarChart[index];
-                chart.setOption(barChartOptions(index));
-            } else {
-                console.warn(`No valid data for barChart${index + 1}`);
-            }
+    // Function to update bar charts
+    window.updateBarCharts = function (newBarChartData) {
+        const updatedData = newBarChartData || barChartData;
+        updatedData.forEach((data, idx) => {
+            xAxes[idx].max = Math.max(...data.values) * 1.2;
+            yAxes[idx].data = data.provinces;
+            series[idx].data = data.values;
+            titles[idx].text = data.name;
         });
-    }
+        barChartInstance.setOption({
+            title: titles,
+            xAxis: xAxes,
+            yAxis: yAxes,
+            series: series,
+        });
+    };
 
     // Function to update stacked bar chart
     function updateStackedBarChart(newStackedBarData) {
@@ -2233,16 +2256,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             console.warn("No valid heatmap data provided.");
         }
 
-        chartsBar.forEach((chart, index) => {
-            if (
-                barChartData[index] &&
-                barChartData[index].provinces.length > 0
-            ) {
-                chart.setOption(barChartOptions(index));
-            } else {
-                console.warn(`No valid data for barChart${index + 1}`);
-            }
-        });
+        barChartInstance.setOption(barChartOptions);
 
         if (stackedBarData.labels && stackedBarData.datasets) {
             stackedBarChart.setOption(stackedBarOptions);
@@ -2258,7 +2272,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         stackedLineChart.resize();
         horizontalBarChart.resize();
         heatmapChart.resize();
-        chartsBar.forEach((chart) => chart.resize());
+        // chartsBar.forEach((chart) => chart.resize());
         stackedBarChart.resize();
         provHorizontalBarChart.resize();
         kabkotHorizontalBarChart.resize();
@@ -2266,6 +2280,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         kabkotHorizontalBarChart.resize();
         provinsiChoropleth.resize();
         kabkotChoropleth.resize();
+
+        barChartInstance.resize();
     });
 
     // Expose update functions globally
