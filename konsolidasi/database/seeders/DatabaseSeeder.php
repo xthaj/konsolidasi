@@ -13,11 +13,47 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-
-
         // wilayah
         DB::table('wilayah')->insert([
             ['kd_wilayah' => 0, 'nama_wilayah' => "NASIONAL", 'flag' => 1, 'parent_kd' => null],
+            ['kd_wilayah' => "11", 'nama_wilayah' => "ACEH", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "12", 'nama_wilayah' => "SUMATERA UTARA", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "13", 'nama_wilayah' => "SUMATERA BARAT", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "14", 'nama_wilayah' => "RIAU", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "15", 'nama_wilayah' => "JAMBI", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "16", 'nama_wilayah' => "SUMATERA SELATAN", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "17", 'nama_wilayah' => "BENGKULU", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "18", 'nama_wilayah' => "LAMPUNG", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "19", 'nama_wilayah' => "KEPULAUAN BANGKA BELITUNG", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "21", 'nama_wilayah' => "KEPULAUAN RIAU", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "31", 'nama_wilayah' => "DKI JAKARTA", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "32", 'nama_wilayah' => "JAWA BARAT", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "33", 'nama_wilayah' => "JAWA TENGAH", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "34", 'nama_wilayah' => "DI YOGYAKARTA", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "35", 'nama_wilayah' => "JAWA TIMUR", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "36", 'nama_wilayah' => "BANTEN", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "51", 'nama_wilayah' => "BALI", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "52", 'nama_wilayah' => "NUSA TENGGARA BARAT", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "53", 'nama_wilayah' => "NUSA TENGGARA TIMUR", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "61", 'nama_wilayah' => "KALIMANTAN BARAT", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "62", 'nama_wilayah' => "KALIMANTAN TENGAH", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "63", 'nama_wilayah' => "KALIMANTAN SELATAN", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "64", 'nama_wilayah' => "KALIMANTAN TIMUR", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "65", 'nama_wilayah' => "KALIMANTAN UTARA", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "71", 'nama_wilayah' => "SULAWESI UTARA", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "72", 'nama_wilayah' => "SULAWESI TENGAH", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "73", 'nama_wilayah' => "SULAWESI SELATAN", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "74", 'nama_wilayah' => "SULAWESI TENGGARA", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "75", 'nama_wilayah' => "GORONTALO", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "76", 'nama_wilayah' => "SULAWESI BARAT", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "81", 'nama_wilayah' => "MALUKU", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "82", 'nama_wilayah' => "MALUKU UTARA", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "91", 'nama_wilayah' => "PAPUA BARAT", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "92", 'nama_wilayah' => "PAPUA BARAT DAYA", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "94", 'nama_wilayah' => "PAPUA", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "95", 'nama_wilayah' => "PAPUA SELATAN", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "96", 'nama_wilayah' => "PAPUA TENGAH", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "97", 'nama_wilayah' => "PAPUA PEGUNUNGAN", 'flag' => 2, 'parent_kd' => 0],
             ['kd_wilayah' => "1106", 'nama_wilayah' => "KAB ACEH TENGAH", 'flag' => 3, 'parent_kd' => 11],
             ['kd_wilayah' => "1107", 'nama_wilayah' => "MEULABOH", 'flag' => 3, 'parent_kd' => 11],
             ['kd_wilayah' => "1114", 'nama_wilayah' => "KAB ACEH TAMIANG", 'flag' => 3, 'parent_kd' => 11],
@@ -168,44 +204,7 @@ class DatabaseSeeder extends Seeder
             ['kd_wilayah' => "9601", 'nama_wilayah' => "TIMIKA", 'flag' => 3, 'parent_kd' => 96],
             ['kd_wilayah' => "9604", 'nama_wilayah' => "KAB NABIRE", 'flag' => 3, 'parent_kd' => 96],
             ['kd_wilayah' => "9702", 'nama_wilayah' => "KAB JAYAWIJAYA", 'flag' => 3, 'parent_kd' => 97],
-            ['kd_wilayah' => "11", 'nama_wilayah' => "ACEH", 'flag' => 2, 'parent_kd' => 0],
-            ['kd_wilayah' => "12", 'nama_wilayah' => "SUMATERA UTARA", 'flag' => 2, 'parent_kd' => 0],
-            ['kd_wilayah' => "13", 'nama_wilayah' => "SUMATERA BARAT", 'flag' => 2, 'parent_kd' => 0],
-            ['kd_wilayah' => "14", 'nama_wilayah' => "RIAU", 'flag' => 2, 'parent_kd' => 0],
-            ['kd_wilayah' => "15", 'nama_wilayah' => "JAMBI", 'flag' => 2, 'parent_kd' => 0],
-            ['kd_wilayah' => "16", 'nama_wilayah' => "SUMATERA SELATAN", 'flag' => 2, 'parent_kd' => 0],
-            ['kd_wilayah' => "17", 'nama_wilayah' => "BENGKULU", 'flag' => 2, 'parent_kd' => 0],
-            ['kd_wilayah' => "18", 'nama_wilayah' => "LAMPUNG", 'flag' => 2, 'parent_kd' => 0],
-            ['kd_wilayah' => "19", 'nama_wilayah' => "KEPULAUAN BANGKA BELITUNG", 'flag' => 2, 'parent_kd' => 0],
-            ['kd_wilayah' => "21", 'nama_wilayah' => "KEPULAUAN RIAU", 'flag' => 2, 'parent_kd' => 0],
-            ['kd_wilayah' => "31", 'nama_wilayah' => "DKI JAKARTA", 'flag' => 2, 'parent_kd' => 0],
-            ['kd_wilayah' => "32", 'nama_wilayah' => "JAWA BARAT", 'flag' => 2, 'parent_kd' => 0],
-            ['kd_wilayah' => "33", 'nama_wilayah' => "JAWA TENGAH", 'flag' => 2, 'parent_kd' => 0],
-            ['kd_wilayah' => "34", 'nama_wilayah' => "DI YOGYAKARTA", 'flag' => 2, 'parent_kd' => 0],
-            ['kd_wilayah' => "35", 'nama_wilayah' => "JAWA TIMUR", 'flag' => 2, 'parent_kd' => 0],
-            ['kd_wilayah' => "36", 'nama_wilayah' => "BANTEN", 'flag' => 2, 'parent_kd' => 0],
-            ['kd_wilayah' => "51", 'nama_wilayah' => "BALI", 'flag' => 2, 'parent_kd' => 0],
-            ['kd_wilayah' => "52", 'nama_wilayah' => "NUSA TENGGARA BARAT", 'flag' => 2, 'parent_kd' => 0],
-            ['kd_wilayah' => "53", 'nama_wilayah' => "NUSA TENGGARA TIMUR", 'flag' => 2, 'parent_kd' => 0],
-            ['kd_wilayah' => "61", 'nama_wilayah' => "KALIMANTAN BARAT", 'flag' => 2, 'parent_kd' => 0],
-            ['kd_wilayah' => "62", 'nama_wilayah' => "KALIMANTAN TENGAH", 'flag' => 2, 'parent_kd' => 0],
-            ['kd_wilayah' => "63", 'nama_wilayah' => "KALIMANTAN SELATAN", 'flag' => 2, 'parent_kd' => 0],
-            ['kd_wilayah' => "64", 'nama_wilayah' => "KALIMANTAN TIMUR", 'flag' => 2, 'parent_kd' => 0],
-            ['kd_wilayah' => "65", 'nama_wilayah' => "KALIMANTAN UTARA", 'flag' => 2, 'parent_kd' => 0],
-            ['kd_wilayah' => "71", 'nama_wilayah' => "SULAWESI UTARA", 'flag' => 2, 'parent_kd' => 0],
-            ['kd_wilayah' => "72", 'nama_wilayah' => "SULAWESI TENGAH", 'flag' => 2, 'parent_kd' => 0],
-            ['kd_wilayah' => "73", 'nama_wilayah' => "SULAWESI SELATAN", 'flag' => 2, 'parent_kd' => 0],
-            ['kd_wilayah' => "74", 'nama_wilayah' => "SULAWESI TENGGARA", 'flag' => 2, 'parent_kd' => 0],
-            ['kd_wilayah' => "75", 'nama_wilayah' => "GORONTALO", 'flag' => 2, 'parent_kd' => 0],
-            ['kd_wilayah' => "76", 'nama_wilayah' => "SULAWESI BARAT", 'flag' => 2, 'parent_kd' => 0],
-            ['kd_wilayah' => "81", 'nama_wilayah' => "MALUKU", 'flag' => 2, 'parent_kd' => 0],
-            ['kd_wilayah' => "82", 'nama_wilayah' => "MALUKU UTARA", 'flag' => 2, 'parent_kd' => 0],
-            ['kd_wilayah' => "91", 'nama_wilayah' => "PAPUA BARAT", 'flag' => 2, 'parent_kd' => 0],
-            ['kd_wilayah' => "92", 'nama_wilayah' => "PAPUA BARAT DAYA", 'flag' => 2, 'parent_kd' => 0],
-            ['kd_wilayah' => "94", 'nama_wilayah' => "PAPUA", 'flag' => 2, 'parent_kd' => 0],
-            ['kd_wilayah' => "95", 'nama_wilayah' => "PAPUA SELATAN", 'flag' => 2, 'parent_kd' => 0],
-            ['kd_wilayah' => "96", 'nama_wilayah' => "PAPUA TENGAH", 'flag' => 2, 'parent_kd' => 0],
-            ['kd_wilayah' => "97", 'nama_wilayah' => "PAPUA PEGUNUNGAN", 'flag' => 2, 'parent_kd' => 0],
+
 
         ]);
 
@@ -277,7 +276,5 @@ class DatabaseSeeder extends Seeder
         $this->call([
             TestSeeder::class,
         ]);
-
-
     }
 }
