@@ -42,7 +42,7 @@
     </div>
 
     <div class="flex flex-col sm:flex-row gap-4">
-        <a href="#" class="text-primary-700 hover:text-white border border-primary-700 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-yellow-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center w-full sm:w-auto">
+        <a href="{{ asset('template/template.xlsx') }}" class="text-primary-700 hover:text-white border border-primary-700 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-yellow-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center w-full sm:w-auto">
             Template
         </a>
         <a href="/komoditas/export" class="text-primary-700 hover:text-white border border-primary-700 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-yellow-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center w-full sm:w-auto">
@@ -109,7 +109,7 @@
                 class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:ring-primary-500 focus:border-primary-500"
                 id="file_input"
                 type="file">
-            <p class="mt-1 text-xs text-gray-500">Format: Excel (XLSX, CSV). Maks 5MB.</p>
+            <p class="mt-1 text-xs text-gray-500">Format: Excel (XLSX). Maks 5MB.</p>
             @error('file')
             <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
             @enderror
