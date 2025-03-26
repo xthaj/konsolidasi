@@ -14,6 +14,7 @@ Alpine.data("webData", () => ({
     selectedKabkot: "",
     selectedKomoditas: "",
     selectedKdLevel: "",
+    selectedLevel: "HK",
     isPusat: false,
     kd_wilayah: "",
 
@@ -101,27 +102,6 @@ Alpine.data("webData", () => ({
         }
     },
 
-    // Chart control methods
-    showInflasiLine() {
-        const option = this.multiAxisChart.getOption();
-        option.series = this.datasets.map((dataset) => ({
-            name: dataset.label,
-            type: "line",
-            data: dataset.inflasi,
-        }));
-        this.multiAxisChart.setOption(option);
-    },
-
-    showAndilLine() {
-        const option = this.multiAxisChart.getOption();
-        option.series = this.datasets.map((dataset) => ({
-            name: dataset.label,
-            type: "line",
-            data: dataset.andil,
-        }));
-        this.multiAxisChart.setOption(option);
-    },
-
     toggleFullscreen(chartId) {
         const chartElement = document.getElementById(chartId);
         const fullscreenIcon = document.getElementById(
@@ -161,6 +141,10 @@ Alpine.data("webData", () => ({
                 this.rankBarChartProvinsi2.resize();
             else if (chartId === "inflationHeatmap")
                 this.inflationHeatmap.resize();
+            else if (chartId === "provHorizontalBarChart")
+                this.provHorizontalBarChart.resize();
+            else if (chartId === "kabkotHorizontalBarChart")
+                this.kabkotHorizontalBarChart.resize();
             else if (chartId === "map") this.map.resize();
             else if (chartId === "map2") this.map2.resize();
             else if (chartId.includes("priceLevelChart")) {
@@ -500,6 +484,14 @@ document.addEventListener("DOMContentLoaded", async () => {
         ],
     };
 
+    const shortenedHargaMap = {
+        "Harga Perdagangan Besar": "HPB",
+        "Harga Konsumen Kota": "HK",
+        "Harga Konsumen Desa": "HK Desa",
+        "Harga Produsen Desa": "HP Desa",
+        "Harga Produsen": "HP",
+    };
+
     // Heatmap Chart Configuration (Inflasi by Province)
     const heatmapOptions = {
         tooltip: {
@@ -510,9 +502,15 @@ document.addEventListener("DOMContentLoaded", async () => {
                 const value = params.data[2]; // heatmap value (inflasi)
                 const marker = params.marker; // ECharts dot
 
-                return `${xValue}<br>${marker} ${yValue}: ${
+                return `${xValue}<br>${yValue}<br>${marker} Inflasi: ${
                     value !== undefined ? value : "-"
                 }%`;
+            },
+        },
+        toolbox: {
+            feature: {
+                saveAsImage: { title: "Save as PNG" },
+                // restore: {},
             },
         },
         grid: { left: "5%", right: "15%", containLabel: true },
@@ -630,7 +628,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Stacked Bar Chart Configuration
     const stackedBarOptions = {
-        title: { text: "Inflation Categories by Level (Latest Month)" },
         tooltip: {
             trigger: "axis",
             axisPointer: { type: "shadow" },
@@ -648,7 +645,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         legend: { bottom: 0 },
         grid: { left: "10%", right: "10%", bottom: "15%", top: "10%" },
         xAxis: { type: "category", data: stackedBarData.labels },
-        yAxis: { type: "value", name: "Province Count" },
+        yAxis: { type: "value", name: "Jumlah Provinsi" },
         series: stackedBarData.datasets.map((dataset) => ({
             name: dataset.label,
             type: "bar",
@@ -662,11 +659,27 @@ document.addEventListener("DOMContentLoaded", async () => {
     const horizontalBarOptionsWilayah = (data, title) => ({
         title: { text: title },
         tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
-        grid: { left: "15%", right: "10%", bottom: "10%", top: "10%" },
+        grid: {
+            left: "5%",
+            right: "20%",
+            bottom: "10%",
+            top: "10%",
+            containLabel: true,
+        },
+        dataZoom: [
+            {
+                type: "slider",
+                orient: "vertical",
+            },
+        ],
         xAxis: { type: "value", name: "Inflasi (%)" },
         yAxis: { type: "category", data: data.names },
         series: [
             {
+                label: {
+                    show: true,
+                    position: "right",
+                },
                 name: "Inflasi",
                 type: "bar",
                 data: data.inflasi,
@@ -725,9 +738,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         return geoJson.features.map((feature) => {
             const regionCode =
                 mapName === "Provinsi_Indonesia"
-                    ? feature.properties.KODE_PROV
-                    : feature.properties.idkab;
-            const index = data.regions.findIndex((code) => code === regionCode);
+                    ? feature.properties.KODE_PROV // Already a string, e.g., "82"
+                    : feature.properties.idkab; // Already a string, e.g., "8201"
+            const index = data.regions.findIndex(
+                (code) => String(code) === regionCode
+            );
             return {
                 name: regionCode,
                 value: index !== -1 ? data.inflasi[index] : null,
@@ -879,16 +894,15 @@ document.addEventListener("DOMContentLoaded", async () => {
             inflasi: [],
         };
 
+        console.log("provData:", provData);
+
         // Update bar charts with names
         provHorizontalBarChart.setOption(
-            horizontalBarOptionsWilayah(provData, "Inflasi by Province"),
+            horizontalBarOptionsWilayah(provData, "per Provinsi"),
             true
         );
         kabkotHorizontalBarChart.setOption(
-            horizontalBarOptionsWilayah(
-                kabkotData,
-                "Inflasi by Kabupaten/Kota"
-            ),
+            horizontalBarOptionsWilayah(kabkotData, "per Kabupaten/Kota"),
             true
         );
 
@@ -908,7 +922,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             choroplethOptions(
                 "Provinsi_Indonesia",
                 provChoroData,
-                "Inflasi by Provinsi"
+                "per Provinsi"
             ),
             true
         );
@@ -916,7 +930,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             choroplethOptions(
                 "Kabkot_Indonesia",
                 kabkotChoroData,
-                "Inflasi by Kabupaten/Kota"
+                "per Kabupaten/Kota"
             ),
             true
         );
@@ -930,25 +944,16 @@ document.addEventListener("DOMContentLoaded", async () => {
         console.log("select change");
 
         const levelMap = {
-            "Harga Konsumen Kota": 0, // 01
-            "Harga Konsumen Desa": 1, // 02
-            "Harga Perdagangan Besar": 2, // 03
-            "Harga Produsen Desa": 3, // 04
-            "Harga Produsen": 4, // 05
+            HK: 0, // Harga Konsumen Kota
+            HD: 1, // Harga Konsumen Desa
+            HPB: 2, // Harga Perdagangan Besar
+            HPD: 3, // Harga Produsen Desa
+            HP: 4, // Harga Produsen
         };
 
         const selectedLevel = levelMap[levelSelect.value] || 0;
         updateSelectCharts(selectedLevel); // Fixed function name
-
-        // Hide or show elements based on selection
-        const isKotaSelected = levelSelect.value === "Harga Konsumen Kota";
-
-        document
-            .getElementById("kabkotHorizontalBarParent")
-            .classList.toggle("hidden", !isKotaSelected);
-        document
-            .getElementById("kabkotChoroplethParent")
-            .classList.toggle("hidden", !isKotaSelected);
+        resizeCharts();
     });
 
     // Initial chart rendering
@@ -1004,14 +1009,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Expose update functions globally
     window.updateCharts = updateCharts;
-    window.updateBarCharts = updateBarCharts;
     window.updateSelectCharts = updateSelectCharts;
 
     // Log initial data
-    console.log("Initial Stacked Line Data:", stackedLineData);
-    console.log("Initial Horizontal Bar Data:", horizontalBarData);
-    console.log("Initial Heatmap Data:", heatmapData);
-    console.log("Initial Bar Chart Data:", provHorizontalBarData);
+    // console.log("Initial Stacked Line Data:", stackedLineData);
+    // console.log("Initial Horizontal Bar Data:", horizontalBarData);
+    // console.log("Initial Heatmap Data:", heatmapData);
+    // console.log("Initial Bar Chart Data:", provHorizontalBarData);
 });
 
 const charts = {};
@@ -1024,6 +1028,14 @@ function initializeCharts() {
         { id: "heatmapChart", parentId: "heatmapChartParent" },
         { id: "barChartsContainer", parentId: "barChartsContainerParent" },
         { id: "stackedBarChart", parentId: "stackedBarChartParent" },
+        {
+            id: "provHorizontalBarChart",
+            parentId: "provHorizontalBarContainer",
+        },
+        {
+            id: "kabkotHorizontalBarChart",
+            parentId: "kabkotHorizontalBarContainer",
+        },
     ];
 
     chartConfigs.forEach((config) => {
