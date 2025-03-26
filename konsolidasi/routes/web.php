@@ -23,9 +23,7 @@ Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-//visualisasi
-Route::get('/viz', [VisualisasiController::class, 'create'])->name('visualisasi.create');
-Route::post('/visualisasi/cek-data', [VisualisasiController::class, 'cekData']);
+
 // Data routes, protected by both auth and ispusat middleware
 Route::middleware(['pusat'])->group(function () {
     Route::get('/data/edit', [DataController::class, 'edit'])->name('data.edit');
@@ -35,6 +33,10 @@ Route::middleware(['pusat'])->group(function () {
     Route::delete('/data/delete/{id}', [DataController::class, 'delete'])->name('data.delete'); // New route for hapus
     Route::post('/data/store', [DataController::class, 'store'])->name('data.store');
     Route::patch('/data/update/{id}', [DataController::class, 'update'])->name('data.update');
+
+    //visualisasi
+    Route::get('/visualisasi', [VisualisasiController::class, 'create'])->name('visualisasi.create');
+    Route::post('/visualisasi/cek-data', [VisualisasiController::class, 'cekData']);
 });
 
 //Bulan tahun
