@@ -5,7 +5,7 @@
     @endsection
 
     <!-- New Success Modal -->
-    <x-modal name="success-update-bulan-tahun" focusable title="Success">
+    <x-modal name="success-update-bulan-tahun" focusable title="Sukses">
         <div class="px-6 py-4">
             <p x-text="successMessage" class="text-green-600"></p>
             <div class="mt-6 flex justify-end">
@@ -49,7 +49,7 @@
     <x-modal name="edit-komoditas" focusable title="Edit Komoditas">
         <div class="px-6 py-4">
             <div class="mb-4">
-                <label class="block mb-2 text-sm font-medium text-gray-900">Kode Komoditas</label>
+                <label class="block mb-2 text-sm font-medium text-gray-900">Kode Komoditas (tidak bisa diubah)</label>
                 <input type="text" x-model="editKomoditas.kd_komoditas" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5" disabled>
             </div>
             <div class="mb-4">
@@ -59,6 +59,20 @@
             <div class="mt-6 flex justify-end gap-3">
                 <x-secondary-button x-on:click="$dispatch('close')">Batal</x-secondary-button>
                 <x-primary-button @click="updateKomoditas">Simpan</x-primary-button>
+            </div>
+        </div>
+    </x-modal>
+
+    <!-- Modal for Confirming Deletion -->
+    <x-modal name="confirm-action" focusable title="Konfirmasi Penghapusan">
+        <div class="px-6 py-4">
+            <div class="mb-4">
+                <p class="text-sm text-gray-900" x-text="confirmMessage"></p>
+                <p class="text-sm text-gray-600 mt-2" x-text="confirmDetails"></p>
+            </div>
+            <div class="mt-6 flex justify-end gap-3">
+                <x-secondary-button x-on:click="$dispatch('close')">Batal</x-secondary-button>
+                <x-primary-button @click="confirmAction(); $dispatch('close')">Hapus</x-primary-button>
             </div>
         </div>
     </x-modal>
@@ -99,7 +113,6 @@
     <hr class="h-px my-8 bg-gray-200 border-0 dark:bg-gray-700">
 
     <!-- Komoditas Table -->
-    <!-- <div class="mb-6"> -->
     <div class="flex justify-between items-center mb-4">
         <h1 class="text-lg font-semibold">Daftar Komoditas</h1>
         <button class="bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg text-sm px-5 py-2.5" @click="openAddKomoditasModal">Tambah Komoditas</button>
