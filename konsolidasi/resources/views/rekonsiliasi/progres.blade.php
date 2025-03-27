@@ -25,7 +25,7 @@
                 <!-- Periode -->
                 <div>
                     <span>Periode: </span>
-                    <span x-text="`${activeBulan} ${activeTahun}`"></span>
+                    <span x-text="`${activeBulan}/${activeTahun}`"></span>
                 </div>
 
                 <!-- Dropdown menu for Alasan -->
@@ -102,10 +102,12 @@
         <div class="px-6 py-4">
             <p x-text="'Hapus rekonsiliasi berikut?'"></p>
 
-            <div>
-                <span>Level Harga: </span>
-                <span x-text="modalData.kd_level === '01' ? 'Harga Konsumen Kota' : (modalData.kd_level === '02' ? 'Harga Desa' : 'Harga Perdagangan Besar')"></span>
-            </div>
+            <span x-text="
+                modalData.kd_level === '01' ? 'Harga Konsumen Kota' :
+                modalData.kd_level === '02' ? 'Harga Konsumen Desa' :
+                modalData.kd_level === '03' ? 'Harga Perdagangan Besar' :
+                modalData.kd_level === '04' ? 'Harga Produsen Desa' : 'Harga Produsen'">
+            </span>
             <div>
                 <span>Komoditas: </span>
                 <span x-text="modalData.komoditas"></span>
@@ -237,16 +239,18 @@
                         <th scope="col" class="px-6 py-3">Kode Komoditas</th>
                         <th scope="col" class="px-6 py-3">Komoditas</th>
                         <th scope="col" class="px-6 py-3">Level Harga</th>
+                        <th scope="col" class="px-6 py-3">
+                            {{ $filters['kdLevel'] === '01' ? 'Inflasi Kota' : ($filters['kdLevel'] === '02' ? 'Inflasi Desa' : 'Inflasi') }}
+                        </th>
                         @if ($filters['kdLevel'] === '01' || $filters['kdLevel'] === '02')
-                        <th scope="col" class="px-6 py-3">Inflasi Kota</th>
-                        <th scope="col" class="px-6 py-3">Inflasi Desa</th>
-                        @else
-                        <th scope="col" class="px-6 py-3">Inflasi</th>
+                        <th scope="col" class="px-6 py-3">
+                            {{ $filters['kdLevel'] === '01' ? 'Inflasi Desa' : 'Inflasi Kota' }}
+                        </th>
                         @endif
                         <th scope="col" class="px-6 py-3 min-w-[175px]">Alasan</th>
                         <th scope="col" class="px-6 py-3">Detail</th>
-                        <th scope="col" class="px-6 py-3">Media</th>
-                        <th scope="col" class="px-6 py-3">Terakhir Diedit</th>
+                        <th scope="col" class="px-6 py-3">Sumber</th>
+                        <th scope="col" class="px-6 py-3">Terakhir Diedit Oleh</th>
                         <th scope="col" class="px-6 py-3" x-show="isEditable"><span class="sr-only">Edit</span></th>
                     </tr>
                 </thead>
@@ -260,29 +264,36 @@
                         <td class="px-6 py-4">{{ $item->inflasi->kd_komoditas }}</td>
                         <td class="px-6 py-4">{{ $item->inflasi->komoditas->nama_komoditas ?? 'N/A' }}</td>
                         <td class="px-6 py-4">
-                            {{ $item->inflasi->kd_level === '01' ? 'Harga Konsumen Kota' : ($item->inflasi->kd_level === '02' ? 'Harga Desa' : 'Harga Perdagangan Besar') }}
+                            {{ $item->inflasi->kd_level === '01' ? 'Harga Konsumen Kota' : ($item->inflasi->kd_level === '02' ? 'Harga Konsumen Desa' : ($item->inflasi->kd_level === '03' ? 'Harga Perdagangan Besar' : ($item->inflasi->kd_level === '04' ? 'Harga Produsen Desa' : 'Harga Produsen'))) }}
+                        </td>
+                        <td class="px-6 py-4">
+                            @if ($filters['kdLevel'] === '01' && is_numeric($item->inflasi->inflasi))
+                            {{ number_format($item->inflasi->inflasi, 2) . '%' }}
+                            @elseif ($filters['kdLevel'] === '02')
+                            {{ ucfirst($item->inflasi->inflasi ?? '-') }}
+                            @elseif (is_numeric($item->inflasi->inflasi))
+                            {{ number_format($item->inflasi->inflasi, 2) . '%' }}
+                            @else
+                            {{ ucfirst($item->inflasi->inflasi ?? '-') }}
+                            @endif
+
                         </td>
                         @if ($filters['kdLevel'] === '01' || $filters['kdLevel'] === '02')
                         <td class="px-6 py-4">
-                            {{ $item->inflasi->inflasi ? number_format($item->inflasi->inflasi, 2) . '%' : '-' }}
-                        </td>
-                        <td class="px-6 py-4">
-                            {{ $inflasi_opposite->get($item->inflasi->kd_komoditas)?->inflasi ? number_format($inflasi_opposite->get($item->inflasi->kd_komoditas)->inflasi, 2) . '%' : '-' }}
-                        </td>
-                        @else
-                        <td class="px-6 py-4">
-                            {{ $item->inflasi->inflasi ? number_format($item->inflasi->inflasi, 2) . '%' : '-' }}
+                            @if ($filters['kdLevel'] === '01' && $item->inflasi->inflasi_opposite !== null)
+                            {{ is_numeric($item->inflasi->inflasi_opposite) ? number_format($item->inflasi->inflasi_opposite, 2) . '%' : Str::ucfirst($item->inflasi->inflasi_opposite) }}
+                            @elseif ($filters['kdLevel'] === '02' && $item->inflasi->inflasi_opposite !== null)
+                            {{ is_numeric($item->inflasi->inflasi_opposite) ? number_format($item->inflasi->inflasi_opposite, 2) . '%' : Str::ucfirst($item->inflasi->inflasi_opposite) }}
+                            @else
+                            {{ Str::ucfirst($item->inflasi->inflasi_opposite ?? '-') }}
+                            @endif
                         </td>
                         @endif
                         <td class="px-6 py-4">
                             @if ($item->alasan)
                             <ul class="list-disc list-inside">
                                 @foreach (explode(',', $item->alasan) as $alasan)
-                                <li>
-                                    <!-- <span class="inline-flex items-center px-2 py-1 me-2 my-1 text-sm font-medium text-blue-800 bg-blue-100 rounded-sm dark:bg-blue-900 dark:text-blue-300"> -->
-                                    {{ trim($alasan) }}
-                                    <!-- </span> -->
-                                </li>
+                                <li>{{ trim($alasan) }}</li>
                                 @endforeach
                             </ul>
                             @else
@@ -314,13 +325,11 @@
                                 class="font-medium text-indigo-600 dark:text-indigo-500 hover:underline">
                                 Edit
                             </button>
-
                             <button
-                                @click="openDeleteModal('{{ $item->rekonsiliasi_id }}', '{{ $item->inflasi->wilayah->nama_wilayah }}', '{{ $item->inflasi->komoditas->nama_komoditas }}', '{{ $item->inflasi->kd_level }}', '')"
+                                @click="openDeleteModal('{{ $item->rekonsiliasi_id }}', '{{ $item->inflasi->komoditas->nama_komoditas }}', '{{ $item->inflasi->wilayah->nama_wilayah }}', '{{ $item->inflasi->kd_level }}', '')"
                                 class="font-medium text-red-600 hover:underline">
                                 Delete
                             </button>
-
                         </td>
                     </tr>
                     @empty
@@ -348,5 +357,9 @@
         {{ $rekonsiliasi->appends(request()->query())->links() }}
     </div>
     @endif
+
+    <script>
+        console.log(<?php echo json_encode($rekonsiliasi); ?>);
+    </script>
 
 </x-two-panel-layout>

@@ -44,18 +44,16 @@ Alpine.data("webData", () => ({
             const bulanTahunResponse = await fetch("/api/bulan_tahun");
             const bulanTahunData = await bulanTahunResponse.json();
             const aktifData = bulanTahunData.bt_aktif || {};
+
+            console.log("bt responsde: ", bulanTahunData);
+
+            // Set defaults
             this.bulan = aktifData.bulan
                 ? String(aktifData.bulan).padStart(2, "0")
                 : "";
-            this.tahun = aktifData.tahun || String(new Date().getFullYear());
-            this.activeBulan = this.bulan;
-            this.activeTahun = this.tahun;
+            this.tahun = String(aktifData.tahun || new Date().getFullYear());
 
-            // Populate tahunOptions
-            this.tahunOptions =
-                bulanTahunData.tahun || (aktifData ? [aktifData.tahun] : []);
-
-            // Set initial values from URL params if present
+            // Override with URL params
             const urlParams = new URLSearchParams(window.location.search);
             this.bulan = urlParams.get("bulan")
                 ? String(urlParams.get("bulan")).padStart(2, "0")
@@ -65,13 +63,40 @@ Alpine.data("webData", () => ({
             this.selectedKabkot = urlParams.get("kd_wilayah") || "";
             this.status = urlParams.get("status") || "all";
 
+            // Set active values *after* URL params
+            this.activeBulan = aktifData.bulan
+                ? String(aktifData.bulan).padStart(2, "0")
+                : this.bulan;
+            this.activeTahun = String(
+                aktifData.tahun || new Date().getFullYear()
+            );
+
+            // Populate tahunOptions
+            this.tahunOptions =
+                bulanTahunData.tahun && Object.keys(bulanTahunData.tahun).length
+                    ? Object.values(bulanTahunData.tahun).map(String)
+                    : [this.tahun];
+
+            console.log("tahunOptions: ", this.tahunOptions);
+            // Debugging
+            console.log("tahun:", this.tahun);
+            console.log("bulan:", this.bulan);
+            console.log("activeTahun:", this.activeTahun);
+            console.log("activeBulan:", this.activeBulan);
+            console.log("urlParams.get('tahun'):", urlParams.get("tahun"));
+            console.log("urlParams.get('bulan'):", urlParams.get("bulan"));
+
             this.updateKdWilayah();
 
+            // Check editability
             if (
                 urlParams.get("bulan") === this.activeBulan &&
                 urlParams.get("tahun") === this.activeTahun
             ) {
                 this.isEditable = true;
+                console.log("editable");
+            } else {
+                console.log("not editable");
             }
         } catch (error) {
             console.error("Failed to load data:", error);
@@ -174,35 +199,49 @@ Alpine.data("webData", () => ({
         console.log("Opening delete modal with:", this.modalData);
     },
 
-    submitEditRekon() {
+    async submitEditRekon() {
+        // Validate checkbox selection
+        if (
+            !Array.isArray(this.selectedAlasan) ||
+            this.selectedAlasan.length === 0
+        ) {
+            alert("Pilih setidaknya satu alasan");
+            return;
+        }
+
         const data = {
             alasan: this.selectedAlasan.join(", "),
             detail: this.detail,
             media: this.linkTerkait,
         };
 
-        fetch(`/rekonsiliasi/update/${this.modalData.id}`, {
-            method: "PUT",
-            headers: {
-                "X-CSRF-TOKEN": document.querySelector(
-                    'meta[name="csrf-token"]'
-                ).content,
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(data),
-        })
-            .then((response) => {
-                if (response.ok) {
-                    location.reload(); // Refresh page on success
-                } else {
-                    alert("Gagal menyimpan perubahan");
+        try {
+            const response = await fetch(
+                `/rekonsiliasi/update/${this.modalData.id}`,
+                {
+                    method: "PUT",
+                    headers: {
+                        "X-CSRF-TOKEN": document.querySelector(
+                            'meta[name="csrf-token"]'
+                        ).content,
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(data),
                 }
-            })
-            .catch((error) => {
-                console.error("Edit error:", error);
-                alert("Error saat menyimpan");
-            })
-            .finally(() => this.$dispatch("close-modal", "edit-rekonsiliasi"));
+            );
+
+            if (response.ok) {
+                alert("Berhasil menyimpan perubahan");
+                location.reload(); // Refresh page on success
+            } else {
+                alert("Gagal menyimpan perubahan");
+            }
+        } catch (error) {
+            console.error("Edit error:", error);
+            alert("Error saat menyimpan");
+        } finally {
+            this.$dispatch("close-modal", "edit-rekonsiliasi");
+        }
     },
 
     submitForm() {
@@ -224,11 +263,12 @@ Alpine.data("webData", () => ({
             });
 
             if (response.ok) {
-                console.log("Delete successful, reloading page");
+                alert("Berhasil menghapus data");
+                // console.log("Delete successful, reloading page");
                 location.reload();
             } else {
-                console.error("Delete failed:", response.status);
                 alert("Gagal menghapus");
+                console.error("Delete failed:", response.status);
             }
         } catch (error) {
             console.error("Delete error:", error);
