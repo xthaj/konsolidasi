@@ -1,7 +1,7 @@
 <x-two-panel-layout>
 
     @section('vite')
-    @vite(['resources/css/app.css', 'resources/js/alpine-init.js', 'resources/js/harmonisasi.js'])
+    @vite(['resources/css/app.css', 'resources/js/harmonisasi.js'])
     @endsection
 
     <script src="https://cdn.jsdelivr.net/npm/echarts@latest/dist/echarts.min.js"></script>

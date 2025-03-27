@@ -1,7 +1,7 @@
 <x-one-panel-layout>
 
     @section('vite')
-    @vite(['resources/css/app.css', 'resources/js/alpine-init.js', 'resources/js/upload-data.js', 'resources/js/alpine-start.js'])
+    @vite(['resources/css/app.css', 'resources/js/upload-data.js'])
     @endsection
 
     @if($errors->any())

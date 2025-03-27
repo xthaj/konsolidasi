@@ -1,4 +1,7 @@
-// document.addEventListener('alpine:init', () => {
+import "flowbite";
+import Alpine from "alpinejs";
+window.Alpine = Alpine;
+
 Alpine.data("webData", () => ({
     loading: true, // Start with loading true
     bulan: "",
@@ -290,4 +293,4 @@ Alpine.data("webData", () => ({
         };
     },
 }));
-// });
+Alpine.start();

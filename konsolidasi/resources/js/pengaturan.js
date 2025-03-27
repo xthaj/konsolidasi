@@ -1,4 +1,6 @@
-// document.addEventListener('alpine:init', () => {
+import "flowbite";
+import Alpine from "alpinejs";
+window.Alpine = Alpine;
 
 Alpine.data("webData", () => ({
     loading: true,
@@ -269,4 +271,4 @@ Alpine.data("webData", () => ({
         this.$dispatch("close"); // Close the modal
     },
 }));
-// });
+Alpine.start();

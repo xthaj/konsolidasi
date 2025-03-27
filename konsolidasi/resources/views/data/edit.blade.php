@@ -1,6 +1,6 @@
 <x-two-panel-layout>
     @section('vite')
-    @vite(['resources/css/app.css', 'resources/js/alpine-init.js', 'resources/js/edit-data.js', 'resources/js/alpine-start.js'])
+    @vite(['resources/css/app.css', 'resources/js/edit-data.js'])
     @endsection
 
     <!-- modal is for table methods -->

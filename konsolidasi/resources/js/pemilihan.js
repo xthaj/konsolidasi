@@ -1,4 +1,7 @@
-// document.addEventListener('alpine:init', () => {
+import "flowbite";
+import Alpine from "alpinejs";
+window.Alpine = Alpine;
+
 Alpine.data("webData", () => ({
     bulan: "",
     tahun: "",
@@ -453,4 +456,5 @@ Alpine.data("webData", () => ({
         this.dropdowns[menu] = false;
     },
 }));
-// });
+
+Alpine.start();
