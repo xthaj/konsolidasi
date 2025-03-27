@@ -156,6 +156,7 @@ Alpine.data("webData", () => ({
         };
         const levelHargaDisplay = levelHargaMapping[this.selectedKdLevel];
 
+        // making combination to make rekon object
         const combinations = [];
         selectedWilayah.forEach((wilayah) => {
             komoditasToAdd.forEach((komoditas) => {
@@ -171,6 +172,7 @@ Alpine.data("webData", () => ({
             });
         });
 
+        // limit combination, so not all combinations selected without thought
         const MAX_COMBINATIONS = 100;
         if (combinations.length > MAX_COMBINATIONS) {
             this.$dispatch("open-modal", "limit-error");
@@ -224,7 +226,7 @@ Alpine.data("webData", () => ({
                         ...combo,
                         inflasi_id: result.inflasi_id,
                         bulan_tahun_id: result.bulan_tahun_id,
-                        harga: result.harga || "0.00",
+                        inflasi: result.inflasi || "0.00",
                     });
                 } else {
                     missingItems.push(
@@ -264,8 +266,15 @@ Alpine.data("webData", () => ({
     async confirmRekonsiliasi() {
         console.log("tableData before submission:", this.tableData);
 
+        // Remove duplicates based on inflasi_id
+        const uniqueData = Array.from(
+            new Map(
+                this.tableData.map((item) => [item.inflasi_id, item])
+            ).values()
+        );
+
         const formData = new FormData();
-        this.tableData.forEach((item) => {
+        uniqueData.forEach((item) => {
             formData.append("inflasi_ids[]", item.inflasi_id);
             formData.append(
                 "bulan_tahun_ids[]",
@@ -273,7 +282,7 @@ Alpine.data("webData", () => ({
             );
         });
 
-        console.log("FormData to send:");
+        console.log("FormData to send (unique values only):");
         for (let pair of formData.entries()) {
             console.log(`${pair[0]}: ${pair[1]}`);
         }
@@ -288,15 +297,20 @@ Alpine.data("webData", () => ({
                     "X-CSRF-TOKEN": csrfToken,
                     Accept: "application/json",
                 },
-                body: formData, // Send as FormData, not JSON
+                body: formData,
             });
 
             const result = await response.json();
             console.log("Server response:", result);
 
             if (result.success) {
-                alert("Pemilihan komoditas berhasil!");
-                this.tableData = []; // Clear table after success
+                if (result.partial_success) {
+                    alert(result.message);
+                    console.log("Duplikat:", result.duplicates);
+                } else {
+                    alert("Pemilihan komoditas berhasil!");
+                    this.tableData = []; // Clear table after full success
+                }
             } else {
                 alert(
                     "Rekonsiliasi gagal: " + (result.message || "Unknown error")

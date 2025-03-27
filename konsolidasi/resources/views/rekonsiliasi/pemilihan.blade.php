@@ -25,8 +25,9 @@
 
     <x-modal name="limit-error" focusable title="Kesalahan">
         <div class="px-6 py-4">
-            <div x-show="!modalContent.success">
-                <p class="text-red-600">Terlalu banyak kombinasi yang dipilih (maksimal 100)</p>
+            <div>
+                <p>Terlalu banyak kombinasi yang dipilih (maksimal 100)</p><br>
+                <p>Tambah rekonsiliasi dapat dilakukan berkali-kali sampai Konfirmasi Rekonsiliasi.</p>
             </div>
             <div class="mt-6 flex justify-end gap-3">
                 <x-secondary-button x-on:click="$dispatch('close')">Mengerti</x-secondary-button>
@@ -205,12 +206,7 @@
                         <th scope="col" class="px-6 py-3">Kode Komoditas</th>
                         <th scope="col" class="px-6 py-3">Komoditas</th>
                         <th scope="col" class="px-6 py-3">Level Harga</th>
-                        <th scope="col" class="px-6 py-3">Inflasi/RH Kota</th>
-                        <th scope="col" class="px-6 py-3">Inflasi/RH Desa</th>
-                        <th scope="col" class="px-6 py-3">Alasan</th>
-                        <th scope="col" class="px-6 py-3">Detail</th>
-                        <th scope="col" class="px-6 py-3">Media</th>
-                        <th scope="col" class="px-6 py-3">Terakhir Diedit Oleh</th>
+                        <th scope="col" class="px-6 py-3">Inflasi/RH</th>
                         <th scope="col" class="px-6 py-3"><span class="sr-only">Edit</span></th>
                     </tr>
                 </thead>
@@ -220,10 +216,10 @@
                             <td class="px-6 py-4" x-text="index + 1"></td>
                             <td class="px-6 py-4" x-text="item.kd_wilayah"></td>
                             <td class="px-6 py-4" x-text="item.nama_wilayah"></td>
-                            <td class="px-6 py-4" x-text="item.level_harga"></td>
                             <td class="px-6 py-4" x-text="item.kd_komoditas"></td>
                             <td class="px-6 py-4" x-text="item.nama_komoditas"></td>
-                            <td class="px-6 py-4" x-text="item.harga"></td>
+                            <td class="px-6 py-4" x-text="item.level_harga"></td>
+                            <td class="px-6 py-4" x-text="item.inflasi"></td>
                             <td class="px-6 py-4 text-right">
                                 <button @click="removeRow(index)" class="font-medium text-red-600 dark:text-red-500 hover:underline">Hapus</button>
                             </td>
