@@ -7,6 +7,7 @@ use App\Http\Controllers\RekonsiliasiController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\KomoditasController;
+use App\Http\Controllers\DashboardController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Log;
 use App\Http\Middleware\isPusat;
@@ -19,9 +20,9 @@ use App\Exports\KomoditasExport;
 use App\Exports\WilayahExport;
 
 
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/dashboard', [DashboardController::class, 'index'])
+    ->middleware(['auth', 'verified'])
+    ->name('dashboard');
 
 
 // Data routes, protected by both auth and ispusat middleware
@@ -29,8 +30,8 @@ Route::middleware(['pusat'])->group(function () {
     Route::get('/data/edit', [DataController::class, 'edit'])->name('data.edit');
     Route::get('/data/upload', [DataController::class, 'create'])->name('data.create');
     Route::post('/data/upload', [DataController::class, 'upload'])->name('data.upload');
-    Route::post('/data/hapus', [DataController::class, 'hapus'])->name('data.hapus'); // New route for hapus
-    Route::delete('/data/delete/{id}', [DataController::class, 'delete'])->name('data.delete'); // New route for hapus
+    Route::post('/data/hapus', [DataController::class, 'hapus'])->name('data.hapus');
+    Route::delete('/data/delete/{id}', [DataController::class, 'delete'])->name('data.delete');
     Route::post('/data/store', [DataController::class, 'store'])->name('data.store');
     Route::patch('/data/update/{id}', [DataController::class, 'update'])->name('data.update');
 
@@ -58,8 +59,6 @@ Route::middleware('auth')->group(function () {
 });
 
 // APIs
-
-
 Route::get('/api/wilayah', function () {
     Log::info('Wilayah data NOT fetched from database', ['timestamp' => now()]);
     $data = Cache::rememberForever('wilayah_data', function () {
