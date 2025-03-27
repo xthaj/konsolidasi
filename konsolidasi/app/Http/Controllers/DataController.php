@@ -13,6 +13,7 @@ use App\Imports\DataImport;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 use App\Models\Rekonsiliasi;
+use Illuminate\Support\Facades\DB;
 
 class DataController extends Controller
 {
@@ -329,9 +330,10 @@ class DataController extends Controller
                 ->first();
 
             if (!$bulanTahun) {
-                return redirect()->back()->withErrors(['No data found for the specified period.']);
+                return redirect()->back()->withErrors(['Tidak ada data tersedia untuk periode tersebut.']);
             }
 
+            //hapus rekon cuz fk? no need bcs cascade on delete
             $deletedRows = Inflasi::where('bulan_tahun_id', $bulanTahun->bulan_tahun_id)
                 ->where('kd_level', $request->level)
                 ->delete();
@@ -509,23 +511,62 @@ class DataController extends Controller
         ]);
 
         try {
+            DB::beginTransaction();
+
+            $existingRecords = Rekonsiliasi::whereIn('inflasi_id', $validated['inflasi_ids'])
+                ->whereIn('bulan_tahun_id', $validated['bulan_tahun_ids'])
+                ->get()
+                ->pluck('inflasi_id', 'bulan_tahun_id')
+                ->toArray();
+
+            $createdCount = 0;
+            $duplicates = [];
+
             foreach ($validated['inflasi_ids'] as $index => $inflasi_id) {
+                $bulan_tahun_id = $validated['bulan_tahun_ids'][$index];
+
+                // Check if this combination already exists
+                if (
+                    isset($existingRecords[$bulan_tahun_id]) &&
+                    in_array($inflasi_id, (array)$existingRecords[$bulan_tahun_id])
+                ) {
+                    $duplicates[] = [
+                        'inflasi_id' => $inflasi_id,
+                        'bulan_tahun_id' => $bulan_tahun_id
+                    ];
+                    continue;
+                }
+
                 Rekonsiliasi::create([
                     'inflasi_id' => $inflasi_id,
-                    'bulan_tahun_id' => $validated['bulan_tahun_ids'][$index],
+                    'bulan_tahun_id' => $bulan_tahun_id,
                     'user_id' => null,
                     'terakhir_diedit' => null,
                     'alasan' => null,
                     'detail' => null,
                     'media' => null,
                 ]);
+                $createdCount++;
+            }
+
+            DB::commit();
+
+            if (!empty($duplicates)) {
+                return response()->json([
+                    'success' => true,
+                    'partial_success' => true,
+                    'message' => "Rekonsiliasi berhasil untuk {$createdCount} entri. " .
+                        count($duplicates) . " entri dilewati karena duplikat.",
+                    'duplicates' => $duplicates
+                ], 200);
             }
 
             return response()->json([
                 'success' => true,
-                'message' => 'Rekonsiliasi berhasil dikonfirmasi.'
+                'message' => 'Rekonsiliasi berhasil dikonfirmasi untuk semua entri.'
             ], 200);
         } catch (\Exception $e) {
+            DB::rollBack();
             Log::error('Rekonsiliasi failed:', ['error' => $e->getMessage()]);
             return response()->json([
                 'success' => false,
@@ -545,7 +586,7 @@ class DataController extends Controller
         try {
             $request->validate([
                 'bulan' => 'required|string|in:01,02,03,04,05,06,07,08,09,10,11,12',
-                'tahun' => 'required|string|digits:4',
+                'tahun' => 'required|digits:4',
             ]);
             Log::info('Request validated successfully', [
                 'bulan' => $request->input('bulan'),

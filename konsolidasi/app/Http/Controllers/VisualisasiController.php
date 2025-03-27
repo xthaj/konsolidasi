@@ -15,18 +15,16 @@ class VisualisasiController extends Controller
     {
         $response = [
             'title' => 'Inflasi',
-            'message' => '', // Optional general message
+            'message' => '',
             'bulan' => $request->input('bulan', ''),
             'tahun' => $request->input('tahun', ''),
             'kd_wilayah' => $request->input('kd_wilayah', '0'),
             'kd_komoditas' => $request->input('kd_komoditas', '000'),
-            'errors' => [] // Add errors as an array
+            'errors' => []
         ];
 
-        // Log initial request inputs for debugging
         Log::info('Request Inputs:', $response);
 
-        // Determine BulanTahun
         $bulanTahunRecord = $this->resolveBulanTahun($response['bulan'], $response['tahun']);
         if (!$bulanTahunRecord) {
             $response['message'] = 'Bulan dan tahun tidak ditemukan.';
@@ -34,7 +32,6 @@ class VisualisasiController extends Controller
             return view('visualisasi.harmonisasi', $response);
         }
 
-        // Update response with resolved values
         $response['bulan'] = $bulanTahunRecord->bulan;
         $response['tahun'] = $bulanTahunRecord->tahun;
         $request->merge(['bulan' => $bulanTahunRecord->bulan, 'tahun' => $bulanTahunRecord->tahun]);
@@ -44,7 +41,6 @@ class VisualisasiController extends Controller
             'bulan_tahun_id' => $bulanTahunRecord->bulan_tahun_id
         ]);
 
-        // Check data and prepare visualization
         $dataCheck = $this->cekDataLogic(
             $bulanTahunRecord->bulan_tahun_id,
             $response['kd_wilayah'],
@@ -52,19 +48,17 @@ class VisualisasiController extends Controller
         );
         Log::info('DataCheck Result:', $dataCheck);
 
-        // Set title and data
         $monthNames = (new BulanTahun())->monthNames ?? $this->defaultMonthNames();
         $wilayahName = $response['kd_wilayah'] === '0'
             ? 'Nasional'
             : (Wilayah::where('kd_wilayah', $response['kd_wilayah'])->value('nama_wilayah') ?? 'Unknown');
         $monthName = $monthNames[sprintf('%02d', $response['bulan'])] ?? $response['bulan'];
         $response['title'] = trim("Inflasi {$wilayahName} {$monthName} {$response['tahun']}");
-        $response['data'] = $dataCheck['data'];
+        $response['data'] = $dataCheck['data']; // Includes stackedLine, horizontalBar, summary, etc.
 
-        // Pass errors as an array
         if (!empty($dataCheck['errors'])) {
-            $response['errors'] = $dataCheck['errors']; // Keep errors as an array
-            $response['message'] = 'Beberapa data tidak tersedia.'; // Optional summary
+            $response['errors'] = $dataCheck['errors'];
+            $response['message'] = 'Beberapa data tidak tersedia.';
             Log::warning('Errors found in dataCheck:', $dataCheck['errors']);
         } else {
             Log::info('No errors, data should be passed:', $response['data']);
@@ -131,6 +125,8 @@ class VisualisasiController extends Controller
             'regions' => [$kd_wilayah]
         ];
 
+        $summaryData = []; // New array for divs
+
         $wilayahName = $isNational ? 'Nasional' : (Wilayah::where('kd_wilayah', $kd_wilayah)->value('nama_wilayah') ?? 'Unknown');
 
         foreach ($levelNames as $kd => $name) {
@@ -160,13 +156,22 @@ class VisualisasiController extends Controller
                 }
             }
 
-            $stackedLineData['series'][] = ['name' => $name, 'data' => $inflasiSeriesData];
+            $stackedLineData['series'][] = [
+                'name' => $name,
+                'data' => $inflasiSeriesData, // Inflasi values
+                'andil' => $andilData        // Andil values
+            ];
             $horizontalBarData['datasets'][] = [
                 'label' => $name,
                 'inflasi' => $inflasiSeriesData,
                 'andil' => $andilData,
                 'region' => $kd_wilayah,
                 'region_name' => $wilayahName
+            ];
+
+            $summaryData[$name] = [
+                'inflasi' => end($inflasiSeriesData), // Latest inflasi
+                'andil' => end($andilData)           // Latest andil
             ];
 
             $charts[] = 'stackedLine';
@@ -177,6 +182,7 @@ class VisualisasiController extends Controller
 
         $data['stackedLine'] = $stackedLineData;
         $data['horizontalBar'] = $horizontalBarData;
+        $data['summary'] = $summaryData; // Add summary to data
 
         // --- National Scope (kd_wilayah = '0') ---
         if ($isNational) {
@@ -197,13 +203,13 @@ class VisualisasiController extends Controller
             ];
             $barChartData = [];
             $stackedBarData = [
-                'labels' => $kdLevels,
+                'labels' => array_values($levelNames),
                 'datasets' => [
-                    ['label' => 'Menurun (< 0)', 'stack' => 'inflation', 'data' => []],
-                    ['label' => 'Stable (= 0)', 'stack' => 'inflation', 'data' => []],
-                    ['label' => 'Naik (> 0)', 'stack' => 'inflation', 'data' => []],
-                    ['label' => 'Not Available', 'stack' => 'inflation', 'data' => []]
-                ]
+                    ['label' => 'Menurun (<0)', 'stack' => 'inflation', 'data' => [], 'backgroundColor' => '#EE6666'],
+                    ['label' => 'Stabil (=0)', 'stack' => 'inflation', 'data' => [], 'backgroundColor' => '#FFCE34'],
+                    ['label' => 'Naik (>0)', 'stack' => 'inflation', 'data' => [], 'backgroundColor' => '#91CC75'],
+                    ['label' => 'Data tidak tersedia', 'stack' => 'inflation', 'data' => [], 'backgroundColor' => '#DCDDE2'],
+                ],
             ];
             $provHorizontalBarData = [];
             $kabkotHorizontalBarData = [];
@@ -308,28 +314,64 @@ class VisualisasiController extends Controller
                 $stackedBarData['datasets'][2]['data'][] = $counts['naik'];
                 $stackedBarData['datasets'][3]['data'][] = $counts['na'];
 
-                $provHorizontalBarData[] = [
-                    'kd_level' => $kdLevel,
-                    'regions' => array_keys($provinces),
-                    'names' => array_values($provinces),
-                    'inflasi' => array_map(fn($provKd) => Inflasi::where('bulan_tahun_id', $latestMonthId)
+                // Province Horizontal Bar Data (sorted)
+                $provRegions = array_keys($provinces);
+                $provNames = array_values($provinces);
+                $provInflasi = array_map(
+                    fn($provKd) => Inflasi::where('bulan_tahun_id', $latestMonthId)
                         ->where('kd_wilayah', $provKd)
                         ->where('kd_level', $kdLevel)
                         ->where('kd_komoditas', $kd_komoditas)
-                        ->value('inflasi') ?? null, array_keys($provinces))
+                        ->value('inflasi') ?? null,
+                    $provRegions
+                );
+                // Sort by inflasi in descending order, handling null values
+                array_multisort(
+                    $provInflasi,
+                    SORT_ASC,
+                    SORT_NUMERIC,
+                    array_map(fn($val) => $val === null ? PHP_INT_MAX : 0, $provInflasi),
+                    SORT_ASC, // Push nulls to the end
+                    $provRegions,
+                    $provNames
+                );
+
+                $provHorizontalBarData[] = [
+                    'kd_level' => $kdLevel,
+                    'regions' => $provRegions,
+                    'names' => $provNames,
+                    'inflasi' => $provInflasi
                 ];
 
                 // Only include kabkot data for kd_level = '01'
                 if ($kdLevel === '01') {
-                    $kabkotHorizontalBarData[] = [
-                        'kd_level' => $kdLevel,
-                        'regions' => array_keys($kabkots),
-                        'names' => array_values($kabkots),
-                        'inflasi' => array_map(fn($kabKd) => Inflasi::where('bulan_tahun_id', $latestMonthId)
+                    $kabkotRegions = array_keys($kabkots);
+                    $kabkotNames = array_values($kabkots);
+                    $kabkotInflasi = array_map(
+                        fn($kabKd) => Inflasi::where('bulan_tahun_id', $latestMonthId)
                             ->where('kd_wilayah', $kabKd)
                             ->where('kd_level', $kdLevel)
                             ->where('kd_komoditas', $kd_komoditas)
-                            ->value('inflasi') ?? null, array_keys($kabkots))
+                            ->value('inflasi') ?? null,
+                        $kabkotRegions
+                    );
+
+                    // Sort by inflasi in descending order, handling null values
+                    array_multisort(
+                        $kabkotInflasi,
+                        SORT_ASC,
+                        SORT_NUMERIC,
+                        array_map(fn($val) => $val === null ? PHP_INT_MAX : 0, $kabkotInflasi),
+                        SORT_ASC, // Push nulls to the end
+                        $kabkotRegions,
+                        $kabkotNames
+                    );
+
+                    $kabkotHorizontalBarData[] = [
+                        'kd_level' => $kdLevel,
+                        'regions' => $kabkotRegions,
+                        'names' => $kabkotNames,
+                        'inflasi' => $kabkotInflasi
                     ];
                 }
             }

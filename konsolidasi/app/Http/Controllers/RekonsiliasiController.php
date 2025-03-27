@@ -18,7 +18,8 @@ class RekonsiliasiController extends Controller
         return view('rekonsiliasi.pemilihan');
     }
 
-    // the inits will b different..
+
+
     public function progres(Request $request)
     {
         // Fetch active BulanTahun for defaults
@@ -28,6 +29,14 @@ class RekonsiliasiController extends Controller
         $defaultKdLevel = '01'; // Harga Konsumen Kota
         $defaultKdWilayah = ''; // All regions
         $defaultStatus = 'all';
+
+        Log::info('Progres Request Filters', [
+            'bulan' => $request->input('bulan', $defaultBulan),
+            'tahun' => $request->input('tahun', $defaultTahun),
+            'kd_level' => $request->input('kd_level', $defaultKdLevel),
+            'kd_wilayah' => $request->input('kd_wilayah', $defaultKdWilayah),
+            'status' => $request->input('status', $defaultStatus),
+        ]);
 
         if (!$request->has('bulan')) {
             return redirect()->route('rekon.progres', [
@@ -60,7 +69,7 @@ class RekonsiliasiController extends Controller
             'message' => 'Silakan isi filter untuk menampilkan data rekonsiliasi.',
             'status' => 'no_filters',
             'filters' => compact('bulan', 'tahun', 'kdLevel', 'kdWilayah', 'status'),
-            'title' => $title, // Add the title to the response
+            'title' => $title,
         ];
 
         if ($bulanTahun) {
@@ -86,29 +95,79 @@ class RekonsiliasiController extends Controller
 
             // Paginate results
             $rekonsiliasi = $rekonQuery->paginate(75);
+            Log::info('Rekonsiliasi Data Sample', [
+                'count' => $rekonsiliasi->count(),
+                'sample' => $rekonsiliasi->take(2)->toArray(),
+            ]);
 
-            // Fetch opposite inflation level
-            $inflasiOpposite = null;
+            // Fetch and attach opposite inflation level for '01' and '02' only
             if (in_array($kdLevel, ['01', '02'])) {
                 $oppositeLevel = $kdLevel === '01' ? '02' : '01';
+                // Fetch all opposite records matching the criteria
                 $inflasiOpposite = Inflasi::where('bulan_tahun_id', $bulanTahun->bulan_tahun_id)
                     ->where('kd_level', $oppositeLevel)
-                    ->where('kd_wilayah', $kdWilayah)
-                    ->whereIn('kd_komoditas', $rekonsiliasi->pluck('inflasi.kd_komoditas'))
+                    ->whereIn('kd_wilayah', $rekonsiliasi->pluck('inflasi.kd_wilayah')->unique())
+                    ->whereIn('kd_komoditas', $rekonsiliasi->pluck('inflasi.kd_komoditas')->unique())
                     ->get()
-                    ->keyBy('kd_komoditas');
+                    ->keyBy(function ($item) {
+                        return $item->kd_wilayah . '-' . $item->kd_komoditas; // Unique key by wilayah and komoditas
+                    });
+
+                Log::info('Inflasi Opposite Query', [
+                    'kd_level' => $oppositeLevel,
+                    'bulan_tahun_id' => $bulanTahun->bulan_tahun_id,
+                    'kd_wilayah_values' => $rekonsiliasi->pluck('inflasi.kd_wilayah')->unique()->toArray(),
+                    'kd_komoditas_values' => $rekonsiliasi->pluck('inflasi.kd_komoditas')->unique()->toArray(),
+                    'result_count' => $inflasiOpposite->count(),
+                    'result_sample' => $inflasiOpposite->take(2)->toArray(),
+                ]);
+
+                // Helper function to convert numeric inflasi to status
+                $toStatus = function ($value) {
+                    if ($value === null) return null;
+                    return $value > 0 ? 'naik' : ($value == 0 ? 'stabil' : 'turun');
+                };
+
+                // Attach inflasi_opposite and transform values based on kd_level
+                foreach ($rekonsiliasi as $item) {
+                    $key = $item->inflasi->kd_wilayah . '-' . $item->inflasi->kd_komoditas;
+                    $oppositeData = $inflasiOpposite->get($key);
+                    $inflasiOppositeValue = $oppositeData ? $oppositeData->inflasi : null;
+
+                    // Transform inflasi if kd_level = '02'
+                    if ($kdLevel === '02') {
+                        $item->inflasi->inflasi = $toStatus($item->inflasi->inflasi);
+                    }
+
+                    // Transform inflasi_opposite if oppositeLevel = '02'
+                    if ($oppositeLevel === '02') {
+                        $item->inflasi->inflasi_opposite = $toStatus($inflasiOppositeValue);
+                    } else {
+                        $item->inflasi->inflasi_opposite = $inflasiOppositeValue;
+                    }
+                }
             }
+
+            Log::info('Rekonsiliasi with Inflasi Opposite Sample', [
+                'sample' => $rekonsiliasi->take(2)->toArray(),
+            ]);
 
             // Update response
             $response['rekonsiliasi'] = $rekonsiliasi;
-            $response['inflasi_opposite'] = $inflasiOpposite;
             $response['message'] = $rekonsiliasi->isEmpty() ? 'Tidak ada data untuk filter ini.' : 'Data berhasil dimuat.';
             $response['status'] = $rekonsiliasi->isEmpty() ? 'no_data' : ($rekonsiliasi->first()->user_id ? 'sudah_diisi' : 'belum_diisi');
-            $response['title'] = $title; // Ensure title is included
+            $response['title'] = $title;
         } elseif (!$bulanTahun) {
             $response['message'] = 'Periode tidak ditemukan.';
             $response['status'] = 'no_period';
         }
+
+        Log::info('Final Response', [
+            'rekonsiliasi_count' => $response['rekonsiliasi'] ? $response['rekonsiliasi']->count() : 0,
+            'message' => $response['message'],
+            'status' => $response['status'],
+            'title' => $response['title'],
+        ]);
 
         return view('rekonsiliasi.progres', $response);
     }

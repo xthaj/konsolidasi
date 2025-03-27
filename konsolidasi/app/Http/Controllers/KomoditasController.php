@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use App\Models\Komoditas;
 
 class KomoditasController extends Controller
@@ -36,7 +37,8 @@ class KomoditasController extends Controller
 
         try {
             // Generate kd_komoditas as a padded string (e.g., "001", "002")
-            $lastKomoditas = Komoditas::orderByRaw('CAST(kd_komoditas AS INTEGER) DESC')->first();
+            $lastKomoditas = Komoditas::orderBy(DB::raw('CAST(kd_komoditas AS SIGNED)'), 'desc')->first();
+
             $lastNumber = $lastKomoditas ? (int) $lastKomoditas->kd_komoditas : 0; // Convert string to int
             $nextNumber = $lastNumber + 1;
             $kd_komoditas = str_pad($nextNumber, 3, '0', STR_PAD_LEFT); // e.g., "001"
@@ -63,8 +65,6 @@ class KomoditasController extends Controller
                 'details' => $e->getMessage()
             ], 500);
         }
-
-
     }
 
     public function update(Request $request, $kd_komoditas)

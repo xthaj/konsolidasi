@@ -23,7 +23,9 @@
 
         <!-- Toggle Button -->
         <div class="hidden md:flex flex-col items-center p-2">
-            <button data-tooltip-target="tooltip-default" data-tooltip-placement="bottom" @click="isSidebarVisible = !isSidebarVisible" class="p-2 text-gray-600 hover:text-gray-900 focus:outline-none dark:text-white">
+            <button data-tooltip-target="tooltip-default" data-tooltip-placement="bottom"
+                @click="isSidebarVisible = !isSidebarVisible; $nextTick(() => window.dispatchEvent(new Event('resize')))"
+                class="p-2 text-gray-600 hover:text-gray-900 focus:outline-none dark:text-white">
                 <span class="material-symbols-outlined" x-text="isSidebarVisible ? 'arrow_menu_close' : 'arrow_menu_open'"></span>
             </button>
 
