@@ -18,50 +18,6 @@ Alpine.data("webData", () => ({
     isPusat: false,
     kd_wilayah: "",
 
-    // Store ECharts instances
-    multiAxisChart: null,
-    horizontalBarChart: null,
-    stackedBarChart: null,
-    rankBarChartProvinsi: null,
-    rankBarChartProvinsi2: null,
-    map: null,
-    map2: null,
-    priceLevelCharts: {},
-    inflationHeatmap: null,
-
-    async dataCheck(event) {
-        event.preventDefault();
-        const formData = new FormData(event.target);
-        const csrfToken = document
-            .querySelector('meta[name="csrf-token"]')
-            .getAttribute("content");
-
-        try {
-            const response = await fetch("/visualisasi/cek-data", {
-                method: "POST",
-                headers: {
-                    "X-CSRF-TOKEN": csrfToken,
-                    Accept: "application/json",
-                },
-                body: formData,
-            });
-
-            const result = await response.json();
-            if (result.success) {
-                alert("Data tersedia! Memuat visualisasi...");
-                window.location.reload(); // Or trigger visualization render
-            } else {
-                alert(
-                    "Beberapa data tidak tersedia: " +
-                        (result.message || "Unknown error")
-                );
-            }
-        } catch (error) {
-            console.error("Error:", error);
-            alert("Terjadi kesalahan: " + error.message);
-        }
-    },
-
     get isActivePeriod() {
         return (
             this.bulan === this.activeBulan && this.tahun === this.activeTahun
@@ -102,6 +58,21 @@ Alpine.data("webData", () => ({
         }
     },
 
+    checkFormValidity() {
+        if (!this.isPusat && !this.selectedProvince) {
+            return false;
+        }
+        return true;
+    },
+
+    getValidationMessage() {
+        if (!this.isPusat && !this.selectedProvince) {
+            return "Pilih Nasional/provinsi";
+        }
+
+        return ""; // Shouldn't reach here if checkFormValidity is false
+    },
+
     toggleFullscreen(chartId) {
         const chartElement = document.getElementById(chartId);
         const fullscreenIcon = document.getElementById(
@@ -127,34 +98,6 @@ Alpine.data("webData", () => ({
                     : "384px"; // 384px = 96 * 4 (equivalent to max-h-96)
             fullscreenIcon.textContent = "fullscreen";
         }
-
-        // Resize the chart to fit the new dimensions
-        setTimeout(() => {
-            if (chartId === "multiAxisChart") this.multiAxisChart.resize();
-            else if (chartId === "horizontalBarChart")
-                this.horizontalBarChart.resize();
-            else if (chartId === "stackedBarChart")
-                this.stackedBarChart.resize();
-            else if (chartId === "rankBarChartProvinsi")
-                this.rankBarChartProvinsi.resize();
-            else if (chartId === "rankBarChartProvinsi2")
-                this.rankBarChartProvinsi2.resize();
-            else if (chartId === "inflationHeatmap")
-                this.inflationHeatmap.resize();
-            else if (chartId === "provHorizontalBarChart")
-                this.provHorizontalBarChart.resize();
-            else if (chartId === "kabkotHorizontalBarChart")
-                this.kabkotHorizontalBarChart.resize();
-            else if (chartId === "map") this.map.resize();
-            else if (chartId === "map2") this.map2.resize();
-            else if (chartId.includes("priceLevelChart")) {
-                const level =
-                    this.priceLevels[
-                        parseInt(chartId.replace("priceLevelChart", "")) - 1
-                    ];
-                this.priceLevelCharts[level].resize();
-            }
-        }, 100);
     },
 
     // Existing methods (unchanged)
@@ -178,8 +121,6 @@ Alpine.data("webData", () => ({
     updateKdWilayah() {
         if (this.isPusat) {
             this.kd_wilayah = "0";
-        } else if (this.selectedKabkot) {
-            this.kd_wilayah = this.selectedKabkot;
         } else if (this.selectedProvince.kd_wilayah) {
             this.kd_wilayah = this.selectedProvince.kd_wilayah;
         } else {
@@ -689,33 +630,45 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     // Choropleth Options
+    function prepareChoroplethData(geoJson, data, mapName) {
+        return geoJson.features.map((feature) => {
+            const regionCode =
+                mapName === "Provinsi_Indonesia"
+                    ? feature.properties.KODE_PROV
+                    : feature.properties.idkab;
+
+            // Find match in data.regions
+            const index = data.regions.findIndex(
+                (code) => String(code) === regionCode
+            );
+
+            // Only use name from data if it exists, otherwise leave it out
+            const regionName = index !== -1 ? data.names[index] : null;
+
+            return {
+                name: regionCode, // Code for mapping
+                value: index !== -1 ? Number(data.inflasi[index]) : null, // Inflation value
+                itemStyle: regionName ? { name: regionName } : {}, // Only add name if it exists
+            };
+        });
+    }
+
     const choroplethOptions = (mapName, data, title) => ({
         title: { text: title, left: "center" },
         tooltip: {
             trigger: "item",
-            formatter: (params) =>
-                `${params.name}: ${
-                    params.value !== undefined ? params.value + "%" : "No Data"
-                }`,
+            formatter: (params) => {
+                const name = params.data.itemStyle.name || "-"; // Use name if present, otherwise "-"
+                const value = params.value || "No data";
+                return `${name} ${params.marker} ${value}`;
+            },
         },
         visualMap: {
             left: "right",
-            min: -7,
-            max: 7,
+            min: -2.5,
+            max: 2.5,
             inRange: {
-                color: [
-                    "#313695",
-                    "#4575b4",
-                    "#74add1",
-                    "#abd9e9",
-                    "#e0f3f8",
-                    "#ffffbf",
-                    "#fee090",
-                    "#fdae61",
-                    "#f46d43",
-                    "#d73027",
-                    "#a50026",
-                ],
+                color: ["#65B581", "#FFCE34", "#FD665F"],
             },
             text: ["High", "Low"],
             calculable: true,
@@ -724,31 +677,16 @@ document.addEventListener("DOMContentLoaded", async () => {
             {
                 name: "Inflasi",
                 type: "map",
+                label: {
+                    show: false, // Disable any default labels on hover
+                },
                 map: mapName,
-                emphasis: { label: { show: true } },
                 data: data,
                 nameProperty:
                     mapName === "Provinsi_Indonesia" ? "KODE_PROV" : "idkab",
             },
         ],
     });
-
-    // Prepare choropleth data with mapName parameter
-    function prepareChoroplethData(geoJson, data, mapName) {
-        return geoJson.features.map((feature) => {
-            const regionCode =
-                mapName === "Provinsi_Indonesia"
-                    ? feature.properties.KODE_PROV // Already a string, e.g., "82"
-                    : feature.properties.idkab; // Already a string, e.g., "8201"
-            const index = data.regions.findIndex(
-                (code) => String(code) === regionCode
-            );
-            return {
-                name: regionCode,
-                value: index !== -1 ? data.inflasi[index] : null,
-            };
-        });
-    }
 
     // Function to update main charts
     function updateCharts(
@@ -814,13 +752,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             const minValue = values.length > 0 ? Math.min(...values) : 0;
             const maxValue = values.length > 0 ? Math.max(...values) : 10;
             const padding = (maxValue - minValue) * 0.1 || 1;
-
-            console.log("Values array:", values);
-            console.log("Min value:", minValue);
-            console.log("Max value:", maxValue);
-            console.log("Padding:", padding);
-            console.log("visualMap.min:", minValue - padding);
-            console.log("visualMap.max:", maxValue + padding);
 
             heatmapOptions.visualMap.min = minValue - padding;
             heatmapOptions.visualMap.max = maxValue + padding;
