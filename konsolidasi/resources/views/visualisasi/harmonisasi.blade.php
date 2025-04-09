@@ -76,7 +76,7 @@
                             <label class="block mb-2 text-sm font-medium text-gray-900">Provinsi</label>
                             <select
                                 x-model="selectedProvince"
-                                @change="selectedKabkot = ''; updateKdWilayah()"
+                                @change="updateKdWilayah()"
                                 class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                                 <option value="" selected>Pilih Provinsi</option>
                                 <template x-for="province in provinces" :key="province.kd_wilayah">
@@ -85,21 +85,6 @@
                                         x-text="province.nama_wilayah"></option>
                                 </template>
                             </select>
-                        </div>
-
-                        <!-- Kabkot Dropdown -->
-                        <div x-show="!isPusat && selectedKdLevel === '01'" class="mb-4">
-                            <label class="block mb-2 text-sm font-medium text-gray-900">Kabupaten/Kota</label>
-                            <select x-model="selectedKabkot" @change="updateKdWilayah()" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
-                                <option value="" selected>Pilih Kabupaten/Kota</option>
-                                <template x-for="kabkot in filteredKabkots" :key="kabkot.kd_wilayah">
-                                    <option :value="kabkot.kd_wilayah" x-text="kabkot.nama_wilayah" :selected="kabkot.kd_wilayah == '{{ request('kd_wilayah') }}'"></option>
-                                </template>
-                            </select>
-                        </div>
-
-                        <div x-show="!isPusat && selectedKdLevel !== '01' && selectedKdLevel !== ''" class="text-sm text-gray-500">
-                            Data tidak tersedia untuk kabupaten/kota pada level harga ini.
                         </div>
 
                         <input type="hidden" name="kd_wilayah" :value="isPusat ? '0' : kd_wilayah" required>
@@ -130,8 +115,9 @@
         </div>
     </x-slot>
 
-    <div id="visualizationCanvas" class="w-full p-4 md:overflow-y-auto md:h-full transition-all duration-300 dark:bg-gray-900">
+    <div class="w-full md:overflow-y-auto md:h-full transition-all duration-300 dark:bg-gray-900">
         <div class="grid grid-cols-1 md:grid-cols-10 gap-4">
+            <!-- Title -->
             <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
                 <h2>{{ $title }}</h2>
             </div>
@@ -140,20 +126,16 @@
             @if(!empty($errors))
             <div id="alert-box" class="col-span-1 md:col-span-10 p-4 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded-lg relative">
                 @if(!empty($message))
-                <p>{{ $message }}</p> <!-- Display general message if set -->
+                <p>{{ $message }}</p>
                 @endif
                 <ul class="flex flex-wrap gap-2">
                     @foreach($errors as $error)
                     <li>
-                        <p>
-                            {{ $error }}
-                        </p>
+                        <p>{{ $error }}</p>
                     </li>
                     @endforeach
                 </ul>
-                <!-- Dismiss button outside the loop -->
-                <button type="button" class="absolute top-2 right-2 p-1 text-yellow-400 bg-transparent rounded-full hover:bg-yellow-200 hover:text-yellow-900"
-                    data-dismiss-target="#alert-box" aria-label="Close">
+                <button type="button" class="absolute top-2 right-2 p-1 text-yellow-400 bg-transparent rounded-full hover:bg-yellow-200 hover:text-yellow-900" data-dismiss-target="#alert-box" aria-label="Close">
                     <svg class="w-4 h-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
                         <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6" />
                     </svg>
@@ -162,22 +144,15 @@
             </div>
             @endif
 
-
             <!-- Stacked Line Chart -->
             @if(!empty($data['stackedLine']))
             <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
-                <div>
-                    <div id="stackedLineChartParent">
-                        <div id="stackedLineChart" class="w-full h-96"></div>
-                    </div>
-                </div>
-                <button id="toggleAndilBtn"
-                    class="block mx-auto mt-4 font-semibold underline">
-                    Lihat Andil
-                </button>
+                <div id="stackedLineChart" class="w-full h-96"></div>
+                <button id="toggleAndilBtn" class="block mx-auto mt-4 font-semibold underline">Lihat Andil</button>
             </div>
             @endif
 
+            <!-- Summary Boxes -->
             <div class="bg-white p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-2">
                 <h4 class="text-md font-semibold">Harga Konsumen Kota</h4>
                 <p>Inflasi: <span class="font-bold">{{ number_format($data['summary']['Harga Konsumen Kota']['inflasi'] ?? 0, 2) }}%</span></p>
@@ -203,38 +178,39 @@
                 <p>Inflasi: <span class="font-bold">{{ number_format($data['summary']['Harga Produsen']['inflasi'] ?? 0, 2) }}%</span></p>
                 <p>Andil: <span class="font-bold">{{ number_format($data['summary']['Harga Produsen']['andil'] ?? 0, 2) }}%</span></p>
             </div>
+
             <!-- Horizontal Bar Chart -->
             @if(!empty($data['horizontalBar']))
-            <div id="horizontalBarChartParent" class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
+            <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
                 <div id="horizontalBarChart" class="w-full h-96"></div>
             </div>
             @endif
 
             <!-- Heatmap Chart -->
             @if(!empty($data['heatmap']))
-            <div id="heatmapChartParent" class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
+            <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
                 <div id="heatmapChart" class="w-full h-[550px]"></div>
-
             </div>
             @endif
 
             <!-- Bar Charts Container -->
             @if(!empty($data['heatmap']))
-            <div id="barChartsContainerParent" class="bg-white p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-10">
+            <div class="bg-white p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
                 <div id="barChartsContainer" class="w-full h-96"></div>
             </div>
             @endif
 
             <!-- Stacked Bar Chart -->
             @if(!empty($data['stackedBar']))
-            <div id="stackedBarChartParent" class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
-                <div id="stackedBarChart" class="w-full h-96"></div> <!-- Fixed syntax: `width=100%` → `w-full` -->
+            <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
+                <div id="stackedBarChart" class="w-full h-96"></div>
             </div>
             @endif
 
-            <div class="flex gap-8 items-center bg-primary-700 md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
-                <h3 class="flex-1 text-white text-lg font-bold">Inflasi</h3>
-                <select id="levelHargaSelect" x-model="selectedLevel" class="w-64 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+            <!-- Level Selection -->
+            <div class="flex flex-col md:flex-row gap-4 items-center bg-primary-700 md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
+                <h3 class="flex-1 text-white text-lg font-bold text-center md:text-left">Inflasi</h3>
+                <select id="levelHargaSelect" x-model="selectedLevel" class="w-full md:w-64 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                     <option value="HK">Harga Konsumen Kota</option>
                     <option value="HD">Harga Konsumen Desa</option>
                     <option value="HPB">Harga Perdagangan Besar</option>
@@ -243,21 +219,24 @@
                 </select>
             </div>
 
+            <!-- Province and Kabkot Horizontal Bar Charts -->
             @if(!empty($data['provHorizontalBar']) && !empty($data['kabkotHorizontalBar']))
-            <div id="provHorizontalBarContainer" :class="selectedLevel === 'HK' ? 'col-span-5' : 'col-span-10'" class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800">
-                <div id="provHorizontalBarChart" class="min-w-[350px] h-[550px]"></div>
-            </div>
-            <div id="kabkotHorizontalBarContainer" x-show="selectedLevel === 'HK'" class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-5">
-                <div id="kabkotHorizontalBarChart" class="min-w-[350px] h-[550px]"></div>
-            </div>
-            @endif
-            <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
-                <div id="provinsiChoropleth" class="w-full h-96"></div>
-            </div>
-            <div id="kabkotChoroplethContainer" x-show="selectedLevel === 'HK'" class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
-                <div id="kabkotChoropleth" class="w-full h-96"></div>
+            <div id="provHorizontalBarContainer" class="bg-white p-4 rounded-lg shadow-md dark:bg-gray-800 col-span-1" :class="selectedLevel === 'HK' ? 'md:col-span-5' : 'md:col-span-10'">
+                <div id="provHorizontalBarChart" class="w-full h-[550px]"></div>
             </div>
 
+            <div id="kabkotHorizontalBarContainer" x-show="selectedLevel === 'HK'" class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-5">
+                <div id="kabkotHorizontalBarChart" class="w-full h-[550px]"></div>
+            </div>
+            @endif
+
+            <!-- Choropleth Maps with Scroll -->
+            <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10 overflow-x-auto">
+                <div id="provinsiChoropleth" class="w-full h-96"></div>
+            </div>
+            <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10 overflow-x-auto" x-show="selectedLevel === 'HK'">
+                <div id="kabkotChoropleth" class="w-full h-96"></div>
+            </div>
         </div>
 
         <script>

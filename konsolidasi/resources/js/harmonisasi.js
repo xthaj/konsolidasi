@@ -117,18 +117,22 @@ Alpine.data("webData", () => ({
 
     selectProvince(province) {
         this.selectedProvince = province;
-        this.selectedKabkot = "";
         this.updateKdWilayah();
     },
 
     updateKdWilayah() {
+        console.log(
+            "isPusat:",
+            this.isPusat,
+            "selectedProvince:",
+            this.selectedProvince
+        );
         if (this.isPusat) {
             this.kd_wilayah = "0";
-        } else if (this.selectedProvince.kd_wilayah) {
-            this.kd_wilayah = this.selectedProvince.kd_wilayah;
-        } else {
-            this.kd_wilayah = "";
+        } else if (this.selectedProvince) {
+            this.kd_wilayah = this.selectedProvince;
         }
+        console.log("kd_wilayah updated to:", this.kd_wilayah);
     },
 
     togglePusat() {
@@ -330,8 +334,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             );
         provinsiGeoJson = await provResponse.json();
         kabkotGeoJson = await kabkotResponse.json();
-        console.log("Provinsi GeoJSON:", provinsiGeoJson);
-        console.log("Kabkot GeoJSON:", kabkotGeoJson);
+        // console.log("Provinsi GeoJSON:", provinsiGeoJson);
+        // console.log("Kabkot GeoJSON:", kabkotGeoJson);
         echarts.registerMap("Provinsi_Indonesia", provinsiGeoJson);
         echarts.registerMap("Kabkot_Indonesia", kabkotGeoJson);
         console.log("GeoJSON Loaded and Maps Registered");
@@ -788,13 +792,13 @@ document.addEventListener("DOMContentLoaded", async () => {
             : "Lihat Andil";
 
         // Debug to confirm instance
-        console.log("stackedLineChart:", stackedLineChart);
-        console.log(
-            "setOption available:",
-            typeof stackedLineChart.setOption === "function"
-        );
+        // console.log("stackedLineChart:", stackedLineChart);
+        // console.log(
+        //     "setOption available:",
+        //     typeof stackedLineChart.setOption === "function"
+        // );
 
-        // Prepare updated data (like updatedHeatmap)
+        // Prepare updated data
         const updatedSeries = showingAndil
             ? stackedLineData.series.map((s) => ({
                   ...s,
@@ -828,7 +832,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             inflasi: [],
         };
 
-        console.log("provData:", provData);
+        // console.log("provData:", provData);
 
         // Update bar charts with names
         provHorizontalBarChart.setOption(
@@ -952,73 +956,201 @@ document.addEventListener("DOMContentLoaded", async () => {
     // console.log("Initial Bar Chart Data:", provHorizontalBarData);
 });
 
+// Object to store chart instances
 const charts = {};
 
 // Initialize charts
 function initializeCharts() {
     const chartConfigs = [
-        { id: "stackedLineChart", parentId: "stackedLineChartParent" },
-        { id: "horizontalBarChart", parentId: "horizontalBarChartParent" },
-        { id: "heatmapChart", parentId: "heatmapChartParent" },
-        { id: "barChartsContainer", parentId: "barChartsContainerParent" },
-        { id: "stackedBarChart", parentId: "stackedBarChartParent" },
-        {
-            id: "provHorizontalBarChart",
-            parentId: "provHorizontalBarContainer",
-        },
-        {
-            id: "kabkotHorizontalBarChart",
-            parentId: "kabkotHorizontalBarContainer",
-        },
+        { id: "stackedLineChart", type: "line", height: 384 },
+        { id: "horizontalBarChart", type: "bar", height: 384 },
+        { id: "heatmapChart", type: "heatmap", height: 550 },
+        { id: "barChartsContainer", type: "bar", height: 384 },
+        { id: "stackedBarChart", type: "bar", height: 384 },
+        { id: "provHorizontalBarChart", type: "bar", height: 550 },
+        { id: "kabkotHorizontalBarChart", type: "bar", height: 550 },
+        { id: "provinsiChoropleth", type: "map", height: 1000 },
+        { id: "kabkotChoropleth", type: "map", height: 1000 },
     ];
 
     chartConfigs.forEach((config) => {
         const chartDiv = document.getElementById(config.id);
         if (chartDiv && !charts[config.id]) {
             charts[config.id] = echarts.init(chartDiv);
-            // Set initial options (replace with your actual chart data/options)
-            charts[config.id].setOption({
-                xAxis: { type: "category", data: ["A", "B", "C"] },
-                yAxis: { type: "value" },
-                series: [
-                    {
-                        type: config.id.includes("bar") ? "bar" : "line",
-                        data: [10, 20, 30],
-                    },
-                ],
-            });
+            console.log(`Initialized ${config.id}`);
+
+            // Optional: Set placeholder options to avoid blank charts
+            // if (config.type === "map") {
+            //     charts[config.id].setOption({
+            //         title: { text: `Loading ${config.id}...`, left: "center" },
+            //         series: [{ type: "map", map: config.id === "provinsiChoropleth" ? "Provinsi_Indonesia" : "Kabkot_Indonesia" }],
+            //     });
+            // }
         }
     });
 }
 
-// Resize all charts based on parent dimensions
+// Resize charts
 function resizeCharts() {
-    const paddingX = 32; // 16px left + 16px right (p-4)
-    const paddingY = 32; // 16px top + 16px bottom (p-4)
+    const paddingX = 32; // 16px left + 16px right from p-4
+
+    console.log("Charts object:", charts);
 
     Object.keys(charts).forEach((chartId) => {
         const chart = charts[chartId];
-        const parentDiv = document.getElementById(`${chartId}Parent`);
-        if (chart && !chart.isDisposed() && parentDiv) {
-            const width = parentDiv.clientWidth - paddingX;
-            const height = parentDiv.clientHeight - paddingY;
-            chart.resize({
-                width: width > 0 ? width : 0, // Prevent negative width
-                height: height > 0 ? height : 0, // Prevent negative height
-            });
-            console.log(`Resized ${chartId}: ${width}x${height}`);
+        const chartDiv = document.getElementById(chartId);
+        if (chart && chartDiv && !chart.isDisposed()) {
+            const container = chartDiv.parentElement;
+            const width = container.clientWidth - paddingX;
+            const height = chartDiv.clientHeight; // h-96 (384px) or h-[550px]
+            if (width > 0 && height > 0) {
+                chart.resize({ width, height });
+                console.log(`Resized ${chartId}: ${width}x${height}`);
+            }
         }
     });
 }
 
-// Initialize charts on page load
-document.addEventListener("DOMContentLoaded", () => {
-    initializeCharts();
-    resizeCharts(); // Initial resize
+// Initialize on page load
+document.addEventListener("DOMContentLoaded", async () => {
+    await initializeCharts();
+    setTimeout(resizeCharts, 100); // Delay to ensure initial layout is settled
+
+    const toggleAndilBtn = document.getElementById("toggleAndilBtn");
+    const levelSelect = document.getElementById("levelHargaSelect");
+
+    // if (toggleAndilBtn) {
+    //     let showingAndil = false;
+    //     toggleAndilBtn.addEventListener("click", () => {
+    //         showingAndil = !showingAndil;
+    //         toggleAndilBtn.textContent = showingAndil
+    //             ? "Lihat Inflasi"
+    //             : "Lihat Andil";
+    //         const chart = charts["stackedLineChart"];
+    //         const data = window.stackedLineData;
+    //         const updatedSeries = showingAndil
+    //             ? data.series.map((s) => ({ ...s, data: s.andil || s.data }))
+    //             : data.series.map((s) => ({ ...s, data: s.data }));
+    //         chart.setOption(
+    //             {
+    //                 yAxis: { name: showingAndil ? "Andil (%)" : "Inflasi (%)" },
+    //                 series: updatedSeries.map((s) => ({
+    //                     ...s,
+    //                     type: "line",
+    //                     stack: "Total",
+    //                 })),
+    //             },
+    //             true
+    //         );
+    //     });
+    // }
+
+    if (levelSelect) {
+        levelSelect.addEventListener("change", () => {
+            const levelMap = { HK: 0, HD: 1, HPB: 2, HPD: 3, HP: 4 };
+            const selectedLevel = levelMap[levelSelect.value] || 0;
+            updateSelectCharts(selectedLevel);
+            setTimeout(() => {
+                resizeCharts(); //  resize after DOM updates
+            }, 350);
+        });
+    }
 });
 
-// Resize charts when toggle is clicked (via window 'resize' event)
+// Resize on window resize
 window.addEventListener("resize", () => {
     clearTimeout(window.resizeTimeout);
-    window.resizeTimeout = setTimeout(resizeCharts, 100); // Debounce for smoother transitions
+    window.resizeTimeout = setTimeout(resizeCharts, 350); // Match transition duration-300
 });
+
+// Handle Alpine.js sidebar toggle and visibility changes
+document.addEventListener("alpine:init", () => {
+    Alpine.effect(() => {
+        setTimeout(resizeCharts, 350); // Resize after visibility changes (e.g., sidebar or x-show)
+    });
+});
+
+// Update select charts (for level changes)
+function updateSelectCharts(levelIndex) {
+    const provData = window.provHorizontalBarData?.[levelIndex] || {
+        regions: [],
+        names: [],
+        inflasi: [],
+    };
+    const kabkotData = window.kabkotHorizontalBarData?.[levelIndex] || {
+        regions: [],
+        names: [],
+        inflasi: [],
+    };
+
+    const provChart = charts["provHorizontalBarChart"];
+    const kabkotChart = charts["kabkotHorizontalBarChart"];
+    const provChoroChart = charts["provinsiChoropleth"];
+    const kabkotChoroChart = charts["kabkotChoropleth"];
+
+    if (provChart) {
+        provChart.setOption(
+            {
+                yAxis: { data: provData.names },
+                series: [{ data: provData.inflasi }],
+            },
+            true
+        );
+    }
+    if (kabkotChart) {
+        kabkotChart.setOption(
+            {
+                yAxis: { data: kabkotData.names },
+                series: [{ data: kabkotData.inflasi }],
+            },
+            true
+        );
+    }
+    if (provChoroChart) {
+        const provChoroData = prepareChoroplethData(
+            echarts.getMap("Provinsi_Indonesia").geoJson,
+            provData,
+            "Provinsi_Indonesia"
+        );
+        provChoroChart.setOption({ series: [{ data: provChoroData }] }, true);
+    }
+    if (kabkotChoroChart) {
+        const kabkotChoroData = prepareChoroplethData(
+            echarts.getMap("Kabkot_Indonesia").geoJson,
+            kabkotData,
+            "Kabkot_Indonesia"
+        );
+        kabkotChoroChart.setOption(
+            { series: [{ data: kabkotChoroData }] },
+            true
+        );
+    }
+
+    // resizeCharts();
+}
+
+window.updateCharts = (stackedLine, horizontalBar, heatmap) => {
+    if (stackedLine)
+        charts["stackedLineChart"]?.setOption(
+            { series: stackedLine.series, xAxis: stackedLine.xAxis },
+            true
+        );
+    if (horizontalBar)
+        charts["horizontalBarChart"]?.setOption(
+            {
+                series: [{ data: horizontalBar.inflasi }],
+                yAxis: { data: horizontalBar.labels },
+            },
+            true
+        );
+    if (heatmap)
+        charts["heatmapChart"]?.setOption(
+            {
+                series: [{ data: heatmap.values }],
+                xAxis: heatmap.xAxis,
+                yAxis: heatmap.yAxis,
+            },
+            true
+        );
+};
+window.updateSelectCharts = updateSelectCharts;
