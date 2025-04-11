@@ -14,6 +14,7 @@ class User extends Authenticatable
     protected $table = 'user';
     protected $primaryKey = 'user_id';
     protected $fillable = ['username', 'password', 'nama_lengkap', 'is_pusat', 'is_admin', 'kd_wilayah'];
+    protected $hidden = ['password', 'created_at', 'updated_at']; // Hide sensitive fields
 
     public function wilayah()
     {
@@ -29,8 +30,6 @@ class User extends Authenticatable
     {
         return $this->is_pusat;
     }
-
-
 
     public static function usernameExists($username)
     {
