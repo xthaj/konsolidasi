@@ -5,11 +5,10 @@ window.Alpine = Alpine;
 Alpine.data("webData", () => ({
     provinces: [],
     kabkots: [],
-    selectedProvince: {},
+    selectedProvince: "",
     selectedKabkot: "",
-    dropdowns: { province: false },
-    isPusat: false,
-    kd_wilayah: "",
+    wilayah_level: "pusat",
+    kd_wilayah: "0",
     username: "",
     password: "",
     confirmPassword: "",
@@ -26,50 +25,33 @@ Alpine.data("webData", () => ({
         try {
             let response = await fetch("/api/wilayah");
             let data = await response.json();
-            this.provinces = data.provinces;
-            this.kabkots = data.kabkots;
+            this.provinces = data.provinces || [];
+            this.kabkots = data.kabkots || [];
+            this.updateWilayah(); // Initialize kd_wilayah based on default wilayah_level
         } catch (error) {
             console.error("Failed to load wilayah data:", error);
         }
     },
 
     get filteredKabkots() {
-        if (!this.selectedProvince.kd_wilayah) return [];
+        if (!this.selectedProvince) return [];
         return this.kabkots.filter(
-            (k) => k.parent_kd == this.selectedProvince.kd_wilayah
+            (k) => k.parent_kd === this.selectedProvince
         );
     },
 
-    selectProvince(province) {
-        this.selectedProvince = province;
-        this.selectedKabkot = "";
-        this.closeDropdown("province");
-        this.updateKdWilayah();
-    },
-
-    toggleDropdown(menu) {
-        this.dropdowns[menu] = !this.dropdowns[menu];
-    },
-
-    closeDropdown(menu) {
-        this.dropdowns[menu] = false;
-    },
-
-    updateKdWilayah() {
-        if (this.isPusat) {
+    updateWilayah() {
+        if (this.wilayah_level === "pusat") {
             this.kd_wilayah = "0";
-        } else if (this.selectedKabkot) {
-            this.kd_wilayah = this.selectedKabkot;
-        } else if (this.selectedProvince.kd_wilayah) {
-            this.kd_wilayah = this.selectedProvince.kd_wilayah;
-        } else {
-            this.kd_wilayah = "";
+            this.selectedProvince = "";
+            this.selectedKabkot = "";
+        } else if (this.wilayah_level === "provinsi") {
+            this.kd_wilayah = this.selectedProvince || "";
+            this.selectedKabkot = "";
+        } else if (this.wilayah_level === "kabkot") {
+            this.kd_wilayah =
+                this.selectedKabkot || this.selectedProvince || "";
         }
-    },
-
-    togglePusat() {
-        this.isPusat = !this.isPusat;
-        this.updateKdWilayah();
     },
 
     async checkUsername() {
@@ -89,9 +71,8 @@ Alpine.data("webData", () => ({
         this.errors.password = this.password.length < 6;
         this.errors.confirmPassword = this.password !== this.confirmPassword;
         this.errors.kd_wilayah =
-            !this.isPusat &&
-            !this.selectedProvince.kd_wilayah &&
-            !this.selectedKabkot;
+            (this.wilayah_level === "provinsi" && !this.selectedProvince) ||
+            (this.wilayah_level === "kabkot" && !this.selectedKabkot);
 
         await this.checkUsername();
         this.errors.usernameUnique = this.usernameExists;
@@ -103,9 +84,6 @@ Alpine.data("webData", () => ({
             !this.errors.confirmPassword &&
             !this.errors.kd_wilayah
         ) {
-            if (this.isPusat) {
-                this.kd_wilayah = "0";
-            }
             this.$el.submit();
         }
     },
