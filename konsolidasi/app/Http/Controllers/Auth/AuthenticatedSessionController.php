@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Log;
 use App\Http\Requests\Auth\LoginRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -32,6 +33,11 @@ class AuthenticatedSessionController extends Controller
 
         if (RateLimiter::tooManyAttempts($key, 5)) {
             $seconds = RateLimiter::availableIn($key);
+            Log::warning('Login throttled', [
+                'username' => $request->input('username'),
+                'ip' => $request->ip(),
+                'available_in' => $seconds,
+            ]);
             throw new ThrottleRequestsException(
                 "Terlalu banyak percobaan. Coba lagi dalam {$seconds} detik."
             );
@@ -39,9 +45,17 @@ class AuthenticatedSessionController extends Controller
 
         try {
             $request->authenticate();
+            Log::info('Login successful', [
+                'username' => $request->input('username'),
+                'ip' => $request->ip(),
+            ]);
         } catch (\Exception $e) {
-            // TODO: need better exception handling
-            RateLimiter::hit($key, 60); // 1-minute lockout
+            RateLimiter::hit($key, 60);
+            Log::warning('Login failed', [
+                'username' => $request->input('username'),
+                'ip' => $request->ip(),
+                'message' => $e->getMessage(),
+            ]);
             throw ValidationException::withMessages([
                 'username' => ['Kombinasi antara username dan password salah.'],
             ]);
@@ -50,9 +64,16 @@ class AuthenticatedSessionController extends Controller
         RateLimiter::clear($key);
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard', absolute: false));
-    }
+        $intendedUrl = $request->session()->pull('url.intended', route('dashboard'));
+        Log::info('Redirecting after login', [
+            'intended_url' => $intendedUrl,
+            'dashboard_route' => route('dashboard'),
+            'session_id' => $request->session()->getId(),
+            'user_id' => Auth::id(),
+        ]);
 
+        return redirect()->to($intendedUrl);
+    }
     /**
      * Destroy an authenticated session.
      */

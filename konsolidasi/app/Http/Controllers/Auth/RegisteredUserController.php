@@ -18,12 +18,11 @@ class RegisteredUserController extends Controller
 
     public function checkUsername(Request $request)
     {
-        $request->validate([
-            'username' => 'required|string|max:255',
-        ]);
-
-        $exists = User::where('username', $request->query('username'))->exists();
-
+        $query = User::where('username', $request->username);
+        if ($request->has('except')) {
+            $query->where('user_id', '!=', $request->except);
+        }
+        $exists = $query->exists();
         return response()->json(['exists' => $exists]);
     }
 
@@ -42,45 +41,45 @@ class RegisteredUserController extends Controller
      *
      * @throws \Illuminate\Validation\ValidationException
      */
-//    public function store(Request $request): RedirectResponse
-//    {
-//        $request->validate([
-//            'name' => ['required', 'string', 'max:255'],
-//            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
-//            'password' => ['required', 'confirmed', Rules\Password::defaults()],
-//        ]);
-//
-//        $user = User::create([
-//            'name' => $request->name,
-//            'email' => $request->email,
-//            'password' => Hash::make($request->password),
-//        ]);
-//
-//        event(new Registered($user));
-//
-//        Auth::login($user);
-//
-//        return redirect(route('dashboard', absolute: false));
-//    }
+    //    public function store(Request $request): RedirectResponse
+    //    {
+    //        $request->validate([
+    //            'name' => ['required', 'string', 'max:255'],
+    //            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
+    //            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+    //        ]);
+    //
+    //        $user = User::create([
+    //            'name' => $request->name,
+    //            'email' => $request->email,
+    //            'password' => Hash::make($request->password),
+    //        ]);
+    //
+    //        event(new Registered($user));
+    //
+    //        Auth::login($user);
+    //
+    //        return redirect(route('dashboard', absolute: false));
+    //    }
 
     public function store(Request $request): RedirectResponse
     {
 
-//        dd($request->all());
+        //        dd($request->all());
 
-//        $request->validate([
-//            'username' => ['required', 'string', 'max:255', 'unique:user,username'],
-//            'password' => ['required', 'confirmed', Rules\Password::defaults()],
-//            'nama_lengkap' => ['required', 'string', 'max:255'],
-//            'is_pusat' => ['required', 'boolean'],
-//            'kd_wilayah' => ['nullable', 'exists:wilayah,kd_wilayah'], // Optional field, must exist in Wilayah table
-//        ]);
+        //        $request->validate([
+        //            'username' => ['required', 'string', 'max:255', 'unique:user,username'],
+        //            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+        //            'nama_lengkap' => ['required', 'string', 'max:255'],
+        //            'is_pusat' => ['required', 'boolean'],
+        //            'kd_wilayah' => ['nullable', 'exists:wilayah,kd_wilayah'], // Optional field, must exist in Wilayah table
+        //        ]);
 
         $user = User::create([
             'username' => $request->username,
             'password' => Hash::make($request->password),
             'nama_lengkap' => $request->nama_lengkap,
-            'is_pusat' => $request->is_pusat,
+            'is_pusat' => $request->is_pusat ?? 0,
             'is_admin' => 0,
             'kd_wilayah' => $request->kd_wilayah,
         ]);
@@ -91,5 +90,4 @@ class RegisteredUserController extends Controller
 
         return redirect(route('dashboard', absolute: false));
     }
-
 }
