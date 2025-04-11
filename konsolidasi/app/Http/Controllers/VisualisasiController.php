@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\BulanTahun;
 use App\Models\Inflasi;
 use App\Models\Wilayah;
+use App\Models\Komoditas;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\Log;
@@ -52,8 +53,12 @@ class VisualisasiController extends Controller
         $wilayahName = $response['kd_wilayah'] === '0'
             ? 'Nasional'
             : (Wilayah::where('kd_wilayah', $response['kd_wilayah'])->value('nama_wilayah') ?? 'Unknown');
+        // Get nama_komoditas
+
+        $namaKomoditas = Komoditas::where('kd_komoditas', $response['kd_komoditas'])->value('nama_komoditas') ?? 'Unknown';
+
         $monthName = $monthNames[sprintf('%02d', $response['bulan'])] ?? $response['bulan'];
-        $response['title'] = trim("Inflasi {$wilayahName} {$monthName} {$response['tahun']}");
+        $response['title'] = trim("Inflasi Komoditas {$namaKomoditas} {$wilayahName} {$monthName} {$response['tahun']}");
         $response['data'] = $dataCheck['data']; // Includes stackedLine, horizontalBar, summary, etc.
 
         if (!empty($dataCheck['errors'])) {
@@ -186,10 +191,12 @@ class VisualisasiController extends Controller
 
         // --- National Scope (kd_wilayah = '0') ---
         if ($isNational) {
-            $provinces = Wilayah::whereRaw('CHAR_LENGTH(kd_wilayah) = 2')
+            // $provinces = Wilayah::whereRaw('CHAR_LENGTH(kd_wilayah) = 2')
+            $provinces = Wilayah::whereRaw('LEN(kd_wilayah) = 2')
                 ->pluck('nama_wilayah', 'kd_wilayah')
                 ->toArray();
-            $kabkots = Wilayah::whereRaw('CHAR_LENGTH(kd_wilayah) = 4')
+            // $kabkots = Wilayah::whereRaw('CHAR_LENGTH(kd_wilayah) = 4')
+            $kabkots = Wilayah::whereRaw('LEN(kd_wilayah) = 4')
                 ->pluck('nama_wilayah', 'kd_wilayah')
                 ->toArray();
             $kdLevels = array_keys($levelNames);

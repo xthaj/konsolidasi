@@ -37,8 +37,11 @@ class KomoditasController extends Controller
 
         try {
             // Generate kd_komoditas as a padded string (e.g., "001", "002")
-            $lastKomoditas = Komoditas::orderBy(DB::raw('CAST(kd_komoditas AS SIGNED)'), 'desc')->first();
-
+            // DB BRANCH
+            // MYSQL
+            // $lastKomoditas = Komoditas::orderBy(DB::raw('CAST(kd_komoditas AS SIGNED)'), 'desc')->first();
+            // MSQL
+            $lastKomoditas = Komoditas::orderBy(DB::raw('CAST(kd_komoditas AS INT)'), 'desc')->first();
             $lastNumber = $lastKomoditas ? (int) $lastKomoditas->kd_komoditas : 0; // Convert string to int
             $nextNumber = $lastNumber + 1;
             $kd_komoditas = str_pad($nextNumber, 3, '0', STR_PAD_LEFT); // e.g., "001"
