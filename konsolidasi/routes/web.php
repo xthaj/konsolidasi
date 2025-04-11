@@ -18,15 +18,23 @@ use Illuminate\Support\Facades\Cache;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\KomoditasExport;
 use App\Exports\WilayahExport;
-
+use App\Http\Controllers\AkunController;
 
 Route::get('/dashboard', [DashboardController::class, 'index'])
-    ->middleware(['auth', 'verified'])
+    ->middleware(['auth'])
     ->name('dashboard');
 
 
 // Data routes, protected by both auth and ispusat middleware
-Route::middleware(['pusat'])->group(function () {
+Route::middleware(['auth'])->group(function () {
+
+    Route::get('/akun', [AkunController::class, 'index'])->name('akun.index');
+    Route::get('/akun', [AkunController::class, 'index'])->name('akun.index');
+    Route::get('/api/users', [AkunController::class, 'getUsers']);
+    Route::post('/api/users', [AkunController::class, 'store']);
+    Route::put('/api/users/{user_id}', [AkunController::class, 'update']);
+    Route::delete('/api/users/{user_id}', [AkunController::class, 'destroy']);
+
     Route::get('/data/edit', [DataController::class, 'edit'])->name('data.edit');
     Route::get('/data/upload', [DataController::class, 'create'])->name('data.create');
     Route::post('/data/upload', [DataController::class, 'upload'])->name('data.upload');
