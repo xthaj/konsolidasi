@@ -29,7 +29,6 @@ Alpine.data("webData", () => ({
 
     async init() {
         this.loading = true;
-
         try {
             const wilayahResponse = await fetch("/api/wilayah");
             const wilayahData = await wilayahResponse.json();
@@ -72,8 +71,7 @@ Alpine.data("webData", () => ({
         if (!this.isPusat && !this.selectedProvince) {
             return "Pilih Nasional/provinsi";
         }
-
-        return ""; // Shouldn't reach here if checkFormValidity is false
+        return "";
     },
 
     toggleFullscreen(chartId) {
@@ -98,12 +96,11 @@ Alpine.data("webData", () => ({
             chartElement.style.height =
                 chartId.includes("map") || chartId.includes("priceLevelChart")
                     ? "1000px"
-                    : "384px"; // 384px = 96 * 4 (equivalent to max-h-96)
+                    : "384px";
             fullscreenIcon.textContent = "fullscreen";
         }
     },
 
-    // Existing methods (unchanged)
     selectKomoditas(event) {
         this.selectedKomoditas = event.target.value;
     },
@@ -121,12 +118,6 @@ Alpine.data("webData", () => ({
     },
 
     updateKdWilayah() {
-        console.log(
-            "isPusat:",
-            this.isPusat,
-            "selectedProvince:",
-            this.selectedProvince
-        );
         if (this.isPusat) {
             this.kd_wilayah = "0";
         } else if (this.selectedProvince) {
@@ -140,7 +131,14 @@ Alpine.data("webData", () => ({
     },
 
     modalOpen: false,
-    item: { id: null, komoditas: "Example Komoditas", harga: "1000" },
+    item: {
+        id: null,
+        komoditas: "",
+        harga: "",
+        wilayah: "",
+        levelHarga: "",
+        periode: "",
+    },
 
     openModal(id, komoditas, harga, wilayah, levelHarga, periode) {
         this.item = { id, komoditas, harga, wilayah, levelHarga, periode };
@@ -161,800 +159,6 @@ Alpine.data("webData", () => ({
 }));
 
 Alpine.start();
-
-document.addEventListener("DOMContentLoaded", async () => {
-    // DOM Elements
-    const stackedLineChartElement = document.getElementById("stackedLineChart");
-    const horizontalBarChartElement =
-        document.getElementById("horizontalBarChart");
-    const heatmapChartElement = document.getElementById("heatmapChart");
-    const barChartsContainer = document.getElementById("barChartsContainer");
-    const stackedBarChartElement = document.getElementById("stackedBarChart");
-    const provHorizontalBarChartElement = document.getElementById(
-        "provHorizontalBarChart"
-    );
-    const kabkotHorizontalBarChartElement = document.getElementById(
-        "kabkotHorizontalBarChart"
-    );
-    const provinsiChoroplethElement =
-        document.getElementById("provinsiChoropleth");
-    const kabkotChoroplethElement = document.getElementById("kabkotChoropleth");
-    const levelSelect = document.getElementById("levelHargaSelect");
-    // Validate DOM elements (unchanged)
-    if (
-        !stackedLineChartElement ||
-        !horizontalBarChartElement ||
-        !heatmapChartElement ||
-        !barChartsContainer ||
-        !stackedBarChartElement ||
-        !provHorizontalBarChartElement ||
-        !kabkotHorizontalBarChartElement ||
-        !provinsiChoroplethElement ||
-        !kabkotChoroplethElement
-    ) {
-        console.error("One or more required DOM elements not found");
-        return;
-    }
-
-    // Initialize ECharts instances
-    let stackedLineChart,
-        horizontalBarChart,
-        heatmapChart,
-        barChartInstance,
-        stackedBarChart,
-        provHorizontalBarChart,
-        kabkotHorizontalBarChart,
-        provinsiChoropleth,
-        kabkotChoropleth,
-        provinsiGeoJson,
-        kabkotGeoJson;
-
-    try {
-        stackedLineChart = echarts.init(stackedLineChartElement);
-        horizontalBarChart = echarts.init(horizontalBarChartElement);
-        heatmapChart = echarts.init(heatmapChartElement);
-        barChartInstance = echarts.init(barChartsContainer); // Assign directly to outer scope
-        stackedBarChart = echarts.init(stackedBarChartElement);
-        provHorizontalBarChart = echarts.init(provHorizontalBarChartElement);
-        kabkotHorizontalBarChart = echarts.init(
-            kabkotHorizontalBarChartElement
-        );
-        provinsiChoropleth = echarts.init(provinsiChoroplethElement);
-        kabkotChoropleth = echarts.init(kabkotChoroplethElement);
-    } catch (error) {
-        console.error("Failed to initialize ECharts instances:", error);
-        return;
-    }
-
-    const defaultStackedLineData = {
-        series: [
-            { name: "Email", data: [120, 132, 101, 134, 90, 230, 210] },
-            { name: "Union Ads", data: [220, 182, 191, 234, 290, 330, 310] },
-            { name: "Video Ads", data: [150, 232, 201, 154, 190, 330, 410] },
-        ],
-        xAxis: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-    };
-
-    // Default data
-    const defaultProvHorizontalBarData = [];
-    const defaultKabkotHorizontalBarData = [];
-
-    const defaultHorizontalBarData = {
-        labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-        datasets: [
-            {
-                label: "Email",
-                inflasi: [120, 132, 101, 134, 90, 230, 210],
-                andil: [10, 12, 11, 13, 9, 23, 21],
-            },
-            {
-                label: "Union Ads",
-                inflasi: [220, 182, 191, 234, 290, 330, 310],
-                andil: [22, 18, 19, 23, 29, 33, 31],
-            },
-            {
-                label: "Video Ads",
-                inflasi: [150, 232, 201, 154, 190, 330, 410],
-                andil: [15, 23, 20, 15, 19, 33, 41],
-            },
-        ],
-    };
-
-    const defaultHeatmapData = {
-        xAxis: ["01", "02", "03", "04", "05"],
-        yAxis: ["Province A", "Province B", "Province C"],
-        values: [
-            [0, 0, 10],
-            [1, 0, 15],
-            [2, 0, 20],
-            [3, 0, 25],
-            [4, 0, 30],
-            [0, 1, 5],
-            [1, 1, 10],
-            [2, 1, 15],
-            [3, 1, 20],
-            [4, 1, 0],
-            [0, 2, 8],
-            [1, 2, 12],
-            [2, 2, 18],
-            [3, 2, 22],
-            [4, 2, 28],
-        ],
-    };
-
-    const defaultBarChartData = [
-        {
-            name: "Level 01",
-            provinces: ["Province A", "Province B"],
-            values: [1.2, 1.5],
-        },
-        {
-            name: "Level 02",
-            provinces: ["Province A", "Province C"],
-            values: [1.8, 2.0],
-        },
-        {
-            name: "Level 03",
-            provinces: ["Province B", "Province C"],
-            values: [2.2, 2.5],
-        },
-        { name: "Level 04", provinces: ["Province A"], values: [1.0] },
-        {
-            name: "Level 05",
-            provinces: ["Province B", "Province C"],
-            values: [1.7, 1.9],
-        },
-    ];
-
-    // Use backend data if available, otherwise fallback to default
-    const stackedLineData = window.stackedLineData || defaultStackedLineData;
-    const horizontalBarData =
-        window.horizontalBarData || defaultHorizontalBarData;
-    const heatmapData = window.heatmapData || defaultHeatmapData;
-    const barChartData = window.barChartsData || defaultBarChartData;
-    const stackedBarData = window.stackedBarData || defaultStackedBarData;
-    const provHorizontalBarData =
-        window.provHorizontalBarData || defaultProvHorizontalBarData;
-    const kabkotHorizontalBarData =
-        window.kabkotHorizontalBarData || defaultKabkotHorizontalBarData;
-
-    // Load GeoJSON data
-    try {
-        const provResponse = await fetch("/geojson/Provinsi.json");
-        const kabkotResponse = await fetch("/geojson/kab_indo_dummy4.json");
-        console.log("Provinsi Response Status:", provResponse.status);
-        console.log("Kabkot Response Status:", kabkotResponse.status);
-        if (!provResponse.ok)
-            throw new Error(
-                `Failed to fetch Provinsi GeoJSON: ${provResponse.status}`
-            );
-        if (!kabkotResponse.ok)
-            throw new Error(
-                `Failed to fetch Kabkot GeoJSON: ${kabkotResponse.status}`
-            );
-        provinsiGeoJson = await provResponse.json();
-        kabkotGeoJson = await kabkotResponse.json();
-        // console.log("Provinsi GeoJSON:", provinsiGeoJson);
-        // console.log("Kabkot GeoJSON:", kabkotGeoJson);
-        echarts.registerMap("Provinsi_Indonesia", provinsiGeoJson);
-        echarts.registerMap("Kabkot_Indonesia", kabkotGeoJson);
-        console.log("GeoJSON Loaded and Maps Registered");
-    } catch (error) {
-        console.error("Error loading GeoJSON:", error);
-        return;
-    }
-
-    // Stacked Line Chart Configuration (Inflasi)
-    const stackedLineOptions = {
-        // title: { text: window.chartTitle || "Inflasi" },
-        tooltip: { trigger: "axis" },
-        legend: {
-            bottom: 0,
-            data: stackedLineData.series.map((s) => s.name),
-        },
-        grid: { left: "3%", right: "4%", bottom: "20%", containLabel: true },
-        toolbox: {
-            feature: {
-                saveAsImage: { title: "Save as PNG" },
-                // restore: {},
-            },
-        },
-        xAxis: {
-            type: "category",
-            data: stackedLineData.xAxis,
-        },
-        yAxis: { type: "value", name: "Inflasi (%)" },
-        series: stackedLineData.series.map((series) => ({
-            ...series,
-            type: "line",
-            stack: "Total",
-        })),
-    };
-
-    // Horizontal Bar Chart Configuration (Inflasi and Andil)
-    const horizontalBarOptions = {
-        tooltip: {
-            trigger: "axis",
-            axisPointer: { type: "shadow" },
-            formatter: (params) => {
-                let result = `${params[0].name}<br>`;
-                params.forEach((param) => {
-                    result += `${param.marker} ${param.seriesName}: ${param.value}%<br>`;
-                });
-                return result;
-            },
-        },
-        toolbox: {
-            feature: {
-                feature: {
-                    saveAsImage: { title: "Save as PNG" },
-                    // restore: {},
-                },
-            },
-        },
-        legend: { bottom: 0, data: ["Inflasi", "Andil"] },
-        grid: {
-            containLabel: true,
-            left: "5%",
-            right: "15%",
-        },
-        xAxis: { type: "value", name: "Nilai (%)" },
-        yAxis: {
-            type: "category",
-            data: horizontalBarData.datasets.map((dataset) => dataset.label),
-            name: "Level Harga",
-        },
-        series: [
-            {
-                label: {
-                    show: true,
-                    position: "right",
-                },
-                name: "Inflasi",
-                type: "bar",
-                data: horizontalBarData.datasets.map(
-                    (dataset) => dataset.inflasi[dataset.inflasi.length - 1]
-                ),
-                itemStyle: { color: "#5470C6" },
-            },
-            {
-                label: {
-                    show: true,
-                    position: "right",
-                },
-                name: "Andil",
-                type: "bar",
-                data: horizontalBarData.datasets.map(
-                    (dataset) => dataset.andil[dataset.andil.length - 1]
-                ),
-                itemStyle: { color: "#73C0DE" },
-            },
-        ],
-    };
-
-    const shortenedHargaMap = {
-        "Harga Perdagangan Besar": "HPB",
-        "Harga Konsumen Kota": "HK",
-        "Harga Konsumen Desa": "HK Desa",
-        "Harga Produsen Desa": "HP Desa",
-        "Harga Produsen": "HP",
-    };
-
-    // Heatmap Chart Configuration (Inflasi by Province)
-    const heatmapOptions = {
-        tooltip: {
-            position: "top",
-            formatter: function (params) {
-                const xValue = heatmapData.xAxis[params.data[0]]; // x-axis value (e.g., level name)
-                const yValue = heatmapData.yAxis[params.data[1]]; // y-axis value (e.g., province name)
-                const value = params.data[2]; // heatmap value (inflasi)
-                const marker = params.marker; // ECharts dot
-
-                return `${xValue}<br>${yValue}<br>${marker} Inflasi: ${
-                    value !== undefined ? value : "-"
-                }%`;
-            },
-        },
-        toolbox: {
-            feature: {
-                saveAsImage: { title: "Save as PNG" },
-                // restore: {},
-            },
-        },
-        grid: { left: "5%", right: "15%", containLabel: true },
-        xAxis: {
-            type: "category",
-            data: heatmapData.xAxis,
-            splitArea: { show: true },
-        },
-        yAxis: {
-            type: "category",
-            data: heatmapData.yAxis,
-            splitArea: { show: true },
-        },
-        visualMap: {
-            type: "continuous",
-            min: -1,
-            max: 1,
-            precision: 2,
-            calculable: true,
-            orient: "horizontal",
-            left: "center",
-            bottom: 0,
-            inRange: {
-                color: ["#65B581", "#FFCE34", "#FD665F"],
-            },
-        },
-        dataZoom: [
-            {
-                type: "slider",
-                orient: "vertical",
-            },
-        ],
-        series: [
-            {
-                name: "Inflasi",
-                type: "heatmap",
-                data: heatmapData.values,
-                label: {
-                    show: true,
-                    formatter: function (params) {
-                        return params.value[2] === 0 ? "0" : params.value[2];
-                    },
-                },
-                emphasis: {
-                    itemStyle: {
-                        shadowBlur: 10,
-                        shadowColor: "rgba(0, 0, 0, 0.5)",
-                    },
-                },
-            },
-        ],
-    };
-
-    // Bar Chart Options
-    // Grid setup for 1 row, 5 columns
-    const grids = [];
-    const xAxes = [];
-    const yAxes = [];
-    const series = [];
-    const titles = [];
-    const columnCount = 5;
-
-    barChartData.forEach((data, idx) => {
-        grids.push({
-            show: true,
-            borderWidth: 0,
-            left: `${(idx / columnCount) * 100 + 2}%`, // 2% padding
-            top: "10%",
-            width: `${(1 / columnCount) * 100 - 4}%`, // 4% total padding
-            height: "70%",
-            containLabel: true,
-        });
-        xAxes.push({
-            type: "value",
-            name: "Inflation (%)",
-            gridIndex: idx,
-            min: 0,
-            max: Math.max(...data.values) * 1.2, // Dynamic max
-        });
-        yAxes.push({
-            type: "category",
-            data: data.provinces,
-            gridIndex: idx,
-            axisLabel: {
-                show: idx === 0, // Show labels only on first and last
-                interval: 0,
-                rotate: 45,
-            },
-        });
-        series.push({
-            name: data.name,
-            type: "bar",
-            xAxisIndex: idx,
-            yAxisIndex: idx,
-            data: data.values,
-            itemStyle: { color: "#73C0DE" },
-        });
-        titles.push({
-            text: data.name,
-            textAlign: "center",
-            left: `${(idx / columnCount) * 100 + (1 / columnCount) * 50}%`,
-            top: "2%",
-            textStyle: { fontSize: 12, fontWeight: "normal" },
-        });
-    });
-
-    const barChartOptions = {
-        title: titles,
-        grid: grids,
-        xAxis: xAxes,
-        yAxis: yAxes,
-        series: series,
-        tooltip: { trigger: "axis" },
-    };
-
-    // Stacked Bar Chart Configuration
-    const stackedBarOptions = {
-        tooltip: {
-            trigger: "axis",
-            axisPointer: { type: "shadow" },
-            formatter: (params) => {
-                let total = 0;
-                let result = `${params[0].axisValueLabel}<br>`;
-                params.forEach((param) => {
-                    total += param.value;
-                    result += `${param.marker} ${param.seriesName}: ${param.value}<br>`;
-                });
-                result += `<strong>Total: ${total}</strong>`;
-                return result;
-            },
-        },
-        legend: { bottom: 0 },
-        grid: { left: "10%", right: "10%", bottom: "15%", top: "10%" },
-        xAxis: { type: "category", data: stackedBarData.labels },
-        yAxis: { type: "value", name: "Jumlah Provinsi" },
-        series: stackedBarData.datasets.map((dataset) => ({
-            name: dataset.label,
-            type: "bar",
-            stack: dataset.stack,
-            data: dataset.data,
-            itemStyle: { color: dataset.backgroundColor },
-        })),
-    };
-
-    // Horizontal Bar Chart Options
-    const horizontalBarOptionsWilayah = (data, title) => ({
-        title: { text: title },
-        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
-        grid: {
-            left: "5%",
-            right: "20%",
-            bottom: "10%",
-            top: "10%",
-            containLabel: true,
-        },
-        dataZoom: [
-            {
-                type: "slider",
-                orient: "vertical",
-            },
-        ],
-        xAxis: { type: "value", name: "Inflasi (%)" },
-        yAxis: { type: "category", data: data.names },
-        series: [
-            {
-                label: {
-                    show: true,
-                    position: "right",
-                },
-                name: "Inflasi",
-                type: "bar",
-                data: data.inflasi,
-                itemStyle: { color: "#5470C6" },
-            },
-        ],
-    });
-
-    // Choropleth Options
-    function prepareChoroplethData(geoJson, data, mapName) {
-        return geoJson.features.map((feature) => {
-            const regionCode =
-                mapName === "Provinsi_Indonesia"
-                    ? feature.properties.KODE_PROV
-                    : feature.properties.idkab;
-
-            // Find match in data.regions
-            const index = data.regions.findIndex(
-                (code) => String(code) === regionCode
-            );
-
-            // Only use name from data if it exists, otherwise leave it out
-            const regionName = index !== -1 ? data.names[index] : null;
-
-            return {
-                name: regionCode, // Code for mapping
-                value: index !== -1 ? Number(data.inflasi[index]) : null, // Inflation value
-                itemStyle: regionName ? { name: regionName } : {}, // Only add name if it exists
-            };
-        });
-    }
-
-    const choroplethOptions = (mapName, data, title) => ({
-        title: { text: title, left: "center" },
-        tooltip: {
-            trigger: "item",
-            formatter: (params) => {
-                const name = params.data.itemStyle.name || "-"; // Use name if present, otherwise "-"
-                const value = params.value || "No data";
-                return `${name} ${params.marker} ${value}`;
-            },
-        },
-        visualMap: {
-            left: "right",
-            min: -2.5,
-            max: 2.5,
-            inRange: {
-                color: ["#65B581", "#FFCE34", "#FD665F"],
-            },
-            text: ["High", "Low"],
-            calculable: true,
-        },
-        series: [
-            {
-                name: "Inflasi",
-                type: "map",
-                label: {
-                    show: false, // Disable any default labels on hover
-                },
-                map: mapName,
-                data: data,
-                nameProperty:
-                    mapName === "Provinsi_Indonesia" ? "KODE_PROV" : "idkab",
-            },
-        ],
-    });
-
-    // Function to update main charts
-    function updateCharts(
-        newStackedLineData,
-        newHorizontalBarData,
-        newHeatmapData
-    ) {
-        const updatedStackedLine = newStackedLineData || stackedLineData;
-        const updatedHorizontalBar = newHorizontalBarData || horizontalBarData;
-        const updatedHeatmap = newHeatmapData || heatmapData;
-
-        if (updatedStackedLine.series && updatedStackedLine.xAxis) {
-            stackedLineOptions.legend.data = updatedStackedLine.series.map(
-                (s) => s.name
-            );
-            stackedLineOptions.xAxis.data = updatedStackedLine.xAxis;
-            stackedLineOptions.series = updatedStackedLine.series.map(
-                (series) => ({
-                    ...series,
-                    type: "line",
-                    stack: "Total",
-                })
-            );
-            stackedLineChart.setOption(stackedLineOptions, true);
-        }
-
-        if (updatedHorizontalBar.datasets && updatedHorizontalBar.labels) {
-            horizontalBarOptions.yAxis.data = updatedHorizontalBar.datasets.map(
-                (dataset) => dataset.label
-            );
-            horizontalBarOptions.series[0].data =
-                updatedHorizontalBar.datasets.map(
-                    (dataset) => dataset.inflasi[dataset.inflasi.length - 1]
-                );
-            horizontalBarOptions.series[1].data =
-                updatedHorizontalBar.datasets.map(
-                    (dataset) => dataset.andil[dataset.andil.length - 1]
-                );
-            horizontalBarChart.setOption(horizontalBarOptions, true);
-        }
-
-        if (
-            updatedHeatmap.xAxis &&
-            updatedHeatmap.yAxis &&
-            updatedHeatmap.values
-        ) {
-            heatmapOptions.xAxis.data = updatedHeatmap.xAxis;
-            heatmapOptions.yAxis.data = updatedHeatmap.yAxis;
-            heatmapOptions.series[0].data = updatedHeatmap.values.map(
-                (item) => [item[0], item[1], item[2] || "-"]
-            );
-
-            const values = updatedHeatmap.values
-                .map((item) => item[2])
-                .filter(
-                    (value) =>
-                        value !== null &&
-                        value !== undefined &&
-                        value !== "-" &&
-                        !isNaN(value)
-                );
-
-            const minValue = values.length > 0 ? Math.min(...values) : 0;
-            const maxValue = values.length > 0 ? Math.max(...values) : 10;
-            const padding = (maxValue - minValue) * 0.1 || 1;
-
-            heatmapOptions.visualMap.min = minValue - padding;
-            heatmapOptions.visualMap.max = maxValue + padding;
-
-            heatmapChart.setOption(heatmapOptions, true);
-        }
-    }
-
-    // Function to update bar charts
-    window.updateBarCharts = function (newBarChartData) {
-        const updatedData = newBarChartData || barChartData;
-        updatedData.forEach((data, idx) => {
-            xAxes[idx].max = Math.max(...data.values) * 1.2;
-            yAxes[idx].data = data.provinces;
-            series[idx].data = data.values;
-            titles[idx].text = data.name;
-        });
-        barChartInstance.setOption({
-            title: titles,
-            xAxis: xAxes,
-            yAxis: yAxes,
-            series: series,
-        });
-    };
-
-    let showingAndil = false;
-    toggleAndilBtn.addEventListener("click", () => {
-        showingAndil = !showingAndil;
-        toggleAndilBtn.textContent = showingAndil
-            ? "Lihat Inflasi"
-            : "Lihat Andil";
-
-        // Debug to confirm instance
-        // console.log("stackedLineChart:", stackedLineChart);
-        // console.log(
-        //     "setOption available:",
-        //     typeof stackedLineChart.setOption === "function"
-        // );
-
-        // Prepare updated data
-        const updatedSeries = showingAndil
-            ? stackedLineData.series.map((s) => ({
-                  ...s,
-                  data: s.andil || s.data,
-              }))
-            : stackedLineData.series.map((s) => ({ ...s, data: s.data }));
-
-        // Update options dynamically (like heatmapOptions)
-        stackedLineOptions.yAxis.name = showingAndil
-            ? "Andil (%)"
-            : "Inflasi (%)";
-        stackedLineOptions.series = updatedSeries.map((s) => ({
-            ...s,
-            type: "line",
-            stack: "Total",
-        }));
-
-        // Apply update (like heatmapChart.setOption)
-        stackedLineChart.setOption(stackedLineOptions, true);
-    });
-
-    function updateSelectCharts(levelIndex) {
-        const provData = window.provHorizontalBarData?.[levelIndex] ?? {
-            regions: [],
-            names: [],
-            inflasi: [],
-        };
-        const kabkotData = window.kabkotHorizontalBarData?.[levelIndex] ?? {
-            regions: [],
-            names: [],
-            inflasi: [],
-        };
-
-        // console.log("provData:", provData);
-
-        // Update bar charts with names
-        provHorizontalBarChart.setOption(
-            horizontalBarOptionsWilayah(provData, "per Provinsi"),
-            true
-        );
-        kabkotHorizontalBarChart.setOption(
-            horizontalBarOptionsWilayah(kabkotData, "per Kabupaten/Kota"),
-            true
-        );
-
-        // Update choropleth maps with codes
-        const provChoroData = prepareChoroplethData(
-            provinsiGeoJson,
-            provData,
-            "Provinsi_Indonesia"
-        ); // Fixed mapName
-        const kabkotChoroData = prepareChoroplethData(
-            kabkotGeoJson,
-            kabkotData,
-            "Kabkot_Indonesia"
-        ); // Fixed mapName
-
-        provinsiChoropleth.setOption(
-            choroplethOptions(
-                "Provinsi_Indonesia",
-                provChoroData,
-                "per Provinsi"
-            ),
-            true
-        );
-        kabkotChoropleth.setOption(
-            choroplethOptions(
-                "Kabkot_Indonesia",
-                kabkotChoroData,
-                "per Kabupaten/Kota"
-            ),
-            true
-        );
-    }
-
-    // Initial render (default to first level)
-    updateSelectCharts(0);
-
-    // Handle select change
-    levelSelect.addEventListener("change", () => {
-        console.log("select change");
-
-        const levelMap = {
-            HK: 0, // Harga Konsumen Kota
-            HD: 1, // Harga Konsumen Desa
-            HPB: 2, // Harga Perdagangan Besar
-            HPD: 3, // Harga Produsen Desa
-            HP: 4, // Harga Produsen
-        };
-
-        const selectedLevel = levelMap[levelSelect.value] || 0;
-        updateSelectCharts(selectedLevel); // Fixed function name
-        resizeCharts();
-    });
-
-    // Initial chart rendering
-    try {
-        if (stackedLineData.series && stackedLineData.xAxis) {
-            stackedLineChart.setOption(stackedLineOptions);
-        } else {
-            console.warn("No valid stacked line data provided.");
-        }
-
-        if (horizontalBarData.datasets && horizontalBarData.labels) {
-            horizontalBarChart.setOption(horizontalBarOptions);
-        } else {
-            console.warn("No valid horizontal bar data provided.");
-        }
-
-        if (heatmapData.values) {
-            // Set initial data
-            heatmapOptions.xAxis.data = heatmapData.xAxis;
-            heatmapOptions.yAxis.data = heatmapData.yAxis;
-            heatmapOptions.series[0].data = heatmapData.values.map((item) => [
-                item[0],
-                item[1],
-                item[2],
-            ]);
-
-            // Calculate min/max for visualMap
-            const values = heatmapData.values.map((item) => item[2]);
-
-            const minValue = values.length > 0 ? Math.min(...values) : 0;
-            const maxValue = values.length > 0 ? Math.max(...values) : 10;
-            const padding = (maxValue - minValue) * 0.1 || 1;
-
-            heatmapOptions.visualMap.min = minValue - padding;
-            heatmapOptions.visualMap.max = maxValue + padding;
-
-            // Apply options to chart
-            heatmapChart.setOption(heatmapOptions);
-        } else {
-            console.warn("No valid heatmap data provided.");
-        }
-
-        barChartInstance.setOption(barChartOptions);
-
-        if (stackedBarData.labels && stackedBarData.datasets) {
-            stackedBarChart.setOption(stackedBarOptions);
-        } else {
-            console.warn("No valid stacked bar data provided.");
-        }
-    } catch (error) {
-        console.error("Error rendering charts:", error);
-    }
-
-    // Expose update functions globally
-    window.updateCharts = updateCharts;
-    window.updateSelectCharts = updateSelectCharts;
-
-    // Log initial data
-    // console.log("Initial Stacked Line Data:", stackedLineData);
-    // console.log("Initial Horizontal Bar Data:", horizontalBarData);
-    // console.log("Initial Heatmap Data:", heatmapData);
-    // console.log("Initial Bar Chart Data:", provHorizontalBarData);
-});
 
 // Object to store chart instances
 const charts = {};
@@ -977,15 +181,13 @@ function initializeCharts() {
         const chartDiv = document.getElementById(config.id);
         if (chartDiv && !charts[config.id]) {
             charts[config.id] = echarts.init(chartDiv);
-            console.log(`Initialized ${config.id}`);
-
-            // Optional: Set placeholder options to avoid blank charts
-            // if (config.type === "map") {
-            //     charts[config.id].setOption({
-            //         title: { text: `Loading ${config.id}...`, left: "center" },
-            //         series: [{ type: "map", map: config.id === "provinsiChoropleth" ? "Provinsi_Indonesia" : "Kabkot_Indonesia" }],
-            //     });
-            // }
+            charts[config.id].showLoading({
+                text: "Loading data...",
+                color: "#5470C6",
+                textColor: "#000",
+                maskColor: "rgba(255, 255, 255, 0.8)",
+            });
+            console.log(`Initialized ${config.id} with loading state`);
         }
     });
 }
@@ -993,16 +195,13 @@ function initializeCharts() {
 // Resize charts
 function resizeCharts() {
     const paddingX = 32; // 16px left + 16px right from p-4
-
-    console.log("Charts object:", charts);
-
     Object.keys(charts).forEach((chartId) => {
         const chart = charts[chartId];
         const chartDiv = document.getElementById(chartId);
         if (chart && chartDiv && !chart.isDisposed()) {
             const container = chartDiv.parentElement;
             const width = container.clientWidth - paddingX;
-            const height = chartDiv.clientHeight; // h-96 (384px) or h-[550px]
+            const height = chartDiv.clientHeight;
             if (width > 0 && height > 0) {
                 chart.resize({ width, height });
                 console.log(`Resized ${chartId}: ${width}x${height}`);
@@ -1011,39 +210,626 @@ function resizeCharts() {
     });
 }
 
-// Initialize on page load
+// Chart configurations
+const shortenedHargaMap = {
+    "Harga Perdagangan Besar": "HPB",
+    "Harga Konsumen Kota": "HK",
+    "Harga Konsumen Desa": "HK Desa",
+    "Harga Produsen Desa": "HP Desa",
+    "Harga Produsen": "HP",
+};
+
 document.addEventListener("DOMContentLoaded", async () => {
+    // Define backend data
+    const stackedLineData = window.stackedLineData;
+    const horizontalBarData = window.horizontalBarData;
+    const heatmapData = window.heatmapData;
+    const barChartData = window.barChartsData;
+    const stackedBarData = window.stackedBarData;
+    const provHorizontalBarData = window.provHorizontalBarData;
+    const kabkotHorizontalBarData = window.kabkotHorizontalBarData;
+
+    // Initialize charts
     await initializeCharts();
-    setTimeout(resizeCharts, 100); // Delay to ensure initial layout is settled
+
+    // Load GeoJSON data
+    let provinsiGeoJson, kabkotGeoJson;
+    try {
+        const provResponse = await fetch("/geojson/Provinsi.json");
+        const kabkotResponse = await fetch("/geojson/kab_indo_dummy4.json");
+        if (!provResponse.ok)
+            throw new Error(
+                `Failed to fetch Provinsi GeoJSON: ${provResponse.status}`
+            );
+        if (!kabkotResponse.ok)
+            throw new Error(
+                `Failed to fetch Kabkot GeoJSON: ${kabkotResponse.status}`
+            );
+        provinsiGeoJson = await provResponse.json();
+        kabkotGeoJson = await kabkotResponse.json();
+        echarts.registerMap("Provinsi_Indonesia", provinsiGeoJson);
+        echarts.registerMap("Kabkot_Indonesia", kabkotGeoJson);
+        console.log("GeoJSON Loaded and Maps Registered");
+    } catch (error) {
+        console.error("Error loading GeoJSON:", error);
+        Object.values(charts).forEach((chart) => {
+            chart.showLoading({
+                text: "Error loading GeoJSON",
+                color: "#FD665F",
+            });
+        });
+        return;
+    }
+
+    // Stacked Line Chart Configuration
+    const stackedLineOptions = {
+        tooltip: { trigger: "axis" },
+        legend: {
+            bottom: 0,
+            data: stackedLineData?.series?.map((s) => s.name) || [],
+        },
+        grid: { left: "3%", right: "4%", bottom: "20%", containLabel: true },
+        toolbox: {
+            feature: {
+                saveAsImage: { title: "Save as PNG" },
+                restore: {},
+            },
+        },
+        xAxis: {
+            type: "category",
+            data: stackedLineData?.xAxis || [],
+        },
+        yAxis: { type: "value", name: "Inflasi (%)" },
+        series:
+            stackedLineData?.series?.map((series) => ({
+                ...series,
+                type: "line",
+            })) || [],
+    };
+
+    // Horizontal Bar Chart Configuration
+    const horizontalBarOptions = {
+        tooltip: {
+            trigger: "axis",
+            axisPointer: { type: "shadow" },
+            formatter: (params) => {
+                let result = `${params[0].name}<br>`;
+                params.forEach((param) => {
+                    result += `${param.marker} ${param.seriesName}: ${param.value}%<br>`;
+                });
+                return result;
+            },
+        },
+        toolbox: {
+            feature: {
+                saveAsImage: { title: "Save as PNG" },
+                restore: {},
+            },
+        },
+        legend: { bottom: 0, data: ["Inflasi", "Andil"] },
+        grid: { containLabel: true, left: "5%", right: "15%" },
+        xAxis: { type: "value", name: "Nilai (%)" },
+        yAxis: {
+            type: "category",
+            data:
+                horizontalBarData?.datasets?.map((dataset) => dataset.label) ||
+                [],
+            name: "Level Harga",
+        },
+        series: [
+            {
+                label: { show: true, position: "right" },
+                name: "Inflasi",
+                type: "bar",
+                data:
+                    horizontalBarData?.datasets?.map(
+                        (dataset) => dataset.inflasi[dataset.inflasi.length - 1]
+                    ) || [],
+                itemStyle: { color: "#5470C6" },
+            },
+            {
+                label: { show: true, position: "right" },
+                name: "Andil",
+                type: "bar",
+                data:
+                    horizontalBarData?.datasets?.map(
+                        (dataset) => dataset.andil[dataset.andil.length - 1]
+                    ) || [],
+                itemStyle: { color: "#73C0DE" },
+            },
+        ],
+    };
+
+    // Heatmap Chart Configuration
+    const heatmapOptions = {
+        tooltip: {
+            position: "top",
+            formatter: function (params) {
+                const xValue = heatmapData?.xAxis?.[params.data[0]] || "-";
+                const yValue = heatmapData?.yAxis?.[params.data[1]] || "-";
+                const value = params.data[2];
+                const marker = params.marker;
+                return `${xValue}<br>${yValue}<br>${marker} Inflasi: ${
+                    value !== undefined ? value : "-"
+                }%`;
+            },
+        },
+        toolbox: {
+            feature: {
+                saveAsImage: { title: "Save as PNG" },
+                restore: {},
+            },
+        },
+        grid: { left: "5%", right: "15%", containLabel: true },
+        xAxis: {
+            type: "category",
+            data: heatmapData?.xAxis || [],
+            splitArea: { show: true },
+        },
+        yAxis: {
+            type: "category",
+            data: heatmapData?.yAxis || [],
+            splitArea: { show: true },
+        },
+        visualMap: {
+            type: "continuous",
+            min: 0,
+            max: 10,
+            precision: 2,
+            calculable: true,
+            orient: "horizontal",
+            left: "center",
+            bottom: 0,
+            inRange: { color: ["#65B581", "#FFCE34", "#FD665F"] },
+        },
+        dataZoom: [{ type: "slider", orient: "vertical" }],
+        series: [
+            {
+                name: "Inflasi",
+                type: "heatmap",
+                data:
+                    heatmapData?.values?.map((item) => [
+                        item[0],
+                        item[1],
+                        item[2] || "-",
+                    ]) || [],
+                label: {
+                    show: true,
+                    formatter: function (params) {
+                        return params.value[2] === 0 ? "0" : params.value[2];
+                    },
+                },
+                emphasis: {
+                    itemStyle: {
+                        shadowBlur: 10,
+                        shadowColor: "rgba(0, 0, 0, 0.5)",
+                    },
+                },
+            },
+        ],
+    };
+
+    // Bar Chart Configuration
+    const grids = [];
+    const xAxes = [];
+    const yAxes = [];
+    const series = [];
+    const titles = [];
+    const columnCount = 5;
+
+    if (barChartData) {
+        barChartData.forEach((data, idx) => {
+            grids.push({
+                show: true,
+                borderWidth: 0,
+                left: `${(idx / columnCount) * 100 + 2}%`,
+                top: "10%",
+                width: `${(1 / columnCount) * 100 - 4}%`,
+                height: "70%",
+                containLabel: true,
+            });
+            xAxes.push({
+                type: "value",
+                name: "Inflation (%)",
+                gridIndex: idx,
+                min: 0,
+                max: Math.max(...data.values) * 1.2,
+            });
+            yAxes.push({
+                type: "category",
+                data: data.provinces,
+                gridIndex: idx,
+                axisLabel: { show: idx === 0, interval: 0, rotate: 45 },
+            });
+            series.push({
+                name: data.name,
+                type: "bar",
+                xAxisIndex: idx,
+                yAxisIndex: idx,
+                data: data.values,
+                itemStyle: { color: "#73C0DE" },
+            });
+            titles.push({
+                text: data.name,
+                textAlign: "center",
+                left: `${(idx / columnCount) * 100 + (1 / columnCount) * 50}%`,
+                top: "2%",
+                textStyle: { fontSize: 12, fontWeight: "normal" },
+            });
+        });
+    }
+
+    const barChartOptions = {
+        title: titles,
+        grid: grids,
+        xAxis: xAxes,
+        yAxis: yAxes,
+        series: series,
+        tooltip: { trigger: "axis" },
+        toolbox: {
+            feature: {
+                saveAsImage: { title: "Save as PNG" },
+                restore: {},
+            },
+        },
+    };
+
+    // Stacked Bar Chart Configuration
+    const stackedBarOptions = {
+        tooltip: {
+            trigger: "axis",
+            axisPointer: { type: "shadow" },
+            formatter: (params) => {
+                let total = 0;
+                let result = `${params[0].axisValueLabel}<br>`;
+                params.forEach((param) => {
+                    total += param.value;
+                    result += `${param.marker} ${param.seriesName}: ${param.value}<br>`;
+                });
+                result += `<strong>Total: ${total}</strong>`;
+                return result;
+            },
+        },
+        toolbox: {
+            feature: {
+                saveAsImage: { title: "Save as PNG" },
+                restore: {},
+            },
+        },
+        legend: { bottom: 0 },
+        grid: { left: "10%", right: "10%", bottom: "15%", top: "10%" },
+        xAxis: { type: "category", data: stackedBarData?.labels || [] },
+        yAxis: { type: "value", name: "Jumlah Provinsi" },
+        series:
+            stackedBarData?.datasets?.map((dataset) => ({
+                name: dataset.label,
+                type: "bar",
+                stack: dataset.stack,
+                data: dataset.data,
+                itemStyle: { color: dataset.backgroundColor },
+            })) || [],
+    };
+
+    // Horizontal Bar Chart Options
+    const horizontalBarOptionsWilayah = (data, title) => ({
+        title: { text: title },
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: {
+            left: "5%",
+            right: "20%",
+            bottom: "10%",
+            top: "10%",
+            containLabel: true,
+        },
+        dataZoom: [{ type: "slider", orient: "vertical" }],
+        toolbox: {
+            feature: {
+                saveAsImage: { title: "Save as PNG" },
+                restore: {},
+            },
+        },
+        xAxis: { type: "value", name: "Inflasi (%)" },
+        yAxis: { type: "category", data: data.names || [] },
+        series: [
+            {
+                label: { show: true, position: "right" },
+                name: "Inflasi",
+                type: "bar",
+                data: data.inflasi || [],
+                itemStyle: { color: "#5470C6" },
+            },
+        ],
+    });
+
+    // Choropleth Options
+    function prepareChoroplethData(geoJson, data, mapName) {
+        return geoJson.features.map((feature) => {
+            const regionCode =
+                mapName === "Provinsi_Indonesia"
+                    ? feature.properties.KODE_PROV
+                    : feature.properties.idkab;
+            const index = data.regions?.findIndex(
+                (code) => String(code) === regionCode
+            );
+            const regionName = index !== -1 ? data.names[index] : null;
+            return {
+                name: regionCode,
+                value: index !== -1 ? Number(data.inflasi[index]) : null,
+                itemStyle: regionName ? { name: regionName } : {},
+            };
+        });
+    }
+
+    const choroplethOptions = (mapName, data, title) => ({
+        title: { text: title, left: "center" },
+        toolbox: {
+            feature: {
+                saveAsImage: { title: "Save as PNG" },
+                restore: {},
+            },
+        },
+        tooltip: {
+            trigger: "item",
+            formatter: (params) => {
+                const name = params.data?.itemStyle?.name || "-";
+                const value = params.value || "No data";
+                return `${name} ${params.marker} ${value}`;
+            },
+        },
+        visualMap: {
+            left: "right",
+            min: -2.5,
+            max: 2.5,
+            inRange: { color: ["#65B581", "#FFCE34", "#FD665F"] },
+            text: ["High", "Low"],
+            calculable: true,
+        },
+        series: [
+            {
+                name: "Inflasi",
+                type: "map",
+                label: { normal: { show: false }, emphasis: { show: false } },
+                map: mapName,
+                data: data || [],
+                nameProperty:
+                    mapName === "Provinsi_Indonesia" ? "KODE_PROV" : "idkab",
+            },
+        ],
+    });
+
+    // Render charts
+    async function renderCharts() {
+        try {
+            // Stacked Line Chart
+            if (
+                stackedLineData &&
+                stackedLineData.series &&
+                stackedLineData.xAxis
+            ) {
+                charts["stackedLineChart"].setOption(stackedLineOptions);
+                charts["stackedLineChart"].hideLoading();
+            } else {
+                console.warn("No valid stacked line data provided.");
+                charts["stackedLineChart"].showLoading({
+                    text: "No data available",
+                    color: "#FD665F",
+                });
+            }
+
+            // Horizontal Bar Chart
+            if (
+                horizontalBarData &&
+                horizontalBarData.datasets &&
+                horizontalBarData.labels
+            ) {
+                charts["horizontalBarChart"].setOption(horizontalBarOptions);
+                charts["horizontalBarChart"].hideLoading();
+            } else {
+                console.warn("No valid horizontal bar data provided.");
+                charts["horizontalBarChart"].showLoading({
+                    text: "No data available",
+                    color: "#FD665F",
+                });
+            }
+
+            // Heatmap Chart
+            if (
+                heatmapData &&
+                heatmapData.xAxis &&
+                heatmapData.yAxis &&
+                heatmapData.values
+            ) {
+                heatmapOptions.xAxis.data = heatmapData.xAxis;
+                heatmapOptions.yAxis.data = heatmapData.yAxis;
+                heatmapOptions.series[0].data = heatmapData.values.map(
+                    (item) => [item[0], item[1], item[2] || "-"]
+                );
+
+                const values = heatmapData.values
+                    .map((item) => item[2])
+                    .filter(
+                        (value) =>
+                            value !== null &&
+                            value !== undefined &&
+                            !isNaN(value)
+                    );
+                const minValue = values.length > 0 ? Math.min(...values) : 0;
+                const maxValue = values.length > 0 ? Math.max(...values) : 10;
+                const padding = (maxValue - minValue) * 0.1 || 1;
+
+                heatmapOptions.visualMap.min = minValue - padding;
+                heatmapOptions.visualMap.max = maxValue + padding;
+
+                charts["heatmapChart"].setOption(heatmapOptions);
+                charts["heatmapChart"].hideLoading();
+            } else {
+                console.warn("No valid heatmap data provided.");
+                charts["heatmapChart"].showLoading({
+                    text: "No data available",
+                    color: "#FD665F",
+                });
+            }
+
+            // Bar Chart
+            if (barChartData && barChartData.length) {
+                charts["barChartsContainer"].setOption(barChartOptions);
+                charts["barChartsContainer"].hideLoading();
+            } else {
+                console.warn("No valid bar chart data provided.");
+                charts["barChartsContainer"].showLoading({
+                    text: "No data available",
+                    color: "#FD665F",
+                });
+            }
+
+            // Stacked Bar Chart
+            if (
+                stackedBarData &&
+                stackedBarData.labels &&
+                stackedBarData.datasets
+            ) {
+                charts["stackedBarChart"].setOption(stackedBarOptions);
+                charts["stackedBarChart"].hideLoading();
+            } else {
+                console.warn("No valid stacked bar data provided.");
+                charts["stackedBarChart"].showLoading({
+                    text: "No data available",
+                    color: "#FD665F",
+                });
+            }
+
+            // Province and Kabkot Horizontal Bar Charts
+            if (provHorizontalBarData && provHorizontalBarData[0]) {
+                charts["provHorizontalBarChart"].setOption(
+                    horizontalBarOptionsWilayah(
+                        provHorizontalBarData[0],
+                        "per Provinsi"
+                    )
+                );
+                charts["provHorizontalBarChart"].hideLoading();
+            } else {
+                console.warn("No valid province horizontal bar data provided.");
+                charts["provHorizontalBarChart"].showLoading({
+                    text: "No data available",
+                    color: "#FD665F",
+                });
+            }
+
+            if (kabkotHorizontalBarData && kabkotHorizontalBarData[0]) {
+                charts["kabkotHorizontalBarChart"].setOption(
+                    horizontalBarOptionsWilayah(
+                        kabkotHorizontalBarData[0],
+                        "per Kabupaten/Kota"
+                    )
+                );
+                charts["kabkotHorizontalBarChart"].hideLoading();
+            } else {
+                console.warn("No valid kabkot horizontal bar data provided.");
+                charts["kabkotHorizontalBarChart"].showLoading({
+                    text: "No data available",
+                    color: "#FD665F",
+                });
+            }
+
+            // Choropleth Maps
+            if (provHorizontalBarData && provHorizontalBarData[0]) {
+                const provChoroData = prepareChoroplethData(
+                    provinsiGeoJson,
+                    provHorizontalBarData[0],
+                    "Provinsi_Indonesia"
+                );
+                charts["provinsiChoropleth"].setOption(
+                    choroplethOptions(
+                        "Provinsi_Indonesia",
+                        provChoroData,
+                        "per Provinsi"
+                    )
+                );
+                charts["provinsiChoropleth"].hideLoading();
+            } else {
+                console.warn("No valid province choropleth data provided.");
+                charts["provinsiChoropleth"].showLoading({
+                    text: "No data available",
+                    color: "#FD665F",
+                });
+            }
+
+            if (kabkotHorizontalBarData && kabkotHorizontalBarData[0]) {
+                const kabkotChoroData = prepareChoroplethData(
+                    kabkotGeoJson,
+                    kabkotHorizontalBarData[0],
+                    "Kabkot_Indonesia"
+                );
+                charts["kabkotChoropleth"].setOption(
+                    choroplethOptions(
+                        "Kabkot_Indonesia",
+                        kabkotChoroData,
+                        "per Kabupaten/Kota"
+                    )
+                );
+                charts["kabkotChoropleth"].hideLoading();
+            } else {
+                console.warn("No valid kabkot choropleth data provided.");
+                charts["kabkotChoropleth"].showLoading({
+                    text: "No data available",
+                    color: "#FD665F",
+                });
+            }
+        } catch (error) {
+            console.error("Error rendering charts:", error);
+            Object.values(charts).forEach((chart) => {
+                chart.showLoading({
+                    text: "Error loading data",
+                    color: "#FD665F",
+                });
+            });
+        }
+    }
+
+    await renderCharts();
+
+    setTimeout(resizeCharts, 100);
 
     const toggleAndilBtn = document.getElementById("toggleAndilBtn");
     const levelSelect = document.getElementById("levelHargaSelect");
 
-    // if (toggleAndilBtn) {
-    //     let showingAndil = false;
-    //     toggleAndilBtn.addEventListener("click", () => {
-    //         showingAndil = !showingAndil;
-    //         toggleAndilBtn.textContent = showingAndil
-    //             ? "Lihat Inflasi"
-    //             : "Lihat Andil";
-    //         const chart = charts["stackedLineChart"];
-    //         const data = window.stackedLineData;
-    //         const updatedSeries = showingAndil
-    //             ? data.series.map((s) => ({ ...s, data: s.andil || s.data }))
-    //             : data.series.map((s) => ({ ...s, data: s.data }));
-    //         chart.setOption(
-    //             {
-    //                 yAxis: { name: showingAndil ? "Andil (%)" : "Inflasi (%)" },
-    //                 series: updatedSeries.map((s) => ({
-    //                     ...s,
-    //                     type: "line",
-    //                     stack: "Total",
-    //                 })),
-    //             },
-    //             true
-    //         );
-    //     });
-    // }
+    if (toggleAndilBtn) {
+        let showingAndil = false;
+        toggleAndilBtn.addEventListener("click", () => {
+            showingAndil = !showingAndil;
+            toggleAndilBtn.textContent = showingAndil
+                ? "Lihat Inflasi"
+                : "Lihat Andil";
+
+            if (stackedLineData && stackedLineData.series) {
+                const updatedSeries = showingAndil
+                    ? stackedLineData.series.map((s) => ({
+                          ...s,
+                          data: s.andil || s.data,
+                      }))
+                    : stackedLineData.series.map((s) => ({
+                          ...s,
+                          data: s.data,
+                      }));
+
+                stackedLineOptions.yAxis.name = showingAndil
+                    ? "Andil (%)"
+                    : "Inflasi (%)";
+                stackedLineOptions.series = updatedSeries.map((s) => ({
+                    ...s,
+                    type: "line",
+                }));
+
+                charts["stackedLineChart"].setOption(stackedLineOptions, true);
+                charts["stackedLineChart"].hideLoading();
+            } else {
+                charts["stackedLineChart"].showLoading({
+                    text: "No data available",
+                    color: "#FD665F",
+                });
+            }
+        });
+    }
 
     if (levelSelect) {
         levelSelect.addEventListener("change", () => {
@@ -1051,26 +837,125 @@ document.addEventListener("DOMContentLoaded", async () => {
             const selectedLevel = levelMap[levelSelect.value] || 0;
             updateSelectCharts(selectedLevel);
             setTimeout(() => {
-                resizeCharts(); //  resize after DOM updates
+                resizeCharts();
             }, 350);
         });
     }
 });
 
-// Resize on window resize
-window.addEventListener("resize", () => {
-    clearTimeout(window.resizeTimeout);
-    window.resizeTimeout = setTimeout(resizeCharts, 350); // Match transition duration-300
-});
+// Update charts
+window.updateCharts = function (
+    newStackedLineData,
+    newHorizontalBarData,
+    newHeatmapData
+) {
+    if (
+        newStackedLineData &&
+        newStackedLineData.series &&
+        newStackedLineData.xAxis
+    ) {
+        stackedLineOptions.legend.data = newStackedLineData.series.map(
+            (s) => s.name
+        );
+        stackedLineOptions.xAxis.data = newStackedLineData.xAxis;
+        stackedLineOptions.series = newStackedLineData.series.map((series) => ({
+            ...series,
+            type: "line",
+        }));
+        charts["stackedLineChart"].setOption(stackedLineOptions, true);
+        charts["stackedLineChart"].hideLoading();
+    } else {
+        charts["stackedLineChart"].showLoading({
+            text: "No stacked line data",
+            color: "#FD665F",
+        });
+    }
 
-// Handle Alpine.js sidebar toggle and visibility changes
-document.addEventListener("alpine:init", () => {
-    Alpine.effect(() => {
-        setTimeout(resizeCharts, 350); // Resize after visibility changes (e.g., sidebar or x-show)
-    });
-});
+    if (
+        newHorizontalBarData &&
+        newHorizontalBarData.datasets &&
+        newHorizontalBarData.labels
+    ) {
+        horizontalBarOptions.yAxis.data = newHorizontalBarData.datasets.map(
+            (dataset) => dataset.label
+        );
+        horizontalBarOptions.series[0].data = newHorizontalBarData.datasets.map(
+            (dataset) => dataset.inflasi[dataset.inflasi.length - 1]
+        );
+        horizontalBarOptions.series[1].data = newHorizontalBarData.datasets.map(
+            (dataset) => dataset.andil[dataset.andil.length - 1]
+        );
+        charts["horizontalBarChart"].setOption(horizontalBarOptions, true);
+        charts["horizontalBarChart"].hideLoading();
+    } else {
+        charts["horizontalBarChart"].showLoading({
+            text: "No horizontal bar data",
+            color: "#FD665F",
+        });
+    }
 
-// Update select charts (for level changes)
+    if (
+        newHeatmapData &&
+        newHeatmapData.xAxis &&
+        newHeatmapData.yAxis &&
+        newHeatmapData.values
+    ) {
+        heatmapOptions.xAxis.data = newHeatmapData.xAxis;
+        heatmapOptions.yAxis.data = newHeatmapData.yAxis;
+        heatmapOptions.series[0].data = newHeatmapData.values.map((item) => [
+            item[0],
+            item[1],
+            item[2] || "-",
+        ]);
+
+        const values = newHeatmapData.values
+            .map((item) => item[2])
+            .filter(
+                (value) =>
+                    value !== null && value !== undefined && !isNaN(value)
+            );
+        const minValue = values.length > 0 ? Math.min(...values) : 0;
+        const maxValue = values.length > 0 ? Math.max(...values) : 10;
+        const padding = (maxValue - minValue) * 0.1 || 1;
+
+        heatmapOptions.visualMap.min = minValue - padding;
+        heatmapOptions.visualMap.max = maxValue + padding;
+
+        charts["heatmapChart"].setOption(heatmapOptions, true);
+        charts["heatmapChart"].hideLoading();
+    } else {
+        charts["heatmapChart"].showLoading({
+            text: "No heatmap data",
+            color: "#FD665F",
+        });
+    }
+};
+
+// Update bar charts
+window.updateBarCharts = function (newBarChartData) {
+    if (newBarChartData && newBarChartData.length) {
+        newBarChartData.forEach((data, idx) => {
+            xAxes[idx].max = Math.max(...data.values) * 1.2;
+            yAxes[idx].data = data.provinces;
+            series[idx].data = data.values;
+            titles[idx].text = data.name;
+        });
+        charts["barChartsContainer"].setOption({
+            title: titles,
+            xAxis: xAxes,
+            yAxis: yAxes,
+            series: series,
+        });
+        charts["barChartsContainer"].hideLoading();
+    } else {
+        charts["barChartsContainer"].showLoading({
+            text: "No bar chart data",
+            color: "#FD665F",
+        });
+    }
+};
+
+// Update select charts
 function updateSelectCharts(levelIndex) {
     const provData = window.provHorizontalBarData?.[levelIndex] || {
         regions: [],
@@ -1083,74 +968,88 @@ function updateSelectCharts(levelIndex) {
         inflasi: [],
     };
 
-    const provChart = charts["provHorizontalBarChart"];
-    const kabkotChart = charts["kabkotHorizontalBarChart"];
-    const provChoroChart = charts["provinsiChoropleth"];
-    const kabkotChoroChart = charts["kabkotChoropleth"];
+    if (provData.names.length) {
+        charts["provHorizontalBarChart"].setOption(
+            horizontalBarOptionsWilayah(provData, "per Provinsi"),
+            true
+        );
+        charts["provHorizontalBarChart"].hideLoading();
+    } else {
+        charts["provHorizontalBarChart"].showLoading({
+            text: "No province data",
+            color: "#FD665F",
+        });
+    }
 
-    if (provChart) {
-        provChart.setOption(
-            {
-                yAxis: { data: provData.names },
-                series: [{ data: provData.inflasi }],
-            },
+    if (kabkotData.names.length) {
+        charts["kabkotHorizontalBarChart"].setOption(
+            horizontalBarOptionsWilayah(kabkotData, "per Kabupaten/Kota"),
             true
         );
+        charts["kabkotHorizontalBarChart"].hideLoading();
+    } else {
+        charts["kabkotHorizontalBarChart"].showLoading({
+            text: "No kabkot data",
+            color: "#FD665F",
+        });
     }
-    if (kabkotChart) {
-        kabkotChart.setOption(
-            {
-                yAxis: { data: kabkotData.names },
-                series: [{ data: kabkotData.inflasi }],
-            },
-            true
-        );
-    }
-    if (provChoroChart) {
+
+    if (provData.regions.length && provinsiGeoJson) {
         const provChoroData = prepareChoroplethData(
-            echarts.getMap("Provinsi_Indonesia").geoJson,
+            provinsiGeoJson,
             provData,
             "Provinsi_Indonesia"
         );
-        provChoroChart.setOption({ series: [{ data: provChoroData }] }, true);
+        charts["provinsiChoropleth"].setOption(
+            choroplethOptions(
+                "Provinsi_Indonesia",
+                provChoroData,
+                "per Provinsi"
+            ),
+            true
+        );
+        charts["provinsiChoropleth"].hideLoading();
+    } else {
+        charts["provinsiChoropleth"].showLoading({
+            text: "No province choropleth data",
+            color: "#FD665F",
+        });
     }
-    if (kabkotChoroChart) {
+
+    if (kabkotData.regions.length && kabkotGeoJson) {
         const kabkotChoroData = prepareChoroplethData(
-            echarts.getMap("Kabkot_Indonesia").geoJson,
+            kabkotGeoJson,
             kabkotData,
             "Kabkot_Indonesia"
         );
-        kabkotChoroChart.setOption(
-            { series: [{ data: kabkotChoroData }] },
+        charts["kabkotChoropleth"].setOption(
+            choroplethOptions(
+                "Kabkot_Indonesia",
+                kabkotChoroData,
+                "per Kabupaten/Kota"
+            ),
             true
         );
+        charts["kabkotChoropleth"].hideLoading();
+    } else {
+        charts["kabkotChoropleth"].showLoading({
+            text: "No kabkot choropleth data",
+            color: "#FD665F",
+        });
     }
-
-    // resizeCharts();
 }
 
-window.updateCharts = (stackedLine, horizontalBar, heatmap) => {
-    if (stackedLine)
-        charts["stackedLineChart"]?.setOption(
-            { series: stackedLine.series, xAxis: stackedLine.xAxis },
-            true
-        );
-    if (horizontalBar)
-        charts["horizontalBarChart"]?.setOption(
-            {
-                series: [{ data: horizontalBar.inflasi }],
-                yAxis: { data: horizontalBar.labels },
-            },
-            true
-        );
-    if (heatmap)
-        charts["heatmapChart"]?.setOption(
-            {
-                series: [{ data: heatmap.values }],
-                xAxis: heatmap.xAxis,
-                yAxis: heatmap.yAxis,
-            },
-            true
-        );
-};
 window.updateSelectCharts = updateSelectCharts;
+
+// Resize on window resize
+window.addEventListener("resize", () => {
+    clearTimeout(window.resizeTimeout);
+    window.resizeTimeout = setTimeout(resizeCharts, 350);
+});
+
+// Handle Alpine.js sidebar toggle and visibility changes
+document.addEventListener("alpine:init", () => {
+    Alpine.effect(() => {
+        setTimeout(resizeCharts, 350);
+    });
+});
