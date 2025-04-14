@@ -32,25 +32,26 @@ class DashboardController extends Controller
 
         $activeMonthYear = $activeBulanTahun
             ? "{$monthNames[$activeBulanTahun->bulan]} {$activeBulanTahun->tahun}"
-            : "Februari 2025"; // Fallback if no active period
+            : "Tidak ditemukan"; // Fallback if no active period
 
-        // Calculate reconciliation statistics
-        $percentage = 0;
+        // Initialize percentage
+        $percentage = -1; // Default: no reconciliations
+
         if ($activeBulanTahun) {
             // Total reconciliations for the active month
             $totalRekonsiliasi = Rekonsiliasi::where('bulan_tahun_id', $activeBulanTahun->bulan_tahun_id)
                 ->count();
 
-            // Reconciliations with 'alasan' filled
-            $filledRekonsiliasi = Rekonsiliasi::where('bulan_tahun_id', $activeBulanTahun->bulan_tahun_id)
-                ->whereNotNull('alasan')
-                ->where('alasan', '!=', '')
-                ->count();
+            if ($totalRekonsiliasi > 0) {
+                // Reconciliations with 'alasan' filled
+                $filledRekonsiliasi = Rekonsiliasi::where('bulan_tahun_id', $activeBulanTahun->bulan_tahun_id)
+                    ->whereNotNull('alasan')
+                    ->where('alasan', '!=', '')
+                    ->count();
 
-            // Calculate percentage
-            $percentage = $totalRekonsiliasi > 0
-                ? round(($filledRekonsiliasi / $totalRekonsiliasi) * 100)
-                : 0;
+                // Calculate percentage
+                $percentage = round(($filledRekonsiliasi / $totalRekonsiliasi) * 100);
+            }
         }
 
         return view('dashboard', [
