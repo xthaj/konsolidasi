@@ -212,9 +212,18 @@ Alpine.data("webData", () => ({
             return;
         }
 
+        const sanitizeInput = (input) => {
+            if (typeof input !== "string") return input; // Only process strings
+            return input
+                .trim() // Remove leading/trailing whitespace
+                .replace(/[\r\n]+/g, " ") // Replace all line breaks with a space
+                .replace(/`+/g, "'") // Replace backticks with single quotes
+                .replace(/\s+/g, " "); // Replace multiple spaces with a single space
+        };
+
         const data = {
             alasan: this.selectedAlasan.join(", "),
-            detail: this.detail,
+            detail: sanitizeInput(this.detail),
             media: this.linkTerkait,
         };
 
