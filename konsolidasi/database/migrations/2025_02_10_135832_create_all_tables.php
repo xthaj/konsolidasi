@@ -78,8 +78,10 @@ return new class extends Migration
             $table->unsignedBigInteger('user_id')->nullable();
             $table->unsignedBigInteger('bulan_tahun_id');
             $table->dateTime('terakhir_diedit')->nullable();
-            $table->string('alasan', 500)->nullable();
-            $table->string('detail', 255)->nullable();
+
+            $table->string('alasan', 255)->nullable();
+            $table->string('detail', 500)->nullable();
+
             $table->string('media', 255)->nullable();
             $table->timestamps(); // created_at and updated_at added
 
