@@ -38,6 +38,7 @@ Alpine.data("webData", () => ({
             this.bulan === this.activeBulan && this.tahun === this.activeTahun
         );
     },
+    hasUnconfirmedChanges: false,
 
     async init() {
         try {
@@ -72,6 +73,18 @@ Alpine.data("webData", () => ({
             this.selectedKdLevel = document.querySelector(
                 'select[name="kd_level"]'
             ).value;
+
+            // Watch tableData for changes
+            this.$watch("tableData", () => {
+                this.hasUnconfirmedChanges = this.tableData.length > 0;
+            });
+
+            // Add beforeunload event listener
+            window.addEventListener("beforeunload", (event) => {
+                if (this.hasUnconfirmedChanges) {
+                    event.preventDefault();
+                }
+            });
 
             console.log("Initialized:", this.tahunOptions);
         } catch (error) {
@@ -285,6 +298,7 @@ Alpine.data("webData", () => ({
             );
         });
 
+        // TODO: Frontend only send unique values and db detects existing dupes, so the warning can be confusing
         console.log("FormData to send (unique values only):");
         for (let pair of formData.entries()) {
             console.log(`${pair[0]}: ${pair[1]}`);
@@ -310,6 +324,7 @@ Alpine.data("webData", () => ({
                 if (result.partial_success) {
                     alert(result.message);
                     console.log("Duplikat:", result.duplicates);
+                    this.tableData = [];
                 } else {
                     alert("Pemilihan komoditas berhasil!");
                     this.tableData = []; // Clear table after full success

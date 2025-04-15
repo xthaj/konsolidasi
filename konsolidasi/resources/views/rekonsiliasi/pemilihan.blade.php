@@ -37,6 +37,37 @@
 
     <!-- sidebar -->
     <x-slot name="sidebar">
+
+        <ol class="space-y-4 w-full mb-6">
+            <li>
+                <div class="w-full p-4 border rounded-lg"
+                    :class="tableData.length === 0 ? 'text-blue-700 bg-blue-100 border-blue-300 dark:bg-gray-800 dark:border-blue-800 dark:text-blue-400' : 'text-green-700 bg-green-50 border-green-300 dark:bg-gray-800 dark:border-green-800 dark:text-green-400'">
+                    <div class="flex items-center justify-between">
+                        <span class="sr-only">Tambah ke Tabel</span>
+                        <h3 class="font-medium">1. Tambah ke Tabel</h3>
+                        <svg x-show="tableData.length > 0" class="w-4 h-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 12">
+                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1 5.917 5.724 10.5 15 1.5" />
+                        </svg>
+                        <svg x-show="tableData.length === 0" class="rtl:rotate-180 w-4 h-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 10">
+                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1 5h12m0 0L9 1m4 4L9 9" />
+                        </svg>
+                    </div>
+                </div>
+            </li>
+            <li>
+                <div class="w-full p-4 border rounded-lg"
+                    :class="tableData.length > 0 ? 'text-blue-700 bg-blue-100 border-blue-300 dark:bg-gray-800 dark:border-blue-800 dark:text-blue-400' : 'text-gray-900 bg-gray-100 border-gray-300 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400'">
+                    <div class="flex items-center justify-between">
+                        <span class="sr-only">Konfirmasi Komoditas</span>
+                        <h3 class="font-medium">2. Konfirmasi Komoditas</h3>
+                        <svg x-show="tableData.length > 0" class="rtl:rotate-180 w-4 h-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg | http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 10">
+                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1 5h12m0 0L9 1m4 4L9 9" />
+                        </svg>
+                    </div>
+                </div>
+            </li>
+        </ol>
+
         <div class="space-y-4 md:space-y-6 mt-4">
             <!-- Bulan & Tahun -->
             <div class="flex gap-4">
@@ -180,7 +211,7 @@
                 <span x-text="errorMessage"></span>
             </div>
 
-            <button class="w-full bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 text-white font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800" @click="addRow">Tambah</button>
+            <button class="w-full bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 text-white font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800" @click="addRow">Tambah ke Tabel</button>
 
             <form @submit.prevent="confirmRekonsiliasi">
                 @csrf
@@ -190,7 +221,8 @@
                         <input type="hidden" name="bulan_tahun_ids[]" :value="item.bulan_tahun_id">
                     </div>
                 </template>
-                <button type="submit" class="w-full bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 text-white font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">Konfirmasi Rekonsiliasi</button>
+
+                <button type="submit" class="w-full bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 text-white font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800" :class="{ 'opacity-50 cursor-not-allowed': tableData.length === 0 }" :disabled="tableData.length === 0">Konfirmasi Komoditas Tabel</button>
             </form>
         </div>
     </x-slot>
@@ -219,7 +251,10 @@
                             <td class="px-6 py-4" x-text="item.kd_komoditas"></td>
                             <td class="px-6 py-4" x-text="item.nama_komoditas"></td>
                             <td class="px-6 py-4" x-text="item.level_harga"></td>
-                            <td class="px-6 py-4" x-text="item.inflasi"></td>
+                            <td class="px-6 py-4"
+                                x-text="(item.inflasi < 1 && item.inflasi > -1 && item.inflasi !== 0 ? (item.inflasi > 0 ? '0' : '-0') : '') + Math.abs(item.inflasi).toFixed(2).replace(/^0+/, '') + '%'">
+                            </td>
+
                             <td class="px-6 py-4 text-right">
                                 <button @click="removeRow(index)" class="font-medium text-red-600 dark:text-red-500 hover:underline">Hapus</button>
                             </td>
