@@ -513,26 +513,47 @@ class DataController extends Controller
         try {
             DB::beginTransaction();
 
+            // Get existing Rekonsiliasi records with inflasi_id and bulan_tahun_id
             $existingRecords = Rekonsiliasi::whereIn('inflasi_id', $validated['inflasi_ids'])
                 ->whereIn('bulan_tahun_id', $validated['bulan_tahun_ids'])
+                ->select('inflasi_id', 'bulan_tahun_id')
                 ->get()
-                ->pluck('inflasi_id', 'bulan_tahun_id')
+                ->groupBy('bulan_tahun_id')
+                ->mapWithKeys(function ($group, $bulan_tahun_id) {
+                    return [$bulan_tahun_id => $group->pluck('inflasi_id')->toArray()];
+                })
                 ->toArray();
 
-            $createdCount = 0;
+            // Prepare duplicates array with detailed info
             $duplicates = [];
+            $createdCount = 0;
+            $inputPairs = array_combine($validated['inflasi_ids'], $validated['bulan_tahun_ids']);
 
-            foreach ($validated['inflasi_ids'] as $index => $inflasi_id) {
-                $bulan_tahun_id = $validated['bulan_tahun_ids'][$index];
+            // Fetch wilayah and komoditas details for duplicates
+            $inflasiDetails = DB::table('inflasi')
+                ->join('wilayah', 'inflasi.kd_wilayah', '=', 'wilayah.kd_wilayah')
+                ->join('komoditas', 'inflasi.kd_komoditas', '=', 'komoditas.kd_komoditas')
+                ->whereIn('inflasi.inflasi_id', $validated['inflasi_ids'])
+                ->select(
+                    'inflasi.inflasi_id as inflasi_id',
+                    'wilayah.nama_wilayah',
+                    'komoditas.nama_komoditas'
+                )
+                ->get()
+                ->keyBy('inflasi_id')
+                ->toArray();
 
-                // Check if this combination already exists
+            foreach ($inputPairs as $inflasi_id => $bulan_tahun_id) {
+                // Check if this combination exists
                 if (
                     isset($existingRecords[$bulan_tahun_id]) &&
-                    in_array($inflasi_id, (array)$existingRecords[$bulan_tahun_id])
+                    in_array($inflasi_id, $existingRecords[$bulan_tahun_id])
                 ) {
                     $duplicates[] = [
                         'inflasi_id' => $inflasi_id,
-                        'bulan_tahun_id' => $bulan_tahun_id
+                        'bulan_tahun_id' => $bulan_tahun_id,
+                        'nama_wilayah' => $inflasiDetails[$inflasi_id]->nama_wilayah ?? 'Unknown',
+                        'nama_komoditas' => $inflasiDetails[$inflasi_id]->nama_komoditas ?? 'Unknown',
                     ];
                     continue;
                 }
@@ -556,21 +577,21 @@ class DataController extends Controller
                     'success' => true,
                     'partial_success' => true,
                     'message' => "Rekonsiliasi berhasil untuk {$createdCount} entri. " .
-                        count($duplicates) . " entri dilewati karena duplikat.",
-                    'duplicates' => $duplicates
+                        count($duplicates) . " entri dilewati karena sudah termasuk komoditas rekonsilasi.",
+                    'duplicates' => $duplicates,
                 ], 200);
             }
 
             return response()->json([
                 'success' => true,
-                'message' => 'Rekonsiliasi berhasil dikonfirmasi untuk semua entri.'
+                'message' => 'Rekonsiliasi berhasil dikonfirmasi untuk semua entri.',
             ], 200);
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Rekonsiliasi failed:', ['error' => $e->getMessage()]);
             return response()->json([
                 'success' => false,
-                'message' => 'Rekonsiliasi gagal: ' . $e->getMessage()
+                'message' => 'Rekonsiliasi gagal: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -664,7 +685,7 @@ class DataController extends Controller
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Bulan dan tahun updated successfully',
+                'message' => 'Bulan dan tahun berhasil diperbarui',
                 'updated' => [
                     'bulan' => $bulan,
                     'tahun' => $tahun
