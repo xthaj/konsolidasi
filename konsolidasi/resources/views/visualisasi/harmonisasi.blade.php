@@ -107,9 +107,12 @@
                             <span x-text="getValidationMessage()"></span>
                         </div>
 
-                        <button type="submit"
+                        <!-- <button type="submit"
                             :disabled="!checkFormValidity()" type="submit" class="w-full bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 text-white font-medium rounded-lg text-sm px-5 py-2.5 text-center">Tampilkan</button>
-                        </button>
+                        </button> -->
+
+                        <button class="w-full bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 text-white font-medium rounded-lg text-sm px-5 py-2.5 text-center" disabled>Tampilkan</button>
+
                     </div>
             </form>
         </div>
@@ -147,62 +150,72 @@
             <!-- Stacked Line Chart -->
             @if(!empty($data['stackedLine']))
             <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
+                <h3 class="text-lg font-semibold mb-2">Tren Inflasi dan Andil</h3>
                 <div id="stackedLineChart" class="w-full h-96"></div>
                 <button id="toggleAndilBtn" class="block mx-auto mt-4 font-semibold underline">Lihat Andil</button>
             </div>
             @endif
 
             <!-- Summary Boxes -->
-            <div class="bg-white p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-2">
-                <h4 class="text-md font-semibold">Harga Konsumen Kota</h4>
-                <p>Inflasi: <span class="font-bold">{{ number_format($data['summary']['Harga Konsumen Kota']['inflasi'] ?? 0, 2) }}%</span></p>
-                <p>Andil: <span class="font-bold">{{ number_format($data['summary']['Harga Konsumen Kota']['andil'] ?? 0, 2) }}%</span></p>
+            @php
+            $colors = [
+            'Harga Konsumen Kota' => '#5470C6',
+            'Harga Konsumen Desa' => '#73C0DE',
+            'Harga Perdagangan Besar' => '#8A9A5B',
+            'Harga Produsen Desa' => '#9A60B4',
+            'Harga Produsen' => '#FC8452',
+            ];
+            @endphp
+
+            @foreach ([
+            'Harga Konsumen Kota',
+            'Harga Konsumen Desa',
+            'Harga Perdagangan Besar',
+            'Harga Produsen Desa',
+            'Harga Produsen',
+            ] as $label)
+            <div class="bg-white p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-2 border-l-8" style="border-left-color: {{ $colors[$label] }}">
+                <h4 class="text-md font-semibold text-gray-800 dark:text-white">{{ $label }}</h4>
+                <p class="text-gray-600 dark:text-gray-300">Inflasi:
+                    <span class="font-bold text-gray-900 dark:text-white">
+                        {{ number_format($data['summary'][$label]['inflasi'] ?? 0, 2) }}%
+                    </span>
+                </p>
+                <p class="text-gray-600 dark:text-gray-300">Andil:
+                    <span class="font-bold text-gray-900 dark:text-white">
+                        {{ number_format($data['summary'][$label]['andil'] ?? 0, 2) }}%
+                    </span>
+                </p>
             </div>
-            <div class="bg-white p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-2">
-                <h4 class="text-md font-semibold">Harga Konsumen Desa</h4>
-                <p>Inflasi: <span class="font-bold">{{ number_format($data['summary']['Harga Konsumen Desa']['inflasi'] ?? 0, 2) }}%</span></p>
-                <p>Andil: <span class="font-bold">{{ number_format($data['summary']['Harga Konsumen Desa']['andil'] ?? 0, 2) }}%</span></p>
-            </div>
-            <div class="bg-white p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-2">
-                <h4 class="text-md font-semibold">Harga Perdagangan Besar</h4>
-                <p>Inflasi: <span class="font-bold">{{ number_format($data['summary']['Harga Perdagangan Besar']['inflasi'] ?? 0, 2) }}%</span></p>
-                <p>Andil: <span class="font-bold">{{ number_format($data['summary']['Harga Perdagangan Besar']['andil'] ?? 0, 2) }}%</span></p>
-            </div>
-            <div class="bg-white p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-2">
-                <h4 class="text-md font-semibold">Harga Produsen Desa</h4>
-                <p>Inflasi: <span class="font-bold">{{ number_format($data['summary']['Harga Produsen Desa']['inflasi'] ?? 0, 2) }}%</span></p>
-                <p>Andil: <span class="font-bold">{{ number_format($data['summary']['Harga Produsen Desa']['andil'] ?? 0, 2) }}%</span></p>
-            </div>
-            <div class="bg-white p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-2">
-                <h4 class="text-md font-semibold">Harga Produsen</h4>
-                <p>Inflasi: <span class="font-bold">{{ number_format($data['summary']['Harga Produsen']['inflasi'] ?? 0, 2) }}%</span></p>
-                <p>Andil: <span class="font-bold">{{ number_format($data['summary']['Harga Produsen']['andil'] ?? 0, 2) }}%</span></p>
-            </div>
+            @endforeach
 
             <!-- Horizontal Bar Chart -->
             @if(!empty($data['horizontalBar']))
             <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
+                <h3 class="text-lg font-semibold mb-2">Perbandingan Inflasi dan Andil Antar Tingkat Harga</h3>
                 <div id="horizontalBarChart" class="w-full h-96"></div>
             </div>
             @endif
 
             <!-- Heatmap Chart -->
-            @if(!empty($data['heatmap']))
+            @if(!empty($data['heatmap']) && $kd_wilayah === '0')
             <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
+                <h3 class="text-lg font-semibold mb-2">Heatmap Inflasi per Provinsi Antar Tingkat Harga</h3>
                 <div id="heatmapChart" class="w-full h-[550px]"></div>
             </div>
             @endif
 
             <!-- Bar Charts Container -->
-            @if(!empty($data['heatmap']))
+            <!-- @if(!empty($data['heatmap']))
             <div class="bg-white p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
                 <div id="barChartsContainer" class="w-full h-96"></div>
             </div>
-            @endif
+            @endif -->
 
             <!-- Stacked Bar Chart -->
             @if(!empty($data['stackedBar']))
             <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
+                <h3 class="text-lg font-semibold mb-2">Distribusi Inflasi per Tingkat Harga</h3>
                 <div id="stackedBarChart" class="w-full h-96"></div>
             </div>
             @endif
@@ -222,83 +235,88 @@
             <!-- Province and Kabkot Horizontal Bar Charts -->
             @if(!empty($data['provHorizontalBar']) && !empty($data['kabkotHorizontalBar']))
             <div id="provHorizontalBarContainer" class="bg-white p-4 rounded-lg shadow-md dark:bg-gray-800 col-span-1" :class="selectedLevel === 'HK' ? 'md:col-span-5' : 'md:col-span-10'">
+                <h3 class="text-lg font-semibold mb-2">Inflasi per Provinsi</h3>
                 <div id="provHorizontalBarChart" class="w-full h-[550px]"></div>
             </div>
 
             <div id="kabkotHorizontalBarContainer" x-show="selectedLevel === 'HK'" class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-5">
+                <h3 class="text-lg font-semibold mb-2">Inflasi per Kabupaten/Kota</h3>
                 <div id="kabkotHorizontalBarChart" class="w-full h-[550px]"></div>
             </div>
             @endif
 
             <!-- Choropleth Maps with Scroll -->
             <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10 overflow-x-auto">
+                <h3 class="text-lg font-semibold mb-2">Peta Inflasi Provinsi</h3>
                 <div id="provinsiChoropleth" class="w-full h-96"></div>
             </div>
             <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10 overflow-x-auto" x-show="selectedLevel === 'HK'">
+                <h3 class="text-lg font-semibold mb-2">Peta Inflasi Kabupaten/Kota</h3>
                 <div id="kabkotChoropleth" class="w-full h-96"></div>
             </div>
         </div>
+    </div>
 
-        <script>
-            window.chartTitle = @json($title);
-            @if(isset($data['stackedLine']))
-            window.stackedLineData = @json($data['stackedLine']);
-            @else
-            window.stackedLineData = null;
-            @endif
-            @if(isset($data['horizontalBar']))
-            window.horizontalBarData = @json($data['horizontalBar']);
-            @else
-            window.horizontalBarData = null;
-            @endif
-            @if(isset($data['heatmap']))
-            window.heatmapData = @json($data['heatmap']);
-            heatMapValues = heatmapData.values.map((item) => [
-                item[0],
-                item[1],
-                item[2] || "-",
-            ]);
-            console.log('Heatmap Values:', heatMapValues);
-            @else
-            window.heatmapData = null;
-            @endif
+    <script>
+        window.chartTitle = @json($title);
+        @if(isset($data['stackedLine']))
+        window.stackedLineData = @json($data['stackedLine']);
+        @else
+        window.stackedLineData = null;
+        @endif
+        @if(isset($data['horizontalBar']))
+        window.horizontalBarData = @json($data['horizontalBar']);
+        @else
+        window.horizontalBarData = null;
+        @endif
+        @if(isset($data['heatmap']))
+        window.heatmapData = @json($data['heatmap']);
+        heatMapValues = heatmapData.values.map((item) => [
+            item[0],
+            item[1],
+            item[2] || "-",
+        ]);
+        // console.log('Heatmap Values:', heatMapValues);
+        @else
+        window.heatmapData = null;
+        @endif
 
-            @if(isset($data['barCharts']))
-            window.barChartsData = @json($data['barCharts']);
-            @else
-            window.barChartsData = null;
-            @endif
+        @if(isset($data['barCharts']))
+        window.barChartsData = @json($data['barCharts']);
+        @else
+        window.barChartsData = null;
+        @endif
 
-            @if(isset($data['stackedBar']))
-            window.stackedBarData = @json($data['stackedBar']);
-            @else
-            window.stackedBarData = null;
-            @endif
-            console.log('Stacked Line Data:', window.stackedLineData);
-            console.log('Horizontal Bar Data:', window.horizontalBarData);
-            console.log('Heatmap Data:', window.heatmapData);
+        @if(isset($data['stackedBar']))
+        window.stackedBarData = @json($data['stackedBar']);
+        @else
+        window.stackedBarData = null;
+        @endif
+        // console.log('Stacked Line Data:', window.stackedLineData);
+        // console.log('Horizontal Bar Data:', window.horizontalBarData);
+        // console.log('Heatmap Data:', window.heatmapData);
 
-            @if(!empty($data['errors']))
-            document.addEventListener('DOMContentLoaded', () => {
-                window.modalContent = {
-                    missingItems: @json($data['errors'])
-                };
-                window.dispatchEvent(new CustomEvent('open-modal', {
-                    detail: 'data-not-found'
-                }));
-            });
-            @endif
+        @if(!empty($data['errors']))
+        document.addEventListener('DOMContentLoaded', () => {
+            window.modalContent = {
+                missingItems: @json($data['errors'])
+            };
+            window.dispatchEvent(new CustomEvent('open-modal', {
+                detail: 'data-not-found'
+            }));
+        });
+        @endif
 
-            @if(isset($data['provHorizontalBar']))
-            window.provHorizontalBarData = @json($data['provHorizontalBar']);
-            @else
-            window.provHorizontalBarData = null;
-            @endif
+        @if(isset($data['provHorizontalBar']))
+        window.provHorizontalBarData = @json($data['provHorizontalBar']);
+        @else
+        window.provHorizontalBarData = null;
+        @endif
 
-            @if(isset($data['kabkotHorizontalBar']))
-            window.kabkotHorizontalBarData = @json($data['kabkotHorizontalBar']);
-            @else
-            window.kabkotHorizontalBarData = null;
-            @endif
-        </script>
+        @if(isset($data['kabkotHorizontalBar']))
+        window.kabkotHorizontalBarData = @json($data['kabkotHorizontalBar']);
+        @else
+        window.kabkotHorizontalBarData = null;
+        @endif
+    </script>
 </x-two-panel-layout>

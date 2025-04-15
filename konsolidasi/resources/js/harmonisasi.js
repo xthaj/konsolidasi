@@ -2,6 +2,9 @@ import "flowbite";
 import Alpine from "alpinejs";
 window.Alpine = Alpine;
 
+let provinsiGeoJson = null;
+let kabkotGeoJson = null;
+
 Alpine.data("webData", () => ({
     bulan: "",
     tahun: "",
@@ -160,6 +163,18 @@ Alpine.data("webData", () => ({
 
 Alpine.start();
 
+// Color Palette
+const colorPalette = {
+    HK: "#5470C6",
+    HK_Desa: "#73C0DE",
+    HPB: "#8A9A5B",
+    HP_Desa: "#9A60B4",
+    HP: "#FC8452",
+    Deflation: "#EE6666",
+    Inflation: "#65B581",
+    VisualMap: ["#FD665F", "#FFCE34", "#65B581"],
+};
+
 // Object to store chart instances
 const charts = {};
 
@@ -179,7 +194,7 @@ function initializeCharts() {
 
     chartConfigs.forEach((config) => {
         const chartDiv = document.getElementById(config.id);
-        if (chartDiv && !charts[config.id]) {
+        if (chartDiv) {
             charts[config.id] = echarts.init(chartDiv);
             charts[config.id].showLoading({
                 text: "Loading data...",
@@ -188,6 +203,10 @@ function initializeCharts() {
                 maskColor: "rgba(255, 255, 255, 0.8)",
             });
             console.log(`Initialized ${config.id} with loading state`);
+        } else {
+            console.log(
+                `Skipped initialization for ${config.id}: div not found`
+            );
         }
     });
 }
@@ -212,9 +231,9 @@ function resizeCharts() {
 
 // Chart configurations
 const shortenedHargaMap = {
-    "Harga Perdagangan Besar": "HPB",
     "Harga Konsumen Kota": "HK",
     "Harga Konsumen Desa": "HK Desa",
+    "Harga Perdagangan Besar": "HPB",
     "Harga Produsen Desa": "HP Desa",
     "Harga Produsen": "HP",
 };
@@ -228,6 +247,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     const stackedBarData = window.stackedBarData;
     const provHorizontalBarData = window.provHorizontalBarData;
     const kabkotHorizontalBarData = window.kabkotHorizontalBarData;
+    const kdWilayah =
+        document.querySelector('input[name="kd_wilayah"]')?.value || "0";
 
     // Initialize charts
     await initializeCharts();
@@ -281,9 +302,18 @@ document.addEventListener("DOMContentLoaded", async () => {
         },
         yAxis: { type: "value", name: "Inflasi (%)" },
         series:
-            stackedLineData?.series?.map((series) => ({
+            stackedLineData?.series?.map((series, index) => ({
                 ...series,
                 type: "line",
+                itemStyle: {
+                    color: [
+                        colorPalette.HK,
+                        colorPalette.HK_Desa,
+                        colorPalette.HPB,
+                        colorPalette.HP_Desa,
+                        colorPalette.HP,
+                    ][index % 5],
+                },
             })) || [],
     };
 
@@ -325,7 +355,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                     horizontalBarData?.datasets?.map(
                         (dataset) => dataset.inflasi[dataset.inflasi.length - 1]
                     ) || [],
-                itemStyle: { color: "#5470C6" },
+                itemStyle: { color: colorPalette.HK },
             },
             {
                 label: { show: true, position: "right" },
@@ -335,7 +365,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                     horizontalBarData?.datasets?.map(
                         (dataset) => dataset.andil[dataset.andil.length - 1]
                     ) || [],
-                itemStyle: { color: "#73C0DE" },
+                itemStyle: { color: colorPalette.HK_Desa },
             },
         ],
     };
@@ -346,7 +376,9 @@ document.addEventListener("DOMContentLoaded", async () => {
             position: "top",
             formatter: function (params) {
                 const xValue = heatmapData?.xAxis?.[params.data[0]] || "-";
-                const yValue = heatmapData?.yAxis?.[params.data[1]] || "-";
+                // Map full y-axis name to shortened name
+                const fullYValue = heatmapData?.yAxis?.[params.data[1]] || "-";
+                const yValue = shortenedHargaMap[fullYValue] || fullYValue;
                 const value = params.data[2];
                 const marker = params.marker;
                 return `${xValue}<br>${yValue}<br>${marker} Inflasi: ${
@@ -365,24 +397,36 @@ document.addEventListener("DOMContentLoaded", async () => {
             type: "category",
             data: heatmapData?.xAxis || [],
             splitArea: { show: true },
+            axisLabel: {
+                formatter: function (value) {
+                    // Map full name to shortened name
+                    return shortenedHargaMap[value] || value;
+                },
+            },
         },
         yAxis: {
             type: "category",
-            data: heatmapData?.yAxis || [],
+            // Map full names to shortened names for yAxis
+            data:
+                heatmapData?.yAxis?.map(
+                    (name) => shortenedHargaMap[name] || name
+                ) || [],
             splitArea: { show: true },
         },
         visualMap: {
             type: "continuous",
-            min: 0,
-            max: 10,
+            min: -2.5,
+            max: 2.5,
             precision: 2,
             calculable: true,
             orient: "horizontal",
             left: "center",
             bottom: 0,
-            inRange: { color: ["#65B581", "#FFCE34", "#FD665F"] },
+            inRange: { color: colorPalette.VisualMap },
         },
-        dataZoom: [{ type: "slider", orient: "vertical" }],
+        dataZoom: [
+            { type: "slider", orient: "vertical", handleIcon: "roundRect" },
+        ],
         series: [
             {
                 name: "Inflasi",
@@ -447,7 +491,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 xAxisIndex: idx,
                 yAxisIndex: idx,
                 data: data.values,
-                itemStyle: { color: "#73C0DE" },
+                itemStyle: { color: colorPalette.HK_Desa },
             });
             titles.push({
                 text: data.name,
@@ -498,8 +542,17 @@ document.addEventListener("DOMContentLoaded", async () => {
         },
         legend: { bottom: 0 },
         grid: { left: "10%", right: "10%", bottom: "15%", top: "10%" },
-        xAxis: { type: "category", data: stackedBarData?.labels || [] },
-        yAxis: { type: "value", name: "Jumlah Provinsi" },
+        xAxis: {
+            type: "category",
+            data: stackedBarData?.labels || [],
+            axisLabel: {
+                formatter: function (value) {
+                    // Map full name to shortened name
+                    return shortenedHargaMap[value] || value;
+                },
+            },
+        },
+        yAxis: { type: "value", max: 38, name: "Jumlah Provinsi" },
         series:
             stackedBarData?.datasets?.map((dataset) => ({
                 name: dataset.label,
@@ -509,37 +562,6 @@ document.addEventListener("DOMContentLoaded", async () => {
                 itemStyle: { color: dataset.backgroundColor },
             })) || [],
     };
-
-    // Horizontal Bar Chart Options
-    const horizontalBarOptionsWilayah = (data, title) => ({
-        title: { text: title },
-        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
-        grid: {
-            left: "5%",
-            right: "20%",
-            bottom: "10%",
-            top: "10%",
-            containLabel: true,
-        },
-        dataZoom: [{ type: "slider", orient: "vertical" }],
-        toolbox: {
-            feature: {
-                saveAsImage: { title: "Save as PNG" },
-                restore: {},
-            },
-        },
-        xAxis: { type: "value", name: "Inflasi (%)" },
-        yAxis: { type: "category", data: data.names || [] },
-        series: [
-            {
-                label: { show: true, position: "right" },
-                name: "Inflasi",
-                type: "bar",
-                data: data.inflasi || [],
-                itemStyle: { color: "#5470C6" },
-            },
-        ],
-    });
 
     // Choropleth Options
     function prepareChoroplethData(geoJson, data, mapName) {
@@ -561,7 +583,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     const choroplethOptions = (mapName, data, title) => ({
-        title: { text: title, left: "center" },
+        // title: { text: title, left: "center" },
         toolbox: {
             feature: {
                 saveAsImage: { title: "Save as PNG" },
@@ -580,7 +602,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             left: "right",
             min: -2.5,
             max: 2.5,
-            inRange: { color: ["#65B581", "#FFCE34", "#FD665F"] },
+            inRange: { color: colorPalette.VisualMap },
             text: ["High", "Low"],
             calculable: true,
         },
@@ -600,15 +622,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Render charts
     async function renderCharts() {
         try {
+            const isNational = kdWilayah === "0";
+
             // Stacked Line Chart
             if (
+                charts["stackedLineChart"] &&
                 stackedLineData &&
                 stackedLineData.series &&
                 stackedLineData.xAxis
             ) {
                 charts["stackedLineChart"].setOption(stackedLineOptions);
                 charts["stackedLineChart"].hideLoading();
-            } else {
+            } else if (charts["stackedLineChart"]) {
                 console.warn("No valid stacked line data provided.");
                 charts["stackedLineChart"].showLoading({
                     text: "No data available",
@@ -632,15 +657,22 @@ document.addEventListener("DOMContentLoaded", async () => {
                 });
             }
 
-            // Heatmap Chart
+            // Heatmap Chart (National Only)
             if (
+                isNational &&
+                charts["heatmapChart"] &&
                 heatmapData &&
                 heatmapData.xAxis &&
                 heatmapData.yAxis &&
                 heatmapData.values
             ) {
+                // Map full names to shortened names for yAxis
+                const shortenedYAxis = heatmapData.yAxis.map(
+                    (name) => shortenedHargaMap[name] || name
+                );
+
                 heatmapOptions.xAxis.data = heatmapData.xAxis;
-                heatmapOptions.yAxis.data = heatmapData.yAxis;
+                heatmapOptions.yAxis.data = shortenedYAxis; // Use shortened names
                 heatmapOptions.series[0].data = heatmapData.values.map(
                     (item) => [item[0], item[1], item[2] || "-"]
                 );
@@ -662,36 +694,41 @@ document.addEventListener("DOMContentLoaded", async () => {
 
                 charts["heatmapChart"].setOption(heatmapOptions);
                 charts["heatmapChart"].hideLoading();
-            } else {
-                console.warn("No valid heatmap data provided.");
-                charts["heatmapChart"].showLoading({
-                    text: "No data available",
-                    color: "#FD665F",
-                });
             }
 
-            // Bar Chart
-            if (barChartData && barChartData.length) {
+            // Bar Chart (National Only)
+            if (
+                isNational &&
+                charts["barChartsContainer"] &&
+                barChartData &&
+                barChartData.length
+            ) {
                 charts["barChartsContainer"].setOption(barChartOptions);
                 charts["barChartsContainer"].hideLoading();
-            } else {
-                console.warn("No valid bar chart data provided.");
+            } else if (charts["barChartsContainer"]) {
+                console.warn(
+                    "No valid bar chart data provided or not national scope."
+                );
                 charts["barChartsContainer"].showLoading({
                     text: "No data available",
                     color: "#FD665F",
                 });
             }
 
-            // Stacked Bar Chart
+            // Stacked Bar Chart (National Only)
             if (
+                isNational &&
+                charts["stackedBarChart"] &&
                 stackedBarData &&
                 stackedBarData.labels &&
                 stackedBarData.datasets
             ) {
                 charts["stackedBarChart"].setOption(stackedBarOptions);
                 charts["stackedBarChart"].hideLoading();
-            } else {
-                console.warn("No valid stacked bar data provided.");
+            } else if (charts["stackedBarChart"]) {
+                console.warn(
+                    "No valid stacked bar data provided or not national scope."
+                );
                 charts["stackedBarChart"].showLoading({
                     text: "No data available",
                     color: "#FD665F",
@@ -699,7 +736,11 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
 
             // Province and Kabkot Horizontal Bar Charts
-            if (provHorizontalBarData && provHorizontalBarData[0]) {
+            if (
+                charts["provHorizontalBarChart"] &&
+                provHorizontalBarData &&
+                provHorizontalBarData[0]
+            ) {
                 charts["provHorizontalBarChart"].setOption(
                     horizontalBarOptionsWilayah(
                         provHorizontalBarData[0],
@@ -707,7 +748,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                     )
                 );
                 charts["provHorizontalBarChart"].hideLoading();
-            } else {
+            } else if (charts["provHorizontalBarChart"]) {
                 console.warn("No valid province horizontal bar data provided.");
                 charts["provHorizontalBarChart"].showLoading({
                     text: "No data available",
@@ -715,7 +756,11 @@ document.addEventListener("DOMContentLoaded", async () => {
                 });
             }
 
-            if (kabkotHorizontalBarData && kabkotHorizontalBarData[0]) {
+            if (
+                charts["kabkotHorizontalBarChart"] &&
+                kabkotHorizontalBarData &&
+                kabkotHorizontalBarData[0]
+            ) {
                 charts["kabkotHorizontalBarChart"].setOption(
                     horizontalBarOptionsWilayah(
                         kabkotHorizontalBarData[0],
@@ -723,7 +768,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                     )
                 );
                 charts["kabkotHorizontalBarChart"].hideLoading();
-            } else {
+            } else if (charts["kabkotHorizontalBarChart"]) {
                 console.warn("No valid kabkot horizontal bar data provided.");
                 charts["kabkotHorizontalBarChart"].showLoading({
                     text: "No data available",
@@ -732,7 +777,11 @@ document.addEventListener("DOMContentLoaded", async () => {
             }
 
             // Choropleth Maps
-            if (provHorizontalBarData && provHorizontalBarData[0]) {
+            if (
+                charts["provinsiChoropleth"] &&
+                provHorizontalBarData &&
+                provHorizontalBarData[0]
+            ) {
                 const provChoroData = prepareChoroplethData(
                     provinsiGeoJson,
                     provHorizontalBarData[0],
@@ -746,7 +795,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                     )
                 );
                 charts["provinsiChoropleth"].hideLoading();
-            } else {
+            } else if (charts["provinsiChoropleth"]) {
                 console.warn("No valid province choropleth data provided.");
                 charts["provinsiChoropleth"].showLoading({
                     text: "No data available",
@@ -754,7 +803,11 @@ document.addEventListener("DOMContentLoaded", async () => {
                 });
             }
 
-            if (kabkotHorizontalBarData && kabkotHorizontalBarData[0]) {
+            if (
+                charts["kabkotChoropleth"] &&
+                kabkotHorizontalBarData &&
+                kabkotHorizontalBarData[0]
+            ) {
                 const kabkotChoroData = prepareChoroplethData(
                     kabkotGeoJson,
                     kabkotHorizontalBarData[0],
@@ -768,7 +821,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                     )
                 );
                 charts["kabkotChoropleth"].hideLoading();
-            } else {
+            } else if (charts["kabkotChoropleth"]) {
                 console.warn("No valid kabkot choropleth data provided.");
                 charts["kabkotChoropleth"].showLoading({
                     text: "No data available",
@@ -801,7 +854,11 @@ document.addEventListener("DOMContentLoaded", async () => {
                 ? "Lihat Inflasi"
                 : "Lihat Andil";
 
-            if (stackedLineData && stackedLineData.series) {
+            if (
+                charts["stackedLineChart"] &&
+                stackedLineData &&
+                stackedLineData.series
+            ) {
                 const updatedSeries = showingAndil
                     ? stackedLineData.series.map((s) => ({
                           ...s,
@@ -815,14 +872,23 @@ document.addEventListener("DOMContentLoaded", async () => {
                 stackedLineOptions.yAxis.name = showingAndil
                     ? "Andil (%)"
                     : "Inflasi (%)";
-                stackedLineOptions.series = updatedSeries.map((s) => ({
+                stackedLineOptions.series = updatedSeries.map((s, index) => ({
                     ...s,
                     type: "line",
+                    itemStyle: {
+                        color: [
+                            colorPalette.HK,
+                            colorPalette.HK_Desa,
+                            colorPalette.HPB,
+                            colorPalette.HP_Desa,
+                            colorPalette.HP,
+                        ][index % 5],
+                    },
                 }));
 
                 charts["stackedLineChart"].setOption(stackedLineOptions, true);
                 charts["stackedLineChart"].hideLoading();
-            } else {
+            } else if (charts["stackedLineChart"]) {
                 charts["stackedLineChart"].showLoading({
                     text: "No data available",
                     color: "#FD665F",
@@ -835,7 +901,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         levelSelect.addEventListener("change", () => {
             const levelMap = { HK: 0, HD: 1, HPB: 2, HPD: 3, HP: 4 };
             const selectedLevel = levelMap[levelSelect.value] || 0;
-            updateSelectCharts(selectedLevel);
+            updateSelectCharts(selectedLevel, levelSelect.value);
             setTimeout(() => {
                 resizeCharts();
             }, 350);
@@ -849,7 +915,11 @@ window.updateCharts = function (
     newHorizontalBarData,
     newHeatmapData
 ) {
+    const isNational =
+        document.querySelector('input[name="kd_wilayah"]')?.value === "0";
+
     if (
+        charts["stackedLineChart"] &&
         newStackedLineData &&
         newStackedLineData.series &&
         newStackedLineData.xAxis
@@ -858,13 +928,24 @@ window.updateCharts = function (
             (s) => s.name
         );
         stackedLineOptions.xAxis.data = newStackedLineData.xAxis;
-        stackedLineOptions.series = newStackedLineData.series.map((series) => ({
-            ...series,
-            type: "line",
-        }));
+        stackedLineOptions.series = newStackedLineData.series.map(
+            (series, index) => ({
+                ...series,
+                type: "line",
+                itemStyle: {
+                    color: [
+                        colorPalette.HK,
+                        colorPalette.HK_Desa,
+                        colorPalette.HPB,
+                        colorPalette.HP_Desa,
+                        colorPalette.HP,
+                    ][index % 5],
+                },
+            })
+        );
         charts["stackedLineChart"].setOption(stackedLineOptions, true);
         charts["stackedLineChart"].hideLoading();
-    } else {
+    } else if (charts["stackedLineChart"]) {
         charts["stackedLineChart"].showLoading({
             text: "No stacked line data",
             color: "#FD665F",
@@ -872,6 +953,7 @@ window.updateCharts = function (
     }
 
     if (
+        charts["horizontalBarChart"] &&
         newHorizontalBarData &&
         newHorizontalBarData.datasets &&
         newHorizontalBarData.labels
@@ -887,7 +969,7 @@ window.updateCharts = function (
         );
         charts["horizontalBarChart"].setOption(horizontalBarOptions, true);
         charts["horizontalBarChart"].hideLoading();
-    } else {
+    } else if (charts["horizontalBarChart"]) {
         charts["horizontalBarChart"].showLoading({
             text: "No horizontal bar data",
             color: "#FD665F",
@@ -895,6 +977,8 @@ window.updateCharts = function (
     }
 
     if (
+        isNational &&
+        charts["heatmapChart"] &&
         newHeatmapData &&
         newHeatmapData.xAxis &&
         newHeatmapData.yAxis &&
@@ -923,7 +1007,7 @@ window.updateCharts = function (
 
         charts["heatmapChart"].setOption(heatmapOptions, true);
         charts["heatmapChart"].hideLoading();
-    } else {
+    } else if (charts["heatmapChart"]) {
         charts["heatmapChart"].showLoading({
             text: "No heatmap data",
             color: "#FD665F",
@@ -933,7 +1017,15 @@ window.updateCharts = function (
 
 // Update bar charts
 window.updateBarCharts = function (newBarChartData) {
-    if (newBarChartData && newBarChartData.length) {
+    const isNational =
+        document.querySelector('input[name="kd_wilayah"]')?.value === "0";
+
+    if (
+        isNational &&
+        charts["barChartsContainer"] &&
+        newBarChartData &&
+        newBarChartData.length
+    ) {
         newBarChartData.forEach((data, idx) => {
             xAxes[idx].max = Math.max(...data.values) * 1.2;
             yAxes[idx].data = data.provinces;
@@ -947,7 +1039,7 @@ window.updateBarCharts = function (newBarChartData) {
             series: series,
         });
         charts["barChartsContainer"].hideLoading();
-    } else {
+    } else if (charts["barChartsContainer"]) {
         charts["barChartsContainer"].showLoading({
             text: "No bar chart data",
             color: "#FD665F",
@@ -956,7 +1048,9 @@ window.updateBarCharts = function (newBarChartData) {
 };
 
 // Update select charts
-function updateSelectCharts(levelIndex) {
+window.updateSelectCharts = function (levelIndex, levelValue) {
+    const isNational =
+        document.querySelector('input[name="kd_wilayah"]')?.value === "0";
     const provData = window.provHorizontalBarData?.[levelIndex] || {
         regions: [],
         names: [],
@@ -968,38 +1062,83 @@ function updateSelectCharts(levelIndex) {
         inflasi: [],
     };
 
-    if (provData.names.length) {
+    // Log data for debugging
+    console.log("levelIndex:", levelIndex, "levelValue:", levelValue);
+    console.log("provHorizontalBarData:", window.provHorizontalBarData);
+    console.log("provData:", provData);
+    console.log("kabkotData:", kabkotData);
+
+    // Province Horizontal Bar Chart
+    if (charts["provHorizontalBarChart"] && provData.names.length) {
         charts["provHorizontalBarChart"].setOption(
             horizontalBarOptionsWilayah(provData, "per Provinsi"),
             true
         );
         charts["provHorizontalBarChart"].hideLoading();
-    } else {
+    } else if (charts["provHorizontalBarChart"]) {
         charts["provHorizontalBarChart"].showLoading({
             text: "No province data",
             color: "#FD665F",
         });
     }
 
-    if (kabkotData.names.length) {
+    // Kabkot Horizontal Bar Chart (HK only)
+    if (
+        levelValue === "HK" &&
+        charts["kabkotHorizontalBarChart"] &&
+        kabkotData.names.length
+    ) {
         charts["kabkotHorizontalBarChart"].setOption(
             horizontalBarOptionsWilayah(kabkotData, "per Kabupaten/Kota"),
             true
         );
         charts["kabkotHorizontalBarChart"].hideLoading();
-    } else {
+    } else if (charts["kabkotHorizontalBarChart"]) {
         charts["kabkotHorizontalBarChart"].showLoading({
-            text: "No kabkot data",
+            text:
+                levelValue === "HK"
+                    ? "No kabkot data"
+                    : "Not applicable for this level",
             color: "#FD665F",
         });
     }
 
-    if (provData.regions.length && provinsiGeoJson) {
+    // Province Choropleth
+    if (
+        charts["provinsiChoropleth"] &&
+        provData.names.length && // Use names to align with horizontal bar
+        provData.inflasi.length &&
+        provinsiGeoJson
+    ) {
+        // Fallback for missing regions: derive from names or GeoJSON
+        const regions =
+            provData.regions && provData.regions.length
+                ? provData.regions
+                : provinsiGeoJson.features.map((f) => f.properties.KODE_PROV);
+
+        // Ensure regions, names, and inflasi align
+        if (
+            regions.length !== provData.names.length ||
+            regions.length !== provData.inflasi.length
+        ) {
+            console.warn("Data length mismatch:", {
+                regions: regions.length,
+                names: provData.names.length,
+                inflasi: provData.inflasi.length,
+            });
+            charts["provinsiChoropleth"].showLoading({
+                text: "Data mismatch in regions/names/inflasi",
+                color: "#FD665F",
+            });
+            return;
+        }
+
         const provChoroData = prepareChoroplethData(
             provinsiGeoJson,
-            provData,
+            { ...provData, regions },
             "Provinsi_Indonesia"
         );
+        charts["provinsiChoropleth"].clear();
         charts["provinsiChoropleth"].setOption(
             choroplethOptions(
                 "Provinsi_Indonesia",
@@ -1009,14 +1148,31 @@ function updateSelectCharts(levelIndex) {
             true
         );
         charts["provinsiChoropleth"].hideLoading();
-    } else {
+    } else if (charts["provinsiChoropleth"]) {
+        const errorText = !provinsiGeoJson
+            ? "GeoJSON not loaded"
+            : !provData.names.length || !provData.inflasi.length
+            ? "No province choropleth data"
+            : "Unknown error";
         charts["provinsiChoropleth"].showLoading({
-            text: "No province choropleth data",
+            text: errorText,
             color: "#FD665F",
+        });
+        console.error("Choropleth error:", {
+            hasGeoJson: !!provinsiGeoJson,
+            namesLength: provData.names?.length,
+            inflasiLength: provData.inflasi?.length,
+            regionsLength: provData.regions?.length,
         });
     }
 
-    if (kabkotData.regions.length && kabkotGeoJson) {
+    // Kabkot Choropleth (HK only)
+    if (
+        levelValue === "HK" &&
+        charts["kabkotChoropleth"] &&
+        kabkotData.regions.length &&
+        kabkotGeoJson
+    ) {
         const kabkotChoroData = prepareChoroplethData(
             kabkotGeoJson,
             kabkotData,
@@ -1031,13 +1187,49 @@ function updateSelectCharts(levelIndex) {
             true
         );
         charts["kabkotChoropleth"].hideLoading();
-    } else {
+    } else if (charts["kabkotChoropleth"]) {
         charts["kabkotChoropleth"].showLoading({
-            text: "No kabkot choropleth data",
+            text:
+                levelValue === "HK"
+                    ? kabkotGeoJson
+                        ? "No kabkot choropleth data"
+                        : "GeoJSON not loaded"
+                    : "Not applicable for this level",
             color: "#FD665F",
         });
     }
-}
+};
+
+// Horizontal Bar Chart Options
+const horizontalBarOptionsWilayah = (data, title) => ({
+    // title: { text: title },
+    tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+    grid: {
+        left: "5%",
+        right: "20%",
+        bottom: "10%",
+        top: "10%",
+        containLabel: true,
+    },
+    dataZoom: [{ type: "slider", orient: "vertical", handleIcon: "roundRect" }],
+    toolbox: {
+        feature: {
+            saveAsImage: { title: "Save as PNG" },
+            restore: {},
+        },
+    },
+    xAxis: { type: "value", name: "Inflasi (%)" },
+    yAxis: { type: "category", data: data.names || [] },
+    series: [
+        {
+            label: { show: true, position: "right" },
+            name: "Inflasi",
+            type: "bar",
+            data: data.inflasi || [],
+            itemStyle: { color: colorPalette.HK },
+        },
+    ],
+});
 
 window.updateSelectCharts = updateSelectCharts;
 
