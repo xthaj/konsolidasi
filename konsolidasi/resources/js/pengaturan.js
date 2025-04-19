@@ -146,7 +146,7 @@ Alpine.data("webData", () => ({
             const data = await response.json();
 
             if (!response.ok) {
-                this.failMessage = data.message || "Failed to add komoditas";
+                this.failMessage = data.message || "Gagal menambah komoditas";
                 this.failDetails = data.details || null;
                 this.$dispatch("open-modal", "fail-update-bulan-tahun"); // Reuse fail modal or create a new one
                 return;
@@ -178,7 +178,7 @@ Alpine.data("webData", () => ({
                     },
                     body: JSON.stringify({
                         nama_komoditas: this.editKomoditas.nama_komoditas,
-                    }), // Only send nama_komoditas
+                    }),
                 }
             );
 
@@ -201,7 +201,7 @@ Alpine.data("webData", () => ({
             this.$dispatch("open-modal", "success-update-bulan-tahun");
             this.$dispatch("close");
         } catch (error) {
-            this.failMessage = "An unexpected error occurred";
+            this.failMessage = "Terjadi error";
             this.failDetails = { error: error.message };
             this.$dispatch("open-modal", "fail-update-bulan-tahun");
         }
@@ -239,7 +239,7 @@ Alpine.data("webData", () => ({
 
                 if (!response.ok) {
                     this.failMessage =
-                        data.message || "Failed to delete komoditas";
+                        data.message || "Gagal menghapus komoditas";
                     this.failDetails = data.details || null;
                     this.$dispatch("open-modal", "fail-update-bulan-tahun");
                     return;
@@ -252,7 +252,7 @@ Alpine.data("webData", () => ({
                     data.message || "Komoditas berhasil dihapus";
                 this.$dispatch("open-modal", "success-update-bulan-tahun");
             } catch (error) {
-                this.failMessage = "An unexpected error occurred";
+                this.failMessage = "Terjadi error";
                 this.failDetails = { error: error.message };
                 this.$dispatch("open-modal", "fail-update-bulan-tahun");
             }

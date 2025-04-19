@@ -35,13 +35,23 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/api/users/{user_id}', [AkunController::class, 'update']);
     Route::delete('/api/users/{user_id}', [AkunController::class, 'destroy']);
 
-    Route::get('/data/edit', [DataController::class, 'edit'])->name('data.edit');
+
     Route::get('/data/upload', [DataController::class, 'create'])->name('data.create');
     Route::post('/data/upload', [DataController::class, 'upload'])->name('data.upload');
+    Route::post('/data/final-upload', [DataController::class, 'final_upload'])->name('data.final');
+
     Route::post('/data/hapus', [DataController::class, 'hapus'])->name('data.hapus');
+    Route::post('/data/final-hapus', [DataController::class, 'hapus_final'])->name('data.hapus.final');
+
+    Route::post('/data/export/final', [DataController::class, 'export_final'])->name('data.export.final');
+
     Route::delete('/data/delete/{id}', [DataController::class, 'delete'])->name('data.delete');
     Route::post('/data/store', [DataController::class, 'store'])->name('data.store');
     Route::patch('/data/update/{id}', [DataController::class, 'update'])->name('data.update');
+    Route::get('/data/edit', [DataController::class, 'edit'])->name('data.edit');
+
+    Route::get('/data/finalisasi', [DataController::class, 'finalisasi'])->name('data.finalisasi');
+
 
     //visualisasi
     Route::get('/visualisasi', [VisualisasiController::class, 'create'])->name('visualisasi.create');
@@ -53,6 +63,10 @@ Route::middleware(['auth'])->group(function () {
 
 // Rekonsiliasi
 Route::get('/rekonsiliasi/pemilihan', [RekonsiliasiController::class, 'pemilihan'])->name('rekon.pemilihan');
+
+Route::get('/rekonsiliasi/pembahasan', [RekonsiliasiController::class, 'pembahasan'])->name('rekon.pembahasan');
+Route::patch('/rekonsiliasi/{id}/pembahasan', [RekonsiliasiController::class, 'updatePembahasan']);
+
 Route::get('/rekonsiliasi/progres', [RekonsiliasiController::class, 'progres'])->name('rekon.progres');
 Route::post('/rekonsiliasi/confirm', [DataController::class, 'confirmRekonsiliasi'])->name('rekonsiliasi.confirm');
 Route::put('/rekonsiliasi/update/{id}', [RekonsiliasiController::class, 'update'])->name('rekonsiliasi.update');
@@ -64,6 +78,11 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::get('/pengaturan', [DataController::class, 'pengaturan'])->name('pengaturan');
+
+    // master
+    Route::get('/master/komoditas', [DataController::class, 'master_komoditas'])->name('master.komoditas');
+    Route::get('/master/wilayah', [DataController::class, 'master_wilayah'])->name('master.wilayah');
+    Route::get('/master/alasan', [DataController::class, 'master_alasan'])->name('master.alasan');
 });
 
 // APIs

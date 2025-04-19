@@ -21,16 +21,16 @@ class AkunController extends Controller
                 if ($request->filled('kd_wilayah_provinsi')) {
                     $query->where('kd_wilayah', $request->kd_wilayah_provinsi);
                 } else {
-                    $query->whereRaw('LEN(kd_wilayah) = 2');
+                    // $query->whereRaw('LEN(kd_wilayah) = 2');
                     // MYSQL/MS SQL DB BRANCH
-                    // $query->whereRaw('CHAR_LENGTH(kd_wilayah) = 2');
+                    $query->whereRaw('CHAR_LENGTH(kd_wilayah) = 2');
                 }
             } elseif ($request->wilayah_level === 'kabkot') {
                 if ($request->filled('kd_wilayah')) {
                     $query->where('kd_wilayah', $request->kd_wilayah);
                 } else {
-                    $query->whereRaw('LEN(kd_wilayah) = 4');
-                    // $query->whereRaw('CHAR_LENGTH(kd_wilayah) = 4');
+                    // $query->whereRaw('LEN(kd_wilayah) = 4');
+                    $query->whereRaw('CHAR_LENGTH(kd_wilayah) = 4');
                 }
             }
         }

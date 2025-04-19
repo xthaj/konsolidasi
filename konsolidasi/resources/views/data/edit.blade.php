@@ -68,50 +68,41 @@
                     </select>
                 </div>
 
-                <!-- Wilayah -->
-                <!-- this shoudnt be checkbox just dropdown level -->
+                <!-- Wilayah Selection -->
                 <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-900">Wilayah<span class="text-red-500 ml-1">*</span></label>
-                    <div class="flex items-start mb-6">
-                        <div class="flex items-center h-5">
-                            <input type="checkbox" id="is_pusat" x-model="isPusat" @click="togglePusat()" class="w-4 h-4 border border-gray-300 rounded-sm bg-gray-50 focus:ring-3 focus:ring-primary-300" />
-                        </div>
-                        <label for="is_pusat" class="ms-2 text-sm font-medium text-gray-900">Nasional</label>
-                    </div>
-
-                    <!-- Provinsi Dropdown -->
-                    <div x-show="!isPusat" class="mb-4">
-                        <label class="block mb-2 text-sm font-medium text-gray-900">Provinsi</label>
-                        <select
-                            x-model="selectedProvince"
-                            @change="selectedKabkot = ''; updateKdWilayah()"
-                            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
-                            <option value="" selected>Pilih Provinsi</option>
-                            <template x-for="province in provinces" :key="province.kd_wilayah">
-                                <option
-                                    :value="province.kd_wilayah"
-                                    x-text="province.nama_wilayah"></option>
-                            </template>
-                        </select>
-                    </div>
-
-                    <!-- Kabkot Dropdown -->
-                    <div x-show="!isPusat && selectedKdLevel === '01'" class="mb-4">
-                        <label class="block mb-2 text-sm font-medium text-gray-900">Kabupaten/Kota</label>
-                        <select x-model="selectedKabkot" @change="updateKdWilayah()" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
-                            <option value="" selected>Pilih Kabupaten/Kota</option>
-                            <template x-for="kabkot in filteredKabkots" :key="kabkot.kd_wilayah">
-                                <option :value="kabkot.kd_wilayah" x-text="kabkot.nama_wilayah" :selected="kabkot.kd_wilayah == '{{ request('kd_wilayah') }}'"></option>
-                            </template>
-                        </select>
-                    </div>
-
-                    <div x-show="!isPusat && selectedKdLevel !== '01' && selectedKdLevel !== ''" class="text-sm text-gray-500">
-                        Data tidak tersedia untuk kabupaten/kota pada level harga ini.
-                    </div>
-
-                    <input type="hidden" name="kd_wilayah" :value="isPusat ? '0' : kd_wilayah" required>
+                    <label class="block mb-2 text-sm font-medium text-gray-900">Level Wilayah<span class="text-red-500 ml-1">*</span></label>
+                    <select x-model="wilayahLevel" @change="isPusat = wilayahLevel === 'pusat'; selectedProvince = ''; selectedKabkot = ''; updateKdWilayah()" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5 focus:ring-primary-500 focus:border-primary-500">
+                        <option value="pusat" :selected="isPusat">Nasional</option>
+                        <option value="provinsi" :selected="!isPusat && selectedKabkot === ''">Provinsi</option>
+                        <option value="kabkot" :selected="!isPusat && selectedKabkot !== ''">Kabupaten/Kota</option>
+                    </select>
                 </div>
+
+                <div x-show="wilayahLevel === 'provinsi' || wilayahLevel === 'kabkot'" class="mt-4">
+                    <label class="block mb-2 text-sm font-medium text-gray-900">Provinsi</label>
+                    <select x-model="selectedProvince" @change="selectedKabkot = ''; updateKdWilayah()" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5 focus:ring-primary-500 focus:border-primary-500">
+                        <option value="" selected>Pilih Provinsi</option>
+                        <template x-for="province in provinces" :key="province.kd_wilayah">
+                            <option :value="province.kd_wilayah" x-text="province.nama_wilayah" :selected="province.kd_wilayah == '{{ request('kd_wilayah') }}'"></option>
+                        </template>
+                    </select>
+                </div>
+
+                <div x-show="wilayahLevel === 'kabkot' && selectedKdLevel === '01'" class="mt-4">
+                    <label class="block mb-2 text-sm font-medium text-gray-900">Kabupaten/Kota</label>
+                    <select x-model="selectedKabkot" @change="updateKdWilayah()" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5 focus:ring-primary-500 focus:border-primary-500">
+                        <option value="" selected>Pilih Kabupaten/Kota</option>
+                        <template x-for="kabkot in filteredKabkots" :key="kabkot.kd_wilayah">
+                            <option :value="kabkot.kd_wilayah" x-text="kabkot.nama_wilayah" :selected="kabkot.kd_wilayah == '{{ request('kd_wilayah') }}'"></option>
+                        </template>
+                    </select>
+                </div>
+
+                <div x-show="wilayahLevel === 'kabkot' && selectedKdLevel !== '01' && selectedKdLevel !== ''" class="mt-4 text-sm text-gray-500">
+                    Data tidak tersedia untuk kabupaten/kota pada level harga ini.
+                </div>
+
+                <input type="hidden" name="kd_wilayah" :value="isPusat ? '0' : (selectedKabkot || selectedProvince)" required>
 
                 <!-- Komoditas (Not Required) -->
                 <div>
@@ -229,34 +220,34 @@
                             {{ $item->komoditas->nama_komoditas }}
                         </td>
                         <td class="px-6 py-4 text-right bg-gray-50">
-                            {{ $item->inflasi_05 !== null ? number_format($item->inflasi_05, 2, '.', '') : '-' }}
+                            {{ $item->inflasi_05 !== null ? number_format($item->inflasi_05, 2, '.', '') . '%': '-' }}
                         </td>
                         <td class="px-6 py-4 text-right bg-gray-50">
-                            {{ $item->andil_05 !== null ? number_format($item->andil_05, 2, '.', '') : '-' }}
+                            {{ $item->andil_05 !== null ? number_format($item->andil_05, 2, '.', '') . '%': '-' }}
                         </td>
                         <td class="px-6 py-4 text-right">
-                            {{ $item->inflasi_04 !== null ? number_format($item->inflasi_04, 2, '.', '') : '-' }}
+                            {{ $item->inflasi_04 !== null ? number_format($item->inflasi_04, 2, '.', '') . '%': '-' }}
                         </td>
                         <td class="px-6 py-4 text-right">
-                            {{ $item->andil_04 !== null ? number_format($item->andil_04, 2, '.', '') : '-' }}
+                            {{ $item->andil_04 !== null ? number_format($item->andil_04, 2, '.', '') . '%': '-' }}
                         </td>
                         <td class="px-6 py-4 text-right bg-gray-50">
-                            {{ $item->inflasi_03 !== null ? number_format($item->inflasi_03, 2, '.', '') : '-' }}
+                            {{ $item->inflasi_03 !== null ? number_format($item->inflasi_03, 2, '.', '') . '%': '-' }}
                         </td>
                         <td class="px-6 py-4 text-right bg-gray-50">
-                            {{ $item->andil_03 !== null ? number_format($item->andil_03, 2, '.', '') : '-' }}
+                            {{ $item->andil_03 !== null ? number_format($item->andil_03, 2, '.', '') . '%': '-' }}
                         </td>
                         <td class="px-6 py-4 text-right">
-                            {{ $item->inflasi_02 !== null ? number_format($item->inflasi_02, 2, '.', '') : '-' }}
+                            {{ $item->inflasi_02 !== null ? number_format($item->inflasi_02, 2, '.', '') . '%': '-' }}
                         </td>
                         <td class="px-6 py-4 text-right">
-                            {{ $item->andil_02 !== null ? number_format($item->andil_02, 2, '.', '') : '-' }}
+                            {{ $item->andil_02 !== null ? number_format($item->andil_02, 2, '.', '') . '%': '-' }}
                         </td>
                         <td class="px-6 py-4 text-right bg-gray-50">
-                            {{ $item->inflasi_01 !== null ? number_format($item->inflasi_01, 2, '.', '') : '-' }}
+                            {{ $item->inflasi_01 !== null ? number_format($item->inflasi_01, 2, '.', '') . '%': '-' }}
                         </td>
                         <td class="px-6 py-4 text-right bg-gray-50">
-                            {{ $item->andil_01 !== null ? number_format($item->andil_01, 2, '.', '') : '-' }}
+                            {{ $item->andil_01 !== null ? number_format($item->andil_01, 2, '.', '') . '%': '-' }}
                         </td>
                     </tr>
                     @endforeach
@@ -287,18 +278,18 @@
                             {{ $item->komoditas->nama_komoditas }}
                         </td>
                         <td class="px-6 py-4 text-right">
-                            {{ $item->inflasi !== null ? number_format($item->inflasi, 2, '.', '') : '-' }}
+                            {{ $item->inflasi !== null ? number_format($item->inflasi, 2, '.', ''). '%' : '-' }}
                         </td>
                         @if ($item->kd_wilayah == 0)
                         <td class="px-6 py-4 text-right">
-                            {{ $item->andil !== null ? number_format($item->andil, 2, '.', '') : '-' }}
+                            {{ $item->andil !== null ? number_format($item->andil, 2, '.', '') . '%': '-' }}
                         </td>
                         @endif
                         <td class="px-6 py-4 text-right">
                             <button
                                 @click="openDeleteModal('{{ $item->inflasi_id }}', '{{ $item->komoditas->nama_komoditas }}')"
                                 class="font-medium text-red-600 hover:underline">
-                                Delete
+                                Hapus
                             </button>
                         </td>
                         @endforeach
