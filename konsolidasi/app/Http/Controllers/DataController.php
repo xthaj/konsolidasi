@@ -10,10 +10,12 @@ use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\DataImport;
+use App\Imports\FinalImport;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 use App\Models\Rekonsiliasi;
 use Illuminate\Support\Facades\DB;
+use App\Exports\InflasiExport;
 
 class DataController extends Controller
 {
@@ -296,6 +298,85 @@ class DataController extends Controller
         }
     }
 
+    public function final_upload(Request $request)
+    {
+        Log::info('Upload Request Data:', $request->all());
+        Log::info('Uploaded File:', [$request->hasFile('file'), $request->file('file')]);
+
+        $request->merge(['bulan' => (int) $request->bulan]);
+
+        $validated = $request->validate([
+            'file' => 'required|file|mimes:xlsx,xls',
+            'bulan' => 'required|integer|between:1,12',
+            'tahun' => 'required|integer',
+            'level' => 'required|string|in:01,02,03,04,05',
+        ]);
+
+        ini_set('memory_limit', '512M');
+        ini_set('max_execution_time', 300);
+
+        $response = [
+            'success' => false,
+            'message' => [],
+            'data' => [],
+        ];
+
+        try {
+            $import = new FinalImport($validated['bulan'], $validated['tahun'], $validated['level']);
+            Excel::import($import, $request->file('file'));
+            $summary = $import->getSummary();
+
+            if ($import->getErrors()->isNotEmpty()) {
+                $failedRow = $summary['failed_row'];
+                $chunkSize = 100;
+                $lastSuccessfulRow = floor(($failedRow - 1) / $chunkSize) * $chunkSize;
+                $errors = $import->getErrors()->all();
+                $firstError = $errors[0] ?? '';
+
+                $response['message'] = $failedRow === 2 && str_contains($firstError, 'kd_komoditas kosong')
+                    ? [
+                        "File mungkin tidak memiliki header yang benar. Perbaiki sesuai template",
+                        "Kesalahan ditemukan di baris $failedRow: $firstError",
+                    ]
+                    : [
+                        "Terdapat kesalahan di baris $failedRow",
+                        ...$errors,
+                        "Upload berhasil sampai dengan baris $lastSuccessfulRow",
+                        "Hapus data sampai baris $lastSuccessfulRow (opsional), perbaiki baris selanjutnya.",
+                        ...($summary['updated'] > 0 || $summary['inserted'] > 0
+                            ? ["Data yang berhasil diproses sebelum kesalahan: {$summary['updated']} update (jika ada perubahan), {$summary['inserted']} data baru."]
+                            : []),
+                    ];
+                $response['data'] = [
+                    'failed_row' => $failedRow,
+                    'last_successful_row' => $lastSuccessfulRow,
+                    'updated' => $summary['updated'],
+                    'inserted' => $summary['inserted'],
+                ];
+            } elseif ($summary['updated'] === 0 && $summary['inserted'] === 0) {
+                $response['message'] = [
+                    "Apakah file kosong? Tidak ada data yang berhasil diimpor.",
+                    "Periksa file Anda dan coba lagi.",
+                ];
+            } else {
+                $response['success'] = true;
+                $response['message'] = ["Data berhasil diproses: {$summary['updated']} update, {$summary['inserted']} data baru."];
+                $response['data'] = [
+                    'updated' => $summary['updated'],
+                    'inserted' => $summary['inserted'],
+                ];
+            }
+        } catch (\Exception $e) {
+            $response['message'] = ["Error importing data: {$e->getMessage()}"];
+        }
+
+        if ($request->wantsJson()) {
+            return response()->json($response);
+        }
+
+        return redirect()->back()->with('response', $response);
+    }
+
     public function delete(Request $request, $id)
     {
         // Assuming you have an Inflasi model or similar
@@ -348,7 +429,60 @@ class DataController extends Controller
         }
     }
 
+    public function hapus_final(Request $request)
+    {
+        Log::info('Hapus final method started', $request->all());
 
+        $request->merge(['bulan' => (int) $request->bulan]);
+
+        $validated = $request->validate([
+            'bulan' => 'required|integer|between:1,12',
+            'tahun' => 'required|integer|min:2000|max:2100',
+            'level' => 'required|string|in:01,02,03,04,05',
+        ]);
+
+        $response = [
+            'success' => false,
+            'message' => [],
+            'data' => [],
+        ];
+
+        try {
+            $bulanTahun = BulanTahun::where('bulan', $validated['bulan'])
+                ->where('tahun', $validated['tahun'])
+                ->first();
+
+            if (!$bulanTahun) {
+                $response['message'] = ["Tidak ada data tersedia untuk periode tersebut."];
+                return $request->wantsJson()
+                    ? response()->json($response)
+                    : redirect()->back()->with('response', $response);
+            }
+
+            // Update only the final_inflasi and final_andil columns to NULL
+            $updatedRows = Inflasi::where('bulan_tahun_id', $bulanTahun->bulan_tahun_id)
+                ->where('kd_level', $validated['level'])
+                ->update([
+                    'final_inflasi' => null,
+                    'final_andil' => null,
+                ]);
+
+            if ($updatedRows > 0) {
+                $response['success'] = true;
+                $response['message'] = ["Data berhasil dihapus sebagian. Kolom final_inflasi dan final_andil diset NULL. Jumlah baris terpengaruh: $updatedRows"];
+                $response['data'] = ['updated' => $updatedRows];
+            } else {
+                $response['message'] = ["Tidak ada data yang sesuai untuk diubah."];
+            }
+        } catch (\Exception $e) {
+            $response['message'] = ["Terjadi kesalahan saat mengubah data: {$e->getMessage()}"];
+            Log::error("Hapus final error: {$e->getMessage()}", ['trace' => $e->getTraceAsString()]);
+        }
+
+        return $request->wantsJson()
+            ? response()->json($response)
+            : redirect()->back()->with('response', $response);
+    }
     public function findInflasiId(Request $request)
     {
         try {
@@ -706,8 +840,82 @@ class DataController extends Controller
         }
     }
 
+    public function finalisasi()
+    {
+        return view('data.finalisasi');
+    }
+
     public function pengaturan()
     {
         return view('pengaturan.index');
+    }
+
+    // Masters
+
+    public function master_komoditas()
+    {
+        return view('master.komoditas');
+    }
+
+    public function master_wilayah()
+    {
+        return view('master.wilayah');
+    }
+
+    public function master_alasan()
+    {
+        return view('master.alasan');
+    }
+
+    public function export_final(Request $request)
+    {
+        Log::info('Export final method started', $request->all());
+
+        $request->merge(['bulan' => (int) $request->bulan]);
+
+        $validated = $request->validate([
+            'bulan' => 'required|integer|between:1,12',
+            'tahun' => 'required|integer|min:2000|max:2100',
+            'level' => 'required|string|in:01,02,03,04,05',
+        ]);
+
+        $response = [
+            'success' => false,
+            'message' => [],
+            'data' => [],
+        ];
+
+        try {
+            $bulanTahun = BulanTahun::where('bulan', $validated['bulan'])
+                ->where('tahun', $validated['tahun'])
+                ->first();
+
+            if (!$bulanTahun) {
+                $response['message'] = ["Tidak ada data tersedia untuk periode tersebut."];
+                return $request->wantsJson()
+                    ? response()->json($response)
+                    : redirect()->back()->with('response', $response);
+            }
+
+            $count = Inflasi::where('bulan_tahun_id', $bulanTahun->bulan_tahun_id)
+                ->where('kd_level', $validated['level'])
+                ->count();
+
+            if ($count === 0) {
+                $response['message'] = ["Tidak ada data yang sesuai untuk diunduh."];
+                return $request->wantsJson()
+                    ? response()->json($response)
+                    : redirect()->back()->with('response', $response);
+            }
+
+            $fileName = "inflasi_{$validated['bulan']}_{$validated['tahun']}_level{$validated['level']}.xlsx";
+            return Excel::download(new InflasiExport($validated['bulan'], $validated['tahun'], $validated['level']), $fileName);
+        } catch (\Exception $e) {
+            $response['message'] = ["Terjadi kesalahan saat mengunduh data: {$e->getMessage()}"];
+            Log::error("Export final error: {$e->getMessage()}", ['trace' => $e->getTraceAsString()]);
+            return $request->wantsJson()
+                ? response()->json($response)
+                : redirect()->back()->with('response', $response);
+        }
     }
 }
