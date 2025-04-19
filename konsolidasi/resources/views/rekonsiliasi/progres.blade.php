@@ -1,6 +1,6 @@
 <x-two-panel-layout>
     @section('vite')
-    @vite(['resources/css/app.css', 'resources/js/progres.js'])
+    @vite(['resources/css/app.css', 'resources/js/rekonsiliasi/progres.js'])
     @endsection
 
     @if (auth()->user()->isPusat())
@@ -50,7 +50,7 @@
                         <label class="block mb-2 text-sm font-medium text-gray-900">Provinsi</label>
                         <select x-model="selectedProvince" @change="selectedKabkot = ''; updateKdWilayah()" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                             <option value="">Semua Provinsi</option>
-                            @foreach (\App\Models\Wilayah::whereRaw('LEN(kd_wilayah) = 2')->get() as $province)
+                            @foreach (\App\Models\Wilayah::whereRaw('LENGTH(kd_wilayah) = 2')->get() as $province)
                             <option value="{{ $province->kd_wilayah }}" @selected($province->kd_wilayah == substr($filters['kdWilayah'], 0, 2))>{{ $province->nama_wilayah }}</option>
                             @endforeach
                         </select>
@@ -114,7 +114,7 @@
                         <option value="{{ auth()->user()->kd_wilayah }}" @selected($filters['kdWilayah']==auth()->user()->kd_wilayah)>
                             Provinsi {{ \App\Models\Wilayah::where('kd_wilayah', auth()->user()->kd_wilayah)->first()->nama_wilayah ?? 'N/A' }}
                         </option>
-                        @foreach (\App\Models\Wilayah::where('kd_wilayah', 'LIKE', auth()->user()->kd_wilayah . '%')->whereRaw('LEN(kd_wilayah) = 4')->orderBy('nama_wilayah')->get() as $kabkot)
+                        @foreach (\App\Models\Wilayah::where('kd_wilayah', 'LIKE', auth()->user()->kd_wilayah . '%')->whereRaw('LENGTH(kd_wilayah) = 4')->orderBy('nama_wilayah')->get() as $kabkot)
                         <option value="{{ $kabkot->kd_wilayah }}" @selected($filters['kdWilayah']==$kabkot->kd_wilayah)>{{ $kabkot->nama_wilayah }}</option>
                         @endforeach
                     </select>
@@ -285,6 +285,7 @@
                         <th scope="col" class="px-6 py-3">Sumber</th>
                         <th scope="col" class="px-6 py-3">Terakhir Diedit Oleh</th>
                         <th scope="col" class="px-6 py-3" x-show="isActivePeriod"><span class="sr-only">Edit</span></th>
+
                     </tr>
                 </thead>
                 <tbody>

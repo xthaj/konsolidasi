@@ -5,19 +5,16 @@ window.Alpine = Alpine;
 Alpine.data("webData", () => ({
     bulan: "",
     tahun: "",
-    activeBulan: "", // Store the active bulan
-    activeTahun: "", // Store the active tahun
+    activeBulan: "",
+    activeTahun: "",
     tahunOptions: [],
-
     errorMessage: "",
-
     provinces: [],
     kabkots: [],
     komoditas: [],
     selectedProvinces: [],
     selectedKabkots: [],
     selectedKomoditas: [],
-
     dropdowns: { komoditas: false },
     kd_wilayah: "",
     selectedKdLevel: "",
@@ -41,32 +38,30 @@ Alpine.data("webData", () => ({
     hasUnconfirmedChanges: false,
 
     async init() {
+        this.loading = true;
         try {
             const wilayahResponse = await fetch("/api/wilayah");
             const wilayahData = await wilayahResponse.json();
             this.provinces = wilayahData.provinces || [];
             this.kabkots = wilayahData.kabkots || [];
             this.filteredProvinces = [...this.provinces];
-            this.filteredKabkots = [...this.kabkots];
+            this.updateFilteredKabkots(); // Initialize filteredKabkots
 
             const komoditasResponse = await fetch("/api/komoditas");
             const komoditasData = await komoditasResponse.json();
             this.komoditas = komoditasData || [];
             this.filteredKomoditas = [...this.komoditas];
 
-            // Fetch Bulan and Tahun
             const bulanTahunResponse = await fetch("/api/bulan_tahun");
             const bulanTahunData = await bulanTahunResponse.json();
 
-            const aktifData = bulanTahunData.bt_aktif; // First active record
+            const aktifData = bulanTahunData.bt_aktif;
             this.bulan = aktifData
                 ? String(aktifData.bulan).padStart(2, "0")
                 : "";
             this.tahun = aktifData ? aktifData.tahun : "";
-
             this.activeBulan = this.bulan;
             this.activeTahun = this.tahun;
-
             this.tahunOptions =
                 bulanTahunData.tahun || (aktifData ? [aktifData.tahun] : []);
 
@@ -74,12 +69,28 @@ Alpine.data("webData", () => ({
                 'select[name="kd_level"]'
             ).value;
 
+            // Watch selectedProvinces to update filteredKabkots
+            this.$watch("selectedProvinces", () => {
+                this.updateFilteredKabkots();
+                this.updateSelectAllKabkots();
+                this.updateKdWilayah();
+            });
+
+            // Watch selectedKdLevel to clear kabkots when not '01'
+            this.$watch("selectedKdLevel", () => {
+                if (this.selectedKdLevel !== "01") {
+                    this.selectedKabkots = [];
+                    this.selectAllKabkotsChecked = false;
+                }
+                this.updateFilteredKabkots();
+                this.updateKdWilayah();
+            });
+
             // Watch tableData for changes
             this.$watch("tableData", () => {
                 this.hasUnconfirmedChanges = this.tableData.length > 0;
             });
 
-            // Add beforeunload event listener
             window.addEventListener("beforeunload", (event) => {
                 if (this.hasUnconfirmedChanges) {
                     event.preventDefault();
@@ -89,51 +100,112 @@ Alpine.data("webData", () => ({
             console.log("Initialized:", this.tahunOptions);
         } catch (error) {
             console.error("Failed to load data:", error);
+        } finally {
+            this.loading = false;
         }
     },
 
-    checkRowValidity() {
-        // Check if required fields are empty
-        if (this.selectedKomoditas.length === 0) {
-            return false; // Fail if no komoditas selected
+    updateFilteredKabkots() {
+        if (
+            this.selectedKdLevel !== "01" ||
+            this.selectedProvinces.length === 0
+        ) {
+            this.filteredKabkots = [];
+            this.selectedKabkots = [];
+            this.selectAllKabkotsChecked = false;
+            return;
         }
 
+        const selectedProvinceKds = this.selectedProvinces.map(
+            (p) => p.kd_wilayah
+        );
+        this.filteredKabkots = this.kabkots.filter((kabkot) =>
+            selectedProvinceKds.includes(kabkot.parent_kd)
+        );
+
+        // Remove selected kabkots that are no longer in filteredKabkots
+        this.selectedKabkots = this.selectedKabkots.filter((kabkot) =>
+            this.filteredKabkots.some((f) => f.kd_wilayah === kabkot.kd_wilayah)
+        );
+        this.updateSelectAllKabkots();
+    },
+
+    searchKabkot(query) {
+        query = query.toLowerCase();
+        const selectedProvinceKds = this.selectedProvinces.map(
+            (p) => p.kd_wilayah
+        );
+        const baseKabkots =
+            this.selectedKdLevel === "01" && selectedProvinceKds.length > 0
+                ? this.kabkots.filter((kabkot) =>
+                      selectedProvinceKds.includes(kabkot.parent_kd)
+                  )
+                : [];
+
+        this.filteredKabkots = baseKabkots.filter((kabkot) =>
+            kabkot.nama_wilayah.toLowerCase().includes(query)
+        );
+        this.updateSelectAllKabkots();
+    },
+
+    selectAllKabkots(checked) {
+        if (checked) {
+            this.selectedKabkots = [...this.filteredKabkots];
+        } else {
+            this.selectedKabkots = [];
+        }
+        this.selectAllKabkotsChecked = checked;
+        this.updateKdWilayah();
+    },
+
+    updateSelectAllKabkots() {
+        this.selectAllKabkotsChecked =
+            this.filteredKabkots.length > 0 &&
+            this.selectedKabkots.length === this.filteredKabkots.length;
+    },
+
+    toggleKabkot(kabkot) {
+        const index = this.selectedKabkots.findIndex(
+            (k) => k.kd_wilayah === kabkot.kd_wilayah
+        );
+        if (index === -1) {
+            this.selectedKabkots.push(kabkot);
+        } else {
+            this.selectedKabkots.splice(index, 1);
+        }
+        this.updateSelectAllKabkots();
+        this.updateKdWilayah();
+    },
+
+    // Other methods remain unchanged
+    checkRowValidity() {
+        if (this.selectedKomoditas.length === 0) {
+            return false;
+        }
         if (this.selectedKdLevel === "all") {
             this.isPusat = true;
             this.updateKdWilayah();
-            return true; // Valid if 'all' is selected
+            return true;
         }
-
-        // Check wilayah based on level
         if (this.isPusat) {
-            return true; // Valid if pusat is selected
+            return true;
         }
-
-        if (this.selectedKabkot && this.selectedKdLevel === "01") {
-            return true; // Valid if kabkot is selected for level '01'
+        if (this.selectedKabkots.length > 0 && this.selectedKdLevel === "01") {
+            return true;
         }
-
-        return !!this.selectedProvince; // Valid if province is selected, otherwise false
+        return this.selectedProvinces.length > 0;
     },
 
     async addRow() {
-        // Validate single selections for bulan, tahun, and kd_level
-        // not even possible ui-based to fail this
-        this.errorMessage = ""; // Reset error message
-
-        // Validate single selections for bulan, tahun, and kd_level
+        this.errorMessage = "";
         if (!this.bulan || !this.tahun || !this.selectedKdLevel) {
             this.errorMessage = "Pilih bulan, tahun, dan level harga.";
             return;
         }
-
-        // Validate at least one Provinsi or Kabupaten/Kota (if kd_level is '01')
         const selectedWilayah =
             this.selectedKdLevel === "01"
                 ? [...this.selectedProvinces, ...this.selectedKabkots]
                 : [...this.selectedProvinces];
-
-        // Inline validation
         if (
             selectedWilayah.length === 0 &&
             this.selectedKomoditas.length === 0
@@ -148,21 +220,16 @@ Alpine.data("webData", () => ({
             this.errorMessage = "Pilih minimal satu komoditas.";
             return;
         }
-
-        // Multiple komoditas can be selected
         const komoditasToAdd =
             this.selectedKomoditas.length > 0
                 ? this.komoditas.filter((k) =>
                       this.selectedKomoditas.includes(k.kd_komoditas)
                   )
                 : this.komoditas;
-
         if (komoditasToAdd.length === 0) {
             console.error("Please select at least one komoditas");
             return;
         }
-
-        // Generate combinations with single bulan, tahun, kd_level, but multiple wilayah and komoditas
         const levelHargaMapping = {
             "01": "Harga Konsumen Kota",
             "02": "Harga Konsumen Desa",
@@ -171,8 +238,6 @@ Alpine.data("webData", () => ({
             "05": "Harga Produsen",
         };
         const levelHargaDisplay = levelHargaMapping[this.selectedKdLevel];
-
-        // making combination to make rekon object
         const combinations = [];
         selectedWilayah.forEach((wilayah) => {
             komoditasToAdd.forEach((komoditas) => {
@@ -187,26 +252,11 @@ Alpine.data("webData", () => ({
                 });
             });
         });
-
-        // limit combination, so not all combinations selected without thought
         const MAX_COMBINATIONS = 100;
         if (combinations.length > MAX_COMBINATIONS) {
             this.$dispatch("open-modal", "limit-error");
             return;
         }
-
-        // Batch the inflasi_id requests into a single POST API call
-        const requestPayload = combinations.map((combo) => ({
-            bulan: combo.bulan,
-            tahun: combo.tahun,
-            kd_level: this.selectedKdLevel,
-            kd_wilayah: combo.kd_wilayah,
-            kd_komoditas: combo.kd_komoditas,
-            nama_wilayah: combo.nama_wilayah,
-            level_harga: combo.level_harga,
-            nama_komoditas: combo.nama_komoditas,
-        }));
-
         try {
             const csrfToken = document
                 .querySelector('meta[name="csrf-token"]')
@@ -218,19 +268,26 @@ Alpine.data("webData", () => ({
                     Accept: "application/json",
                     "X-CSRF-TOKEN": csrfToken,
                 },
-                body: JSON.stringify(requestPayload),
+                body: JSON.stringify(
+                    combinations.map((combo) => ({
+                        bulan: combo.bulan,
+                        tahun: combo.tahun,
+                        kd_level: this.selectedKdLevel,
+                        kd_wilayah: combo.kd_wilayah,
+                        kd_komoditas: combo.kd_komoditas,
+                        nama_wilayah: combo.nama_wilayah,
+                        level_harga: combo.level_harga,
+                        nama_komoditas: combo.nama_komoditas,
+                    }))
+                ),
             });
-
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-
             const results = await response.json();
-            console.log("API Results:", results); // Log the results
-
+            console.log("API Results:", results);
             const itemsWithInflasiId = [];
             const missingItems = [];
-
             results.forEach((result) => {
                 const combo = combinations.find(
                     (c) =>
@@ -250,17 +307,12 @@ Alpine.data("webData", () => ({
                     );
                 }
             });
-
-            // Update modal content
             this.modalContent = {
                 success: missingItems.length === 0,
                 items: itemsWithInflasiId,
                 missingItems: missingItems,
             };
-
-            console.log("Modal Content:", this.modalContent); // Log the modal content
-
-            // Show the confirmation modal
+            console.log("Modal Content:", this.modalContent);
             this.$dispatch("open-modal", "confirm-add");
         } catch (error) {
             console.error("Error fetching inflasi_ids:", error);
@@ -281,14 +333,11 @@ Alpine.data("webData", () => ({
 
     async confirmRekonsiliasi() {
         console.log("tableData before submission:", this.tableData);
-
-        // Remove duplicates based on inflasi_id
         const uniqueData = Array.from(
             new Map(
                 this.tableData.map((item) => [item.inflasi_id, item])
             ).values()
         );
-
         const formData = new FormData();
         uniqueData.forEach((item) => {
             formData.append("inflasi_ids[]", item.inflasi_id);
@@ -297,13 +346,10 @@ Alpine.data("webData", () => ({
                 parseInt(item.bulan_tahun_id, 10)
             );
         });
-
-        // TODO: Frontend only send unique values and db detects existing dupes, so the warning can be confusing
         console.log("FormData to send (unique values only):");
         for (let pair of formData.entries()) {
             console.log(`${pair[0]}: ${pair[1]}`);
         }
-
         try {
             const csrfToken = document
                 .querySelector('meta[name="csrf-token"]')
@@ -316,10 +362,8 @@ Alpine.data("webData", () => ({
                 },
                 body: formData,
             });
-
             const result = await response.json();
             console.log("Server response:", result);
-
             if (result.success) {
                 if (result.partial_success) {
                     alert(result.message);
@@ -327,7 +371,7 @@ Alpine.data("webData", () => ({
                     this.tableData = [];
                 } else {
                     alert("Pemilihan komoditas berhasil!");
-                    this.tableData = []; // Clear table after full success
+                    this.tableData = [];
                 }
             } else {
                 alert(
@@ -364,7 +408,6 @@ Alpine.data("webData", () => ({
         }
     },
 
-    // Provinsi Methods
     selectAllProvinces(checked) {
         if (checked) {
             this.selectedProvinces = [...this.filteredProvinces];
@@ -393,36 +436,6 @@ Alpine.data("webData", () => ({
         this.updateKdWilayah();
     },
 
-    // Kabupaten/Kota Methods
-    selectAllKabkots(checked) {
-        if (checked) {
-            this.selectedKabkots = [...this.filteredKabkots];
-        } else {
-            this.selectedKabkots = [];
-        }
-        this.selectAllKabkotsChecked = checked;
-        this.updateKdWilayah();
-    },
-
-    updateSelectAllKabkots() {
-        this.selectAllKabkotsChecked =
-            this.selectedKabkots.length === this.filteredKabkots.length;
-    },
-
-    toggleKabkot(kabkot) {
-        const index = this.selectedKabkots.findIndex(
-            (k) => k.kd_wilayah === kabkot.kd_wilayah
-        );
-        if (index === -1) {
-            this.selectedKabkots.push(kabkot);
-        } else {
-            this.selectedKabkots.splice(index, 1);
-        }
-        this.updateSelectAllKabkots();
-        this.updateKdWilayah();
-    },
-
-    // Komoditas Methods
     selectAllKomoditas(checked) {
         if (checked) {
             this.selectedKomoditas = this.filteredKomoditas.map(
@@ -445,14 +458,6 @@ Alpine.data("webData", () => ({
             province.nama_wilayah.toLowerCase().includes(query)
         );
         this.updateSelectAllProvinces();
-    },
-
-    searchKabkot(query) {
-        query = query.toLowerCase();
-        this.filteredKabkots = this.kabkots.filter((kabkot) =>
-            kabkot.nama_wilayah.toLowerCase().includes(query)
-        );
-        this.updateSelectAllKabkots();
     },
 
     searchKomoditas(query) {
