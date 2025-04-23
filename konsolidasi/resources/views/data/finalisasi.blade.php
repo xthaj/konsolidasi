@@ -1,7 +1,7 @@
 <x-one-panel-layout>
 
     @section('vite')
-    @vite(['resources/css/app.css', 'resources/js/upload-data.js'])
+    @vite(['resources/css/app.css', 'resources/js/data/finalisasi.js'])
     @endsection
 
     @if(session('response'))

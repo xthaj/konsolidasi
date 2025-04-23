@@ -390,6 +390,54 @@ Alpine.data("webData", () => ({
         }
     },
 
+    async updateProfile() {
+        this.profile.errors = { password: false, confirmPassword: false };
+        this.failMessage = "";
+        this.failDetails = null;
+
+        if (this.profile.password && this.profile.password.length < 6) {
+            this.profile.errors.password = true;
+            return;
+        }
+        if (this.profile.password !== this.profile.confirmPassword) {
+            this.profile.errors.confirmPassword = true;
+            return;
+        }
+
+        try {
+            const response = await fetch("/profile/password", {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-TOKEN": document.querySelector(
+                        'meta[name="csrf-token"]'
+                    ).content,
+                },
+                body: JSON.stringify({
+                    password: this.profile.password,
+                    password_confirmation: this.profile.confirmPassword, // Required for Laravel's 'confirmed' rule
+                }),
+            });
+
+            if (response.ok) {
+                this.successMessage = "Password berhasil diperbarui.";
+                this.$dispatch("open-modal", {
+                    name: "success-update-profile",
+                });
+                this.profile.password = "";
+                this.profile.confirmPassword = "";
+            } else {
+                const errorData = await response.json();
+                this.failMessage = "Gagal memperbarui password.";
+                this.failDetails = errorData;
+                this.$dispatch("open-modal", { name: "fail-update-profile" });
+            }
+        } catch (error) {
+            this.failMessage = "Terjadi kesalahan saat memperbarui password.";
+            this.$dispatch("open-modal", { name: "fail-update-profile" });
+        }
+    },
+
     deleteUser(user_id, username) {
         this.confirmMessage = `Apakah Anda yakin ingin menghapus pengguna "${username}"?`;
         this.confirmDetails = "Tindakan ini tidak dapat dibatalkan.";

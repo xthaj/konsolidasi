@@ -68,14 +68,14 @@
                 </div>
 
                 <!-- Status -->
-                <div>
+                <!-- <div>
                     <label class="block mb-2 text-sm font-medium text-gray-900">Status<span class="text-red-500 ml-1">*</span></label>
                     <select name="status" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                         <option value="all" @selected($data['filters']['status']=='all' )>Semua Status</option>
                         <option value="01" @selected($data['filters']['status']=='01' )>Belum diisi</option>
                         <option value="02" @selected($data['filters']['status']=='02' )>Sudah diisi</option>
                     </select>
-                </div>
+                </div> -->
 
                 <!-- Komoditas -->
                 <div>
@@ -95,7 +95,7 @@
 
     <!-- Rekon table -->
     <div class="flex justify-between items-center mb-4">
-        <h1 class="text-lg font-semibold">{{ $data['title'] ?? 'Rekonsiliasi' }}</h1>
+        <h1 class="text-lg font-semibold">Pembahasan {{ $data['title'] ?? 'Rekonsiliasi' }}</h1>
     </div>
     <div class="bg-white md:overflow-hidden shadow-sm sm:rounded-lg">
         <div class="relative overflow-x-auto shadow-md sm:rounded-lg md:max-h-[90vh] overflow-y-auto">

@@ -79,6 +79,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::get('/pengaturan', [DataController::class, 'pengaturan'])->name('pengaturan');
 
+    Route::patch('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
     // master
     Route::get('/master/komoditas', [DataController::class, 'master_komoditas'])->name('master.komoditas');
     Route::get('/master/wilayah', [DataController::class, 'master_wilayah'])->name('master.wilayah');

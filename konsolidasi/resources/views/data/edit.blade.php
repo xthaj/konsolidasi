@@ -1,6 +1,6 @@
 <x-two-panel-layout>
     @section('vite')
-    @vite(['resources/css/app.css', 'resources/js/edit-data.js'])
+    @vite(['resources/css/app.css', 'resources/js/data/edit.js'])
     @endsection
 
     <!-- modal is for table methods -->
@@ -59,12 +59,12 @@
                 <div>
                     <label class="block mb-2 text-sm font-medium text-gray-900">Level Harga<span class="text-red-500 ml-1">*</span></label>
                     <select name="kd_level" x-model="selectedKdLevel" @change="updateKdWilayah()" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
-                        <option value="05" @selected(request('kd_level')=='05' )>Harga Produsen</option>
+                        <option value="all" @selected(request('kd_level')=='all' )>Semua Level Harga</option>
                         <option value="01" @selected(request('kd_level')=='01' )>Harga Konsumen Kota</option>
                         <option value="02" @selected(request('kd_level')=='02' )>Harga Konsumen Desa</option>
                         <option value="03" @selected(request('kd_level')=='03' )>Harga Perdagangan Besar</option>
                         <option value="04" @selected(request('kd_level')=='04' )>Harga Produsen Desa</option>
-                        <option value="all" @selected(request('kd_level')=='all' )>Semua Level Harga</option>
+                        <option value="05" @selected(request('kd_level')=='05' )>Harga Produsen</option>
                     </select>
                 </div>
 
@@ -108,7 +108,7 @@
                 <div>
                     <label for="komoditas" class="block mb-2 text-sm font-medium text-gray-900">Komoditas</label>
                     <select id="komoditas" name="kd_komoditas" x-model="selectedKomoditas" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5">
-                        <option value="">Pilih Komoditas</option>
+                        <option value="">Semua Komoditas</option>
                         <template x-for="komoditi in komoditas" :key="komoditi.kd_komoditas">
                             <option :value="komoditi.kd_komoditas" x-text="komoditi.nama_komoditas" :selected="komoditi.kd_komoditas == '{{ request('kd_komoditas') }}'"></option>
                         </template>

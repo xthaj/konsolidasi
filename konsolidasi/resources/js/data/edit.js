@@ -14,13 +14,13 @@ Alpine.data("webData", () => ({
     provinces: [],
     kabkots: [],
     komoditas: [],
-    wilayahLevel: "", // New state for region level
+    wilayahLevel: "pusat", // Default to 'pusat'
     selectedProvince: "",
     selectedKabkot: "",
     selectedKomoditas: "",
-    selectedKdLevel: "",
-    isPusat: false,
-    kd_wilayah: "",
+    selectedKdLevel: "all", // Default to
+    isPusat: true, // Default to national level
+    kd_wilayah: "0", // Default to '0' for national
     item: { id: null, komoditas: "", harga: "", wilayah: "", levelHarga: "" },
     sortColumn: "kd_komoditas",
     sortDirection: "asc",
@@ -44,25 +44,6 @@ Alpine.data("webData", () => ({
         this.loading = true;
 
         try {
-            // Initialize from query parameters
-            const urlParams = new URLSearchParams(window.location.search);
-            this.bulan = urlParams.get("bulan") || "";
-            this.tahun = urlParams.get("tahun") || "";
-            this.selectedKdLevel = urlParams.get("kd_level") || "";
-            this.selectedKomoditas = urlParams.get("kd_komoditas") || "";
-            const kdWilayah = urlParams.get("kd_wilayah") || "";
-            this.isPusat = kdWilayah === "0";
-            this.selectedProvince = kdWilayah && !this.isPusat ? kdWilayah : "";
-            this.selectedKabkot =
-                kdWilayah && kdWilayah.length > 2 ? kdWilayah : "";
-            this.wilayahLevel = this.isPusat
-                ? "pusat"
-                : this.selectedKabkot
-                ? "kabkot"
-                : this.selectedProvince
-                ? "provinsi"
-                : "pusat";
-
             // Fetch wilayah data
             const wilayahResponse = await fetch("/api/wilayah");
             const wilayahData = await wilayahResponse.json();
@@ -82,8 +63,17 @@ Alpine.data("webData", () => ({
                 ? String(aktifData.bulan).padStart(2, "0")
                 : "";
             this.activeTahun = aktifData ? aktifData.tahun : "";
-            if (!this.bulan) this.bulan = this.activeBulan;
-            if (!this.tahun) this.tahun = this.activeTahun;
+
+            // Set default values for form fields
+            this.bulan = this.activeBulan; // Default to active month
+            this.tahun = this.activeTahun; // Default to active year
+            this.selectedKdLevel = "all"; // Default to empty (or set to a specific value like "05" for Harga Produsen)
+            this.selectedKomoditas = ""; // Default to empty
+            this.wilayahLevel = "pusat"; // Default to national
+            this.isPusat = true; // Default to national
+            this.selectedProvince = ""; // Clear province
+            this.selectedKabkot = ""; // Clear kabkot
+            this.kd_wilayah = "0"; // Default to national
             this.tahunOptions =
                 bulanTahunData.tahun || (aktifData ? [aktifData.tahun] : []);
 
@@ -171,35 +161,59 @@ Alpine.data("webData", () => ({
     },
 
     checkFormValidity() {
+        console.log("Checking form validity...");
+        console.log("bulan:", this.bulan);
+        console.log("tahun:", this.tahun);
+        console.log("selectedKdLevel:", this.selectedKdLevel);
+
         if (!this.bulan || !this.tahun || !this.selectedKdLevel) {
+            console.log("Missing bulan, tahun, or selectedKdLevel");
             return false;
         }
+
         if (this.selectedKdLevel === "all") {
             this.wilayahLevel = "pusat";
             this.isPusat = true;
+            console.log("Level is 'all' → Valid: true");
             return true;
         }
+
+        console.log("wilayahLevel:", this.wilayahLevel);
+        console.log("selectedProvince:", this.selectedProvince);
+        console.log("selectedKabkot:", this.selectedKabkot);
+
         if (this.wilayahLevel === "pusat") {
+            console.log("wilayahLevel is pusat → Valid: true");
             return true;
         }
+
         if (this.wilayahLevel === "provinsi" && this.selectedProvince) {
+            console.log(
+                "wilayahLevel is provinsi and province selected → Valid: true"
+            );
             return true;
         }
+
         if (
             this.wilayahLevel === "kabkot" &&
             this.selectedProvince &&
             this.selectedKabkot &&
             this.selectedKdLevel === "01"
         ) {
+            console.log(
+                "wilayahLevel is kabkot, with province, kabkot, and kdLevel === 01 → Valid: true"
+            );
             return true;
         }
+
+        console.log("No valid condition met → Valid: false");
         return false;
     },
 
     getValidationMessage() {
         if (!this.bulan) return "Bulan belum dipilih.";
         if (!this.tahun) return "Tahun belum dipilih.";
-        if (!this.selectedKdLevel) return "Level harga belum dipilih.";
+        // if (!this.selectedKdLevel) return "Level harga belum dipilih.";
         if (this.selectedKdLevel === "all") return "";
         if (this.wilayahLevel === "pusat") return "";
         if (this.wilayahLevel === "provinsi" && !this.selectedProvince) {

@@ -8,6 +8,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\View\View;
+use App\Models\Wilayah;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Hash;
 
 class ProfileController extends Controller
 {
@@ -16,8 +19,17 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): View
     {
+        $user = $request->user();
+        $nama_wilayah = $user->wilayah_level === 'pusat' ? 'Pusat' : null;
+
+        if ($user->wilayah_level !== 'pusat') {
+            $wilayah = Wilayah::where('kd_wilayah', $user->kd_wilayah)->first();
+            $nama_wilayah = $wilayah ? $wilayah->nama_wilayah : 'Tidak Diketahui';
+        }
+
         return view('profile.edit', [
-            'user' => $request->user(),
+            'user' => $user,
+            'nama_wilayah' => $nama_wilayah,
         ]);
     }
 
@@ -56,5 +68,18 @@ class ProfileController extends Controller
         $request->session()->regenerateToken();
 
         return Redirect::to('/');
+    }
+
+    public function updatePassword(Request $request): JsonResponse
+    {
+        $request->validate([
+            'password' => ['required', 'min:6', 'confirmed'],
+        ]);
+
+        $user = $request->user();
+        $user->password = Hash::make($request->password);
+        $user->save();
+
+        return response()->json(['message' => 'Password updated successfully'], 200);
     }
 }

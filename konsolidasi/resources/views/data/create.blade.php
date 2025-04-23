@@ -1,7 +1,7 @@
 <x-one-panel-layout>
 
     @section('vite')
-    @vite(['resources/css/app.css', 'resources/js/upload-data.js'])
+    @vite(['resources/css/app.css', 'resources/js/data/upload.js'])
     @endsection
 
     @if($errors->any())
@@ -28,50 +28,17 @@
         <div>
             <span class="font-medium">Berhasil:</span>
             <ul class="mt-1.5 list-disc list-inside">
-                @foreach((array) session('success') as $line)
+                @if(is_array(session('success')))
+                @foreach(session('success') as $line)
                 <li>{{ $line }}</li>
                 @endforeach
+                @else
+                <li>{{ session('success') }}</li>
+                @endif
             </ul>
         </div>
     </div>
     @endif
-
-    <!-- Bulan Tahun Aktif Section -->
-    <!-- <div class="mb-4">
-        <h1 class="text-lg font-semibold">Bulan dan Tahun Aktif</h1>
-
-        <div class="flex gap-4"> -->
-    <!-- Bulan -->
-    <!-- <div class="w-1/2">
-                <label class="block mb-2 text-sm font-medium text-gray-900">Bulan</label>
-                <select name="bulan" x-model="bulan" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
-                    @foreach(['Januari' => '01', 'Februari' => '02', 'Maret' => '03', 'April' => '04', 'Mei' => '05', 'Juni' => '06', 'Juli' => '07', 'Agustus' => '08', 'September' => '09', 'Oktober' => '10', 'November' => '11', 'Desember' => '12'] as $nama => $bln)
-                    <option value="{{ $bln }}" @selected(request('bulan')==$bln)>{{ $nama }}</option>
-                    @endforeach
-                </select>
-            </div> -->
-
-    <!-- Tahun -->
-    <!-- <div class="w-1/2">
-                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Tahun</label>
-                <select name="tahun" x-model="tahun" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
-                    <option value="">Pilih Tahun</option>
-                    <template x-for="year in tahunOptions" :key="year">
-                        <option :value="year" :selected="year === tahun" x-text="year"></option>
-                    </template>
-                </select>
-            </div>
-        </div>
-
-        <p id="helper-text-explanation" class="mt-2 text-sm text-gray-500" x-show="isActivePeriod">Periode aktif</p> -->
-
-    <!-- Ganti Bulan Tahun Aktif Button -->
-    <!-- <button class="mt-4 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg text-sm px-5 py-2.5" @click="updateBulanTahun">Ganti Bulan Tahun Aktif</button>
-    </div> -->
-
-    <!-- <hr class="h-px my-8 bg-gray-200 border-0 dark:bg-gray-700"> -->
-
-
 
     <div class="my-4">
         <h1 class="text-lg font-semibold">Upload/Update Data</h1>
@@ -176,7 +143,7 @@
         </div>
     </form>
 
-    <hr class="h-px my-8 bg-gray-200 border-0 dark:bg-gray-700">
+    <hr class="h-px my-8 bg-gray-200 border-0">
 
     <!-- Bulk Delete Section -->
     <div class="my-4">
@@ -207,6 +174,7 @@
             <div>
                 <label class="block mb-1 text-sm font-medium text-gray-900">Level Harga</label>
                 <select name="level" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5 focus:ring-primary-500 focus:border-primary-500">
+                    <option value="" disabled selected>Pilih Level Harga</option>
                     <option value="01">Harga Konsumen Kota</option>
                     <option value="02">Harga Konsumen Desa</option>
                     <option value="03">Harga Perdagangan Besar</option>
@@ -240,38 +208,12 @@
                 Hapus Data
             </button>
 
-            <div id="tooltip-dark" role="tooltip" class="absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
+            <div id="tooltip-dark" role="tooltip" class="absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip ">
                 Ceklis untuk mengonfirmasi penghapusan data.
                 <div class="tooltip-arrow" data-popper-arrow></div>
             </div>
 
         </div>
     </form>
-
-
-    <!-- Download Section -->
-    <!--
-    <hr class="h-px my-8 bg-gray-200 border-0 dark:bg-gray-700">
-
-    <div class="mb-4">
-        <h1 class="text-lg font-semibold">Download</h1>
-    </div>
-
-    <a
-        href="{{ asset('template/template.xlsx') }}"
-        download
-        class="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 border border-primary-600 rounded-lg shadow-sm transition-colors duration-200 focus:outline-none focus:ring-4 focus:ring-primary-300 w-full sm:w-auto"
-        aria-label="Download Excel template">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 16V4m0 12l-4-4m4 4l4-4"></path>
-        </svg>
-        Download Template
-    </a> -->
-    <!-- <a href="/komoditas/export" class="text-primary-700 hover:text-white border border-primary-700 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-yellow-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center w-full sm:w-auto">
-            Master Komoditas
-        </a>
-        <a href="/wilayah/export" class="text-primary-700 hover:text-white border border-primary-700 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-yellow-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center w-full sm:w-auto">
-            Master Wilayah
-        </a> -->
 
 </x-one-panel-layout>

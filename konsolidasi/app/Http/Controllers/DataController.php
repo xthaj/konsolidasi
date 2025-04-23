@@ -19,35 +19,6 @@ use App\Exports\InflasiExport;
 
 class DataController extends Controller
 {
-    // public function index(Request $request)
-    // {
-    //     $query = Inflasi::query()->with('komoditas');
-
-    //     // Apply filters if present
-    //     if ($request->filled('bulan') && $request->filled('tahun')) {
-    //         $periode = "{$request->tahun}-{$request->bulan}-01";
-    //         $query->where('periode', $periode);
-    //     }
-    //     if ($request->filled('level_harga')) {
-    //         $query->where('level_harga', $request->level_harga);
-    //     }
-    //     if ($request->filled('nasional') && $request->nasional == '1') {
-    //         $query->where('kd_wilayah', '1'); // Nasional
-    //     } elseif ($request->filled('kd_wilayah')) {
-    //         $query->where('kd_wilayah', $request->kd_wilayah);
-    //     }
-    //     if ($request->filled('kd_komoditas')) {
-    //         $query->where('kd_komoditas', $request->kd_komoditas);
-    //     }
-
-    //     $inflasi = $request->hasAny(['bulan', 'tahun', 'level_harga', 'kd_wilayah', 'kd_komoditas', 'nasional'])
-    //         ? $query->paginate(10)
-    //         : collect(); // Empty if no filters
-
-    //     $komoditas = Komoditas::all();
-    //     return view('your-two-panel-page', compact('inflasi', 'komoditas'));
-    // }
-
     public function edit(Request $request): View
     {
         // Default response
@@ -228,7 +199,6 @@ class DataController extends Controller
 
     public function upload(Request $request)
     {
-
         Log::info('Upload Request Data:', $request->all());
         Log::info('Uploaded File:', [$request->hasFile('file'), $request->file('file')]);
 
@@ -248,8 +218,34 @@ class DataController extends Controller
             $import = new DataImport($validated['bulan'], $validated['tahun'], $validated['level']);
             Excel::import($import, $request->file('file'));
 
-
             $summary = $import->getSummary();
+
+            // Map level harga to human-readable format
+            $levelHargaMap = [
+                '01' => 'Harga Konsumen Kota',
+                '02' => 'Harga Konsumen Desa',
+                '03' => 'Harga Perdagangan Besar',
+                '04' => 'Harga Produsen Desa',
+                '05' => 'Harga Produsen',
+            ];
+            $levelHarga = $levelHargaMap[$validated['level']] ?? 'Unknown';
+
+            // Map bulan to Indonesian month names
+            $bulanMap = [
+                1 => 'Januari',
+                2 => 'Februari',
+                3 => 'Maret',
+                4 => 'April',
+                5 => 'Mei',
+                6 => 'Juni',
+                7 => 'Juli',
+                8 => 'Agustus',
+                9 => 'September',
+                10 => 'Oktober',
+                11 => 'November',
+                12 => 'Desember'
+            ];
+            $bulan = $bulanMap[$validated['bulan']] ?? $validated['bulan'];
 
             // Check for errors first
             if ($import->getErrors()->isNotEmpty()) {
@@ -284,14 +280,18 @@ class DataController extends Controller
 
             // Handle success case explicitly
             if ($summary['updated'] === 0 && $summary['inserted'] === 0) {
-                $messageLines = [
+                $errorMessages = [
                     "Apakah file kosong? Tidak ada data yang berhasil diimpor.",
                     "Periksa file Anda dan coba lagi.",
                 ];
-                return redirect()->back()->withErrors($messageLines);
+                return redirect()->back()->withErrors($errorMessages);
             }
 
-            $message = "Data berhasil diproses: {$summary['updated']} update, {$summary['inserted']} data baru.";
+            // Success message with level harga, bulan, and tahun
+            $message = [
+                "Data Level Harga $levelHarga bulan $bulan Tahun {$validated['tahun']} berhasil diupload.",
+                "Data berhasil diproses: {$summary['updated']} update, {$summary['inserted']} data baru.",
+            ];
             return redirect()->back()->with('success', $message);
         } catch (\Exception $e) {
             return redirect()->back()->withErrors(['Error importing data: ' . $e->getMessage()]);

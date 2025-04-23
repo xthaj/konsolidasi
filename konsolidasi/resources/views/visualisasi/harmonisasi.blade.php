@@ -111,7 +111,7 @@
                             :disabled="!checkFormValidity()" type="submit" class="w-full bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 text-white font-medium rounded-lg text-sm px-5 py-2.5 text-center">Tampilkan</button>
                         </button> -->
 
-                        <button class="w-full bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 text-white font-medium rounded-lg text-sm px-5 py-2.5 text-center" disabled>Tampilkan</button>
+                        <button class="w-full bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 text-white font-medium rounded-lg text-sm px-5 py-2.5 text-center">Tampilkan</button>
 
                     </div>
             </form>
@@ -192,7 +192,7 @@
             <!-- Horizontal Bar Chart -->
             @if(!empty($data['horizontalBar']))
             <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
-                <h3 class="text-lg font-semibold mb-2">Perbandingan Inflasi dan Andil Antar Tingkat Harga</h3>
+                <h3 class="text-lg font-semibold mb-2">Perbandingan Inflasi dan Andil Antartingkat Harga</h3>
                 <div id="horizontalBarChart" class="w-full h-96"></div>
             </div>
             @endif
@@ -200,7 +200,7 @@
             <!-- Heatmap Chart -->
             @if(!empty($data['heatmap']) && $kd_wilayah === '0')
             <div class="bg-white md:h-auto p-4 rounded-lg shadow-md relative dark:bg-gray-800 col-span-1 md:col-span-10">
-                <h3 class="text-lg font-semibold mb-2">Heatmap Inflasi per Provinsi Antar Tingkat Harga</h3>
+                <h3 class="text-lg font-semibold mb-2">Inflasi per Provinsi Antartingkat Harga</h3>
                 <div id="heatmapChart" class="w-full h-[550px]"></div>
             </div>
             @endif
@@ -276,7 +276,6 @@
             item[1],
             item[2] || "-",
         ]);
-        // console.log('Heatmap Values:', heatMapValues);
         @else
         window.heatmapData = null;
         @endif

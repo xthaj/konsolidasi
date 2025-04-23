@@ -208,7 +208,7 @@
                     <label class="block mb-2 text-sm font-medium text-gray-900">Cari Pengguna</label>
                     <div class="relative">
                         <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
-                            <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                            <svg class="w-4 h-4 text-gray-500 " aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
                                 <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z" />
                             </svg>
                         </div>
@@ -245,51 +245,27 @@
             </div>
         </div>
         <div class="flex justify-end">
-            <button type="submit" class="bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg text-sm px-5 py-2.5">Filter</button>
+            <x-primary-button
+                type="submit">
+                Filter
+            </x-primary-button>
         </div>
     </form>
 
-    <!-- <div class="flex gap-4">
-        <div class="w-full">
-            <div class="mb-4">
-                <label class="block mb-2 text-sm font-medium text-gray-900">Cari Pengguna</label>
-                <input type="text" x-model.debounce.500="searchQuery" placeholder="Cari username atau nama lengkap" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
-            </div>
-            <div class="mb-4">
-                <label class="block mb-2 text-sm font-medium text-gray-900">Provinsi</label>
-                <select x-model="selectedProvince" @change="selectedKabkot = ''; updateKdWilayah(); getWilayahUsers()" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
-                    <option value="" selected>Semua Provinsi</option>
-                    <template x-for="province in provinces" :key="province.kd_wilayah">
-                        <option :value="province.kd_wilayah" x-text="province.nama_wilayah"></option>
-                    </template>
-                </select>
-            </div>
-            <div class="mb-4">
-                <label class="block mb-2 text-sm font-medium text-gray-900">Kabupaten/Kota</label>
-                <select x-model="selectedKabkot" @change="updateKdWilayah(); getWilayahUsers()" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
-                    <option value="" selected>Semua Kabupaten/Kota</option>
-                    <template x-for="kabkot in filteredKabkots" :key="kabkot.kd_wilayah">
-                        <option :value="kabkot.kd_wilayah" x-text="kabkot.nama_wilayah"></option>
-                    </template>
-                </select>
-            </div>
-        </div>
-    </div>
-
-    <div class="flex justify-end">
-        <button class="bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg text-sm px-5 py-2.5" @click="getWilayahUsers">Filter</button>
-    </div> -->
-
-    <hr class="h-px my-8 bg-gray-200 border-0 dark:bg-gray-700">
+    <hr class="h-px my-8 bg-gray-200 border-0 ">
 
     <div class="flex justify-between items-center mb-4">
         <h1 class="text-lg font-semibold">Daftar Pengguna</h1>
-        <button class="bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg text-sm px-5 py-2.5" @click="openAddUserModal">Tambah Pengguna</button>
+        <x-primary-button
+            type="button"
+            @click="openAddUserModal">
+            Tambah Pengguna
+        </x-primary-button>
     </div>
 
     <div class="relative overflow-x-auto shadow-md sm:rounded-lg">
-        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+        <table class="w-full text-sm text-left text-gray-500 ">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50">
                 <tr>
                     <th scope="col" class="px-6 py-3">No</th>
                     <th scope="col" class="px-6 py-3">Wilayah</th>
@@ -311,8 +287,8 @@
                     <td class="px-6 py-4">{{ $user->nama_lengkap }}</td>
                     <td class="px-6 py-4">{{ $user->is_admin ? 'Admin' : 'Operator' }}</td>
                     <td class="px-6 py-4 text-right">
-                        <button @click="openEditUserModal({{$user}})" class="font-medium text-blue-600 dark:text-blue-500 hover:underline mr-3">Edit</button>
-                        <button @click="deleteUser('{{ $user->user_id }}', '{{ $user->username }}')" class="font-medium text-red-600 dark:text-red-500 hover:underline">Hapus</button>
+                        <button @click="openEditUserModal({{$user}})" class="font-medium text-blue-600  hover:underline mr-3">Edit</button>
+                        <button @click="deleteUser('{{ $user->user_id }}', '{{ $user->username }}')" class="font-medium text-red-600  hover:underline">Hapus</button>
                     </td>
                 </tr>
                 @empty

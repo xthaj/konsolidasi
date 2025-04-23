@@ -25,7 +25,7 @@
 
     <!-- Alasan Table -->
     <div class="flex justify-between items-center mb-4">
-        <h1 class="text-lg font-semibold">Daftar Alasan</h1>
+        <h1 class="text-lg font-semibold">Master Alasan</h1>
     </div>
 
     <div class="relative overflow-x-auto shadow-md sm:rounded-lg">

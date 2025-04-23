@@ -107,14 +107,21 @@
         <p id="helper-text-explanation" class="mt-2 text-sm text-gray-500" x-show="isActivePeriod">Periode aktif</p>
 
         <!-- Ganti Bulan Tahun Aktif Button -->
-        <button class="mt-4 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg text-sm px-5 py-2.5" @click="updateBulanTahun">Ganti Bulan Tahun Aktif</button>
+        <div class="justify-end flex mt-4">
+            <!-- <button class=" mt-4 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg text-sm px-5 py-2.5" @click="updateBulanTahun">Ganti Bulan Tahun Aktif</button> -->
+            <x-primary-button
+                type="button"
+                @click="updateBulanTahun">
+                Ganti Periode Aktif
+            </x-primary-button>
+        </div>
     </div>
 
-    <hr class="h-px my-8 bg-gray-200 border-0 dark:bg-gray-700">
+    <!-- <hr class="h-px my-8 bg-gray-200 border-0 dark:bg-gray-700"> -->
 
     <!-- Komoditas Table -->
-    <div class="flex justify-between items-center mb-4">
-        <h1 class="text-lg font-semibold">Daftar Komoditas</h1>
+    <!-- <div class="flex justify-between items-center mb-4">
+        <h1 class="text-lg font-semibold">Master Komoditas</h1>
         <button class="bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg text-sm px-5 py-2.5" @click="openAddKomoditasModal">Tambah Komoditas</button>
     </div>
 
@@ -140,5 +147,5 @@
                 </template>
             </tbody>
         </table>
-    </div>
+    </div> -->
 </x-one-panel-layout>
