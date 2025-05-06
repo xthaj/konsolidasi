@@ -4,20 +4,15 @@ namespace Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
 
-/**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Komoditas>
- */
 class KomoditasFactory extends Factory
 {
-    /**
-     * Define the model's default state.
-     *
-     * @return array<string, mixed>
-     */
+    protected $model = \App\Models\Komoditas::class;
+
     public function definition(): array
     {
         return [
-            //
+            'kd_komoditas' => $this->faker->unique()->numerify('K##'),
+            'nama_komoditas' => $this->faker->word,
         ];
     }
 }

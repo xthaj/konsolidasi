@@ -14,24 +14,8 @@ class DashboardController extends Controller
         // Get active BulanTahun
         $activeBulanTahun = BulanTahun::where('aktif', 1)->first();
 
-        // Format active month and year as "Februari 2025"
-        $monthNames = [
-            '1' => 'Januari',
-            '2' => 'Februari',
-            '3' => 'Maret',
-            '4' => 'April',
-            '5' => 'Mei',
-            '6' => 'Juni',
-            '7' => 'Juli',
-            '8' => 'Agustus',
-            '9' => 'September',
-            '10' => 'Oktober',
-            '11' => 'November',
-            '12' => 'Desember'
-        ];
-
         $activeMonthYear = $activeBulanTahun
-            ? "{$monthNames[$activeBulanTahun->bulan]} {$activeBulanTahun->tahun}"
+            ? $activeBulanTahun->getBulanName($activeBulanTahun->bulan) . " {$activeBulanTahun->tahun}"
             : "Tidak ditemukan"; // Fallback if no active period
 
         // Initialize percentage

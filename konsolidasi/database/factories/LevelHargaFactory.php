@@ -4,20 +4,15 @@ namespace Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
 
-/**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\LevelHarga>
- */
 class LevelHargaFactory extends Factory
 {
-    /**
-     * Define the model's default state.
-     *
-     * @return array<string, mixed>
-     */
+    protected $model = \App\Models\LevelHarga::class;
+
     public function definition(): array
     {
         return [
-            //
+            'kd_level' => $this->faker->unique()->numerify('L#'),
+            'nama_level' => $this->faker->word,
         ];
     }
 }

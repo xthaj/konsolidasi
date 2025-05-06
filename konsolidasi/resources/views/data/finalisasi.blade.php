@@ -152,12 +152,12 @@
     <hr class="h-px my-8 bg-gray-200 border-0 dark:bg-gray-700">
 
     <!-- Bulk Delete Section -->
-    <div class="my-4">
+    <!-- <div class="my-4">
         <h1 class="text-lg font-semibold">Hapus Data Final</h1>
-    </div>
+    </div> -->
 
     <!-- Delete Form  -->
-    <form action="{{ route('data.hapus.final') }}" method="POST" x-data="{ loading: false, isChecked: false }" @submit="console.log('Form submitting'); loading = true">
+    <!-- <form action="{{ route('data.hapus.final') }}" method="POST" x-data="{ loading: false, isChecked: false }" @submit="console.log('Form submitting'); loading = true">
         @csrf
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
 
@@ -220,7 +220,7 @@
         </div>
     </form>
 
-    <hr class="h-px my-8 bg-gray-200 border-0 dark:bg-gray-700">
+    <hr class="h-px my-8 bg-gray-200 border-0 dark:bg-gray-700"> -->
 
     <!-- Download Section -->
     <div class="my-4">

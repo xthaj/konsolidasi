@@ -142,6 +142,8 @@
     <x-modal name="edit-rekonsiliasi" focusable title="Edit Rekonsiliasi" x-cloak>
         <div class="px-6 py-4">
             <form class="space-y-4" @submit.prevent="submitEditRekon()">
+                <!-- Hidden Input for user_id -->
+                <input type="hidden" x-model="user_id" name="user_id" />
                 <!-- Level Harga -->
                 <div>
                     <span>Level Harga: </span>
@@ -363,7 +365,7 @@
                         </td>
                         <td class="px-6 py-4 text-right" x-show="isActivePeriod">
                             <button
-                                @click="openEditRekonModal('{{ $item->rekonsiliasi_id }}', '{{ $item->inflasi->komoditas->nama_komoditas }}', '{{ $item->inflasi->kd_level }}', '{{ $item->alasan ?? '' }}', '{{ $item->detail ?? '' }}', '{{ $item->media ?? '' }}')"
+                                @click="openEditRekonModal('{{ $item->rekonsiliasi_id }}', '{{ $item->inflasi->komoditas->nama_komoditas }}', '{{ $item->inflasi->kd_level }}', '{{ $item->alasan ?? '' }}', '{{ $item->detail ?? '' }}', '{{ $item->media ?? '' }}', '{{ auth()->user()->user_id }}')"
                                 class="font-medium text-indigo-600 dark:text-indigo-500 hover:underline">
                                 Edit
                             </button>

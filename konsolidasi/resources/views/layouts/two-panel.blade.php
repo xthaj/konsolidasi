@@ -26,7 +26,7 @@
             <button data-tooltip-target="tooltip-default" data-tooltip-placement="bottom"
                 @click="isSidebarVisible = !isSidebarVisible; $nextTick(() => window.dispatchEvent(new Event('resize')))"
                 class="p-2 text-gray-600 hover:text-gray-900 focus:outline-none dark:text-white">
-                <span class="material-symbols-outlined" x-text="isSidebarVisible ? 'arrow_menu_close' : 'arrow_menu_open'"></span>
+                <span class="material-symbols-rounded" x-text="isSidebarVisible ? 'arrow_menu_close' : 'arrow_menu_open'"></span>
             </button>
 
             <div id="tooltip-default" role="tooltip" class="absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">

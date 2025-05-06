@@ -24,6 +24,7 @@ Alpine.data("webData", () => ({
         alasan: "",
         detail: "",
         media: "",
+        user_id: "",
     },
     detail: "",
     linkTerkait: "",
@@ -168,7 +169,15 @@ Alpine.data("webData", () => ({
         this.modalOpen = true;
     },
 
-    openEditRekonModal(id, komoditas, kd_level, alasan, detail, media) {
+    openEditRekonModal(
+        id,
+        komoditas,
+        kd_level,
+        alasan,
+        detail,
+        media,
+        user_id
+    ) {
         // Populate modalData for display fields
         this.modalData = {
             id,
@@ -177,12 +186,14 @@ Alpine.data("webData", () => ({
             alasan,
             detail,
             media,
+            user_id, // Include user_id
         };
 
         // Populate form fields
         this.selectedAlasan = alasan ? alasan.split(", ") : [];
         this.detail = detail || ""; // Set detail for textarea
         this.linkTerkait = media || ""; // Set linkTerkait for input
+        this.user_id = user_id || ""; // Set user_id for form submission
 
         console.log("Opening edit modal with:", this.modalData);
 
@@ -222,6 +233,7 @@ Alpine.data("webData", () => ({
         };
 
         const data = {
+            user_id: this.user_id,
             alasan: this.selectedAlasan.join(", "),
             detail: sanitizeInput(this.detail),
             media: this.linkTerkait,

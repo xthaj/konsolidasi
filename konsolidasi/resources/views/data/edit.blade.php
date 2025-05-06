@@ -3,8 +3,8 @@
     @vite(['resources/css/app.css', 'resources/js/data/edit.js'])
     @endsection
 
-    <!-- modal is for table methods -->
-    <x-modal name="confirm-delete" focusable title="Konfirmasi Hapus Inflasi " x-cloak>
+    <!-- Modal for table methods -->
+    <x-modal name="confirm-delete" focusable title="Konfirmasi Hapus Inflasi" x-cloak>
         <div class="px-6 py-4">
             <p x-text="'Hapus inflasi komoditas ' + modalData.komoditas + '?'"></p>
             <div class="mt-4">
@@ -38,7 +38,7 @@
                             <label class="block mb-2 text-sm font-medium text-gray-900">Bulan<span class="text-red-500 ml-1">*</span></label>
                             <select name="bulan" x-model="bulan" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5 focus:ring-primary-500 focus:border-primary-500">
                                 @foreach(['Januari' => '01', 'Februari' => '02', 'Maret' => '03', 'April' => '04', 'Mei' => '05', 'Juni' => '06', 'Juli' => '07', 'Agustus' => '08', 'September' => '09', 'Oktober' => '10', 'November' => '11', 'Desember' => '12'] as $nama => $bln)
-                                <option value="{{ $bln }}" @selected(request('bulan')==$bln)>{{ $nama }}</option>
+                                <option value="{{ $bln }}" @selected($data['bulan']==$bln)>{{ $nama }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -59,12 +59,12 @@
                 <div>
                     <label class="block mb-2 text-sm font-medium text-gray-900">Level Harga<span class="text-red-500 ml-1">*</span></label>
                     <select name="kd_level" x-model="selectedKdLevel" @change="updateKdWilayah()" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
-                        <option value="all" @selected(request('kd_level')=='all' )>Semua Level Harga</option>
-                        <option value="01" @selected(request('kd_level')=='01' )>Harga Konsumen Kota</option>
-                        <option value="02" @selected(request('kd_level')=='02' )>Harga Konsumen Desa</option>
-                        <option value="03" @selected(request('kd_level')=='03' )>Harga Perdagangan Besar</option>
-                        <option value="04" @selected(request('kd_level')=='04' )>Harga Produsen Desa</option>
-                        <option value="05" @selected(request('kd_level')=='05' )>Harga Produsen</option>
+                        <option value="all" @selected($data['kd_level']=='all' )>Semua Level Harga</option>
+                        <option value="01" @selected($data['kd_level']=='01' )>Harga Konsumen Kota</option>
+                        <option value="02" @selected($data['kd_level']=='02' )>Harga Konsumen Desa</option>
+                        <option value="03" @selected($data['kd_level']=='03' )>Harga Perdagangan Besar</option>
+                        <option value="04" @selected($data['kd_level']=='04' )>Harga Produsen Desa</option>
+                        <option value="05" @selected($data['kd_level']=='05' )>Harga Produsen</option>
                     </select>
                 </div>
 
@@ -83,7 +83,7 @@
                     <select x-model="selectedProvince" @change="selectedKabkot = ''; updateKdWilayah()" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5 focus:ring-primary-500 focus:border-primary-500">
                         <option value="" selected>Pilih Provinsi</option>
                         <template x-for="province in provinces" :key="province.kd_wilayah">
-                            <option :value="province.kd_wilayah" x-text="province.nama_wilayah" :selected="province.kd_wilayah == '{{ request('kd_wilayah') }}'"></option>
+                            <option :value="province.kd_wilayah" x-text="province.nama_wilayah" :selected="province.kd_wilayah == '{{ $data['kd_wilayah'] }}'"></option>
                         </template>
                     </select>
                 </div>
@@ -93,7 +93,7 @@
                     <select x-model="selectedKabkot" @change="updateKdWilayah()" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5 focus:ring-primary-500 focus:border-primary-500">
                         <option value="" selected>Pilih Kabupaten/Kota</option>
                         <template x-for="kabkot in filteredKabkots" :key="kabkot.kd_wilayah">
-                            <option :value="kabkot.kd_wilayah" x-text="kabkot.nama_wilayah" :selected="kabkot.kd_wilayah == '{{ request('kd_wilayah') }}'"></option>
+                            <option :value="kabkot.kd_wilayah" x-text="kabkot.nama_wilayah" :selected="kabkot.kd_wilayah == '{{ $data['kd_wilayah'] }}'"></option>
                         </template>
                     </select>
                 </div>
@@ -110,7 +110,7 @@
                     <select id="komoditas" name="kd_komoditas" x-model="selectedKomoditas" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5">
                         <option value="">Semua Komoditas</option>
                         <template x-for="komoditi in komoditas" :key="komoditi.kd_komoditas">
-                            <option :value="komoditi.kd_komoditas" x-text="komoditi.nama_komoditas" :selected="komoditi.kd_komoditas == '{{ request('kd_komoditas') }}'"></option>
+                            <option :value="komoditi.kd_komoditas" x-text="komoditi.nama_komoditas" :selected="komoditi.kd_komoditas == '{{ $data['kd_komoditas'] }}'"></option>
                         </template>
                     </select>
                 </div>
@@ -120,15 +120,15 @@
                     <div class="w-1/2">
                         <label class="block mb-2 text-sm font-medium text-gray-900">Urut Berdasarkan</label>
                         <select name="sort" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
-                            <option value="kd_komoditas" {{ $sort === 'kd_komoditas' ? 'selected' : '' }}>Kode Komoditas</option>
-                            <option value="inflasi" {{ $sort === 'inflasi' ? 'selected' : '' }}>Nilai Inflasi</option>
+                            <option value="kd_komoditas" {{ $data['sort'] === 'kd_komoditas' ? 'selected' : '' }}>Kode Komoditas</option>
+                            <option value="inflasi" {{ $data['sort'] === 'inflasi' ? 'selected' : '' }}>Nilai Inflasi</option>
                         </select>
                     </div>
                     <div class="w-1/2">
                         <label class="block mb-2 text-sm font-medium text-gray-900">Pengurutan</label>
                         <select name="direction" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
-                            <option value="asc" {{ $direction === 'asc' ? 'selected' : '' }}>Naik</option>
-                            <option value="desc" {{ $direction === 'desc' ? 'selected' : '' }}>Turun</option>
+                            <option value="asc" {{ $data['direction'] === 'asc' ? 'selected' : '' }}>Naik</option>
+                            <option value="desc" {{ $data['direction'] === 'desc' ? 'selected' : '' }}>Turun</option>
                         </select>
                     </div>
                 </div>
@@ -141,8 +141,7 @@
                     </div>
 
                     <button type="submit"
-                        :disabled="!checkFormValidity()" type="submit" class="w-full bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 text-white font-medium rounded-lg text-sm px-5 py-2.5 text-center">Tampilkan</button>
-                    </button>
+                        :disabled="!checkFormValidity()" class="w-full bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 text-white font-medium rounded-lg text-sm px-5 py-2.5 text-center">Tampilkan</button>
                 </div>
             </div>
         </form>
@@ -152,19 +151,18 @@
     <div class="bg-white px-6 py-4 rounded-lg shadow-sm text-center text-gray-500">
         {{ $message }}
     </div>
-    @elseif($status === 'no_data')
+    @elseif($status === 'no_data' && $data['inflasi'] === null)
     <div class="bg-white px-6 py-4 rounded-lg shadow-sm text-center text-gray-500">
         {{ $message }}
     </div>
-    @elseif($status === 'success')
-
+    @elseif($status === 'success' || ($status === 'no_data' && $data['inflasi'] !== null))
     <div class="mb-1">
-        <h2 class="text-l font-semibold mb-2">{{ $title ?? 'Inflasi'}}</h2>
+        <h2 class="text-l font-semibold mb-2">{{ $data['title'] ?? 'Inflasi'}}</h2>
     </div>
 
     <div class="bg-white md:overflow-hidden shadow-sm sm:rounded-lg">
         <div class="relative overflow-x-auto shadow-md sm:rounded-lg md:max-h-[90vh] overflow-y-auto">
-            @if($kd_level === 'all')
+            @if($data['kd_level'] === 'all')
             <!-- Table for "Semua Level Harga" -->
             <table class="w-full text-sm text-left rtl:text-right text-gray-500">
                 <colgroup>
@@ -211,7 +209,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($inflasi as $item)
+                    @foreach($data['inflasi'] as $item)
                     <tr class="bg-white border-b border-gray-200">
                         <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
                             {{ $item->kd_komoditas }}
@@ -261,15 +259,14 @@
                         <th scope="col" class="px-6 py-3">Kode Komoditas</th>
                         <th scope="col" class="px-6 py-3">Komoditas</th>
                         <th scope="col" class="px-6 py-3">Inflasi</th>
-                        <!-- TODO: if inflasi hped then make it like naik/stabil/turun -->
-                        @if ($inflasi->first() && $inflasi->first()->kd_wilayah == 0)
+                        @if ($data['inflasi']->first() && $data['inflasi']->first()->kd_wilayah == 0)
                         <th scope="col" class="px-6 py-3">Andil</th>
                         @endif
                         <th scope="col" class="px-6 py-3"><span class="sr-only">Actions</span></th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($inflasi as $item)
+                    @foreach($data['inflasi'] as $item)
                     <tr class="bg-white border-b border-gray-200">
                         <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
                             {{ $item->kd_komoditas }}
@@ -286,25 +283,26 @@
                         </td>
                         @endif
                         <td class="px-6 py-4 text-right">
+                            @if($item->inflasi_id)
                             <button
                                 @click="openDeleteModal('{{ $item->inflasi_id }}', '{{ $item->komoditas->nama_komoditas }}')"
                                 class="font-medium text-red-600 hover:underline">
                                 Hapus
                             </button>
+                            @endif
                         </td>
-                        @endforeach
+                    </tr>
+                    @endforeach
                 </tbody>
             </table>
             @endif
         </div>
     </div>
 
-    @if($inflasi->hasPages())
+    @if($data['inflasi'] && $data['inflasi']->hasPages())
     <div class="mt-4">
-        {{ $inflasi->appends(request()->query())->links() }}
+        {{ $data['inflasi']->appends(request()->query())->links() }}
     </div>
     @endif
     @endif
-
-    </div>
 </x-two-panel-layout>

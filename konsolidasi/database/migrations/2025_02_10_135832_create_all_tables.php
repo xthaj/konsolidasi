@@ -65,7 +65,6 @@ return new class extends Migration
             $table->decimal('inflasi', 15, 2)->nullable();
             $table->decimal('andil', 15, 4)->nullable();
             $table->timestamps();
-
             $table->foreign('kd_komoditas')->references('kd_komoditas')->on('komoditas')->cascadeOnDelete();
             $table->foreign('kd_wilayah')->references('kd_wilayah')->on('wilayah')->cascadeOnDelete();
             $table->foreign('bulan_tahun_id')->references('bulan_tahun_id')->on('bulan_tahun')->noActionOnUpdate();

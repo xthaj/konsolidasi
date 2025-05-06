@@ -20,7 +20,15 @@
     <!-- Username -->
     <div>
         <label for="username" class="block mb-2 text-sm font-medium text-gray-900">Username</label>
-        <input type="text" id="username" name="username" x-model="username" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5" placeholder="hatta45" required />
+        <input
+            type="text"
+            id="username"
+            name="username"
+            x-model="username"
+            @input="username = $event.target.value.toLowerCase()"
+            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5"
+            placeholder="hatta45"
+            required />
         <template x-if="errors.usernameLength">
             <p class="mt-2 text-sm text-red-600">Username harus lebih dari 6 karakter.</p>
         </template>

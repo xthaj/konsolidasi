@@ -62,6 +62,8 @@
             <div>
                 <label class="block mb-1 text-sm font-medium text-gray-900">Tahun</label>
                 <select name="tahun" x-model="tahun" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5 focus:ring-primary-500 focus:border-primary-500">
+                    <option value="2024">2024</option>
+
                     <template x-for="year in tahunOptions" :key="year">
                         <option :value="year" :selected="year === tahun" x-text="year"></option>
                     </template>

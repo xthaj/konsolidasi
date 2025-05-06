@@ -38,7 +38,7 @@ class InflasiExport implements FromCollection, WithHeadings
                 'inflasi.kd_komoditas',
                 'inflasi.kd_wilayah',
                 'wilayah.nama_wilayah',
-                'inflasi.inflasi',
+                'inflasi.nilai_inflasi',
                 'inflasi.final_inflasi',
                 'inflasi.andil',
                 'inflasi.final_andil',

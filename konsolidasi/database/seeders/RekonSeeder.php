@@ -1,0 +1,332 @@
+<?php
+
+namespace Database\Seeders;
+
+use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use Illuminate\Database\Seeder;
+use App\Models\Wilayah;
+use App\Models\BulanTahun;
+use App\Models\Inflasi;
+use App\Models\User;
+use App\Models\Rekonsiliasi;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Faker\Factory as Faker;
+
+class RekonSeeder extends Seeder
+{
+
+    public function run(): void
+    {
+        $faker = Faker::create();
+        // 1. Clear existing test data to avoid duplicate key errors
+
+
+        // 2. Insert Wilayah (full list from original seeder)
+        DB::table('wilayah')->insert([
+            ['kd_wilayah' => 0, 'nama_wilayah' => "NASIONAL", 'flag' => 1, 'parent_kd' => null],
+            ['kd_wilayah' => "11", 'nama_wilayah' => "ACEH", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "12", 'nama_wilayah' => "SUMATERA UTARA", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "13", 'nama_wilayah' => "SUMATERA BARAT", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "14", 'nama_wilayah' => "RIAU", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "15", 'nama_wilayah' => "JAMBI", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "16", 'nama_wilayah' => "SUMATERA SELATAN", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "17", 'nama_wilayah' => "BENGKULU", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "18", 'nama_wilayah' => "LAMPUNG", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "19", 'nama_wilayah' => "KEPULAUAN BANGKA BELITUNG", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "21", 'nama_wilayah' => "KEPULAUAN RIAU", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "31", 'nama_wilayah' => "DKI JAKARTA", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "32", 'nama_wilayah' => "JAWA BARAT", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "33", 'nama_wilayah' => "JAWA TENGAH", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "34", 'nama_wilayah' => "DI YOGYAKARTA", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "35", 'nama_wilayah' => "JAWA TIMUR", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "36", 'nama_wilayah' => "BANTEN", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "51", 'nama_wilayah' => "BALI", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "52", 'nama_wilayah' => "NUSA TENGGARA BARAT", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "53", 'nama_wilayah' => "NUSA TENGGARA TIMUR", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "61", 'nama_wilayah' => "KALIMANTAN BARAT", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "62", 'nama_wilayah' => "KALIMANTAN TENGAH", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "63", 'nama_wilayah' => "KALIMANTAN SELATAN", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "64", 'nama_wilayah' => "KALIMANTAN TIMUR", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "65", 'nama_wilayah' => "KALIMANTAN UTARA", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "71", 'nama_wilayah' => "SULAWESI UTARA", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "72", 'nama_wilayah' => "SULAWESI TENGAH", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "73", 'nama_wilayah' => "SULAWESI SELATAN", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "74", 'nama_wilayah' => "SULAWESI TENGGARA", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "75", 'nama_wilayah' => "GORONTALO", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "76", 'nama_wilayah' => "SULAWESI BARAT", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "81", 'nama_wilayah' => "MALUKU", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "82", 'nama_wilayah' => "MALUKU UTARA", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "91", 'nama_wilayah' => "PAPUA BARAT", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "92", 'nama_wilayah' => "PAPUA BARAT DAYA", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "94", 'nama_wilayah' => "PAPUA", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "95", 'nama_wilayah' => "PAPUA SELATAN", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "96", 'nama_wilayah' => "PAPUA TENGAH", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "97", 'nama_wilayah' => "PAPUA PEGUNUNGAN", 'flag' => 2, 'parent_kd' => 0],
+            ['kd_wilayah' => "1106", 'nama_wilayah' => "KAB ACEH TENGAH", 'flag' => 3, 'parent_kd' => 11],
+            ['kd_wilayah' => "1107", 'nama_wilayah' => "MEULABOH", 'flag' => 3, 'parent_kd' => 11],
+            ['kd_wilayah' => "1114", 'nama_wilayah' => "KAB ACEH TAMIANG", 'flag' => 3, 'parent_kd' => 11],
+            ['kd_wilayah' => "1171", 'nama_wilayah' => "KOTA BANDA ACEH", 'flag' => 3, 'parent_kd' => 11],
+            ['kd_wilayah' => "1174", 'nama_wilayah' => "KOTA LHOKSEUMAWE", 'flag' => 3, 'parent_kd' => 11],
+            ['kd_wilayah' => "1207", 'nama_wilayah' => "KAB LABUHANBATU", 'flag' => 3, 'parent_kd' => 12],
+            ['kd_wilayah' => "1211", 'nama_wilayah' => "KAB KARO", 'flag' => 3, 'parent_kd' => 12],
+            ['kd_wilayah' => "1212", 'nama_wilayah' => "KAB DELI SERDANG", 'flag' => 3, 'parent_kd' => 12],
+            ['kd_wilayah' => "1271", 'nama_wilayah' => "KOTA SIBOLGA", 'flag' => 3, 'parent_kd' => 12],
+            ['kd_wilayah' => "1273", 'nama_wilayah' => "KOTA PEMATANG SIANTAR", 'flag' => 3, 'parent_kd' => 12],
+            ['kd_wilayah' => "1275", 'nama_wilayah' => "KOTA MEDAN", 'flag' => 3, 'parent_kd' => 12],
+            ['kd_wilayah' => "1277", 'nama_wilayah' => "KOTA PADANGSIDIMPUAN", 'flag' => 3, 'parent_kd' => 12],
+            ['kd_wilayah' => "1278", 'nama_wilayah' => "KOTA GUNUNGSITOLI", 'flag' => 3, 'parent_kd' => 12],
+            ['kd_wilayah' => "1311", 'nama_wilayah' => "KAB DHARMASRAYA", 'flag' => 3, 'parent_kd' => 13],
+            ['kd_wilayah' => "1312", 'nama_wilayah' => "KAB PASAMAN BARAT", 'flag' => 3, 'parent_kd' => 13],
+            ['kd_wilayah' => "1371", 'nama_wilayah' => "KOTA PADANG", 'flag' => 3, 'parent_kd' => 13],
+            ['kd_wilayah' => "1375", 'nama_wilayah' => "KOTA BUKITTINGGI", 'flag' => 3, 'parent_kd' => 13],
+            ['kd_wilayah' => "1403", 'nama_wilayah' => "TEMBILAHAN", 'flag' => 3, 'parent_kd' => 14],
+            ['kd_wilayah' => "1406", 'nama_wilayah' => "KAB KAMPAR", 'flag' => 3, 'parent_kd' => 14],
+            ['kd_wilayah' => "1471", 'nama_wilayah' => "KOTA PEKANBARU", 'flag' => 3, 'parent_kd' => 14],
+            ['kd_wilayah' => "1473", 'nama_wilayah' => "KOTA DUMAI", 'flag' => 3, 'parent_kd' => 14],
+            ['kd_wilayah' => "1501", 'nama_wilayah' => "KAB KERINCI", 'flag' => 3, 'parent_kd' => 15],
+            ['kd_wilayah' => "1509", 'nama_wilayah' => "MUARA BUNGO", 'flag' => 3, 'parent_kd' => 15],
+            ['kd_wilayah' => "1571", 'nama_wilayah' => "KOTA JAMBI", 'flag' => 3, 'parent_kd' => 15],
+            ['kd_wilayah' => "1602", 'nama_wilayah' => "KAB OGAN KOMERING ILIR", 'flag' => 3, 'parent_kd' => 16],
+            ['kd_wilayah' => "1603", 'nama_wilayah' => "KAB MUARA ENIM", 'flag' => 3, 'parent_kd' => 16],
+            ['kd_wilayah' => "1671", 'nama_wilayah' => "KOTA PALEMBANG", 'flag' => 3, 'parent_kd' => 16],
+            ['kd_wilayah' => "1674", 'nama_wilayah' => "KOTA LUBUK LINGGAU", 'flag' => 3, 'parent_kd' => 16],
+            ['kd_wilayah' => "1706", 'nama_wilayah' => "KAB MUKO MUKO", 'flag' => 3, 'parent_kd' => 17],
+            ['kd_wilayah' => "1771", 'nama_wilayah' => "KOTA BENGKULU", 'flag' => 3, 'parent_kd' => 17],
+            ['kd_wilayah' => "1804", 'nama_wilayah' => "KAB LAMPUNG TIMUR", 'flag' => 3, 'parent_kd' => 18],
+            ['kd_wilayah' => "1811", 'nama_wilayah' => "KAB MESUJI", 'flag' => 3, 'parent_kd' => 18],
+            ['kd_wilayah' => "1871", 'nama_wilayah' => "KOTA BANDAR LAMPUNG", 'flag' => 3, 'parent_kd' => 18],
+            ['kd_wilayah' => "1872", 'nama_wilayah' => "KOTA METRO", 'flag' => 3, 'parent_kd' => 18],
+            ['kd_wilayah' => "1902", 'nama_wilayah' => "TANJUNG PANDAN", 'flag' => 3, 'parent_kd' => 19],
+            ['kd_wilayah' => "1903", 'nama_wilayah' => "KAB BANGKA BARAT", 'flag' => 3, 'parent_kd' => 19],
+            ['kd_wilayah' => "1906", 'nama_wilayah' => "KAB BELITUNG TIMUR", 'flag' => 3, 'parent_kd' => 19],
+            ['kd_wilayah' => "1971", 'nama_wilayah' => "KOTA PANGKAL PINANG", 'flag' => 3, 'parent_kd' => 19],
+            ['kd_wilayah' => "2101", 'nama_wilayah' => "KAB KARIMUN", 'flag' => 3, 'parent_kd' => 21],
+            ['kd_wilayah' => "2171", 'nama_wilayah' => "KOTA BATAM", 'flag' => 3, 'parent_kd' => 21],
+            ['kd_wilayah' => "2172", 'nama_wilayah' => "KOTA TANJUNG PINANG", 'flag' => 3, 'parent_kd' => 21],
+            ['kd_wilayah' => "3100", 'nama_wilayah' => "DKI JAKARTA", 'flag' => 3, 'parent_kd' => 31],
+            ['kd_wilayah' => "3204", 'nama_wilayah' => "KAB BANDUNG", 'flag' => 3, 'parent_kd' => 32],
+            ['kd_wilayah' => "3210", 'nama_wilayah' => "KAB MAJALENGKA", 'flag' => 3, 'parent_kd' => 32],
+            ['kd_wilayah' => "3213", 'nama_wilayah' => "KAB SUBANG", 'flag' => 3, 'parent_kd' => 32],
+            ['kd_wilayah' => "3271", 'nama_wilayah' => "KOTA BOGOR", 'flag' => 3, 'parent_kd' => 32],
+            ['kd_wilayah' => "3272", 'nama_wilayah' => "KOTA SUKABUMI", 'flag' => 3, 'parent_kd' => 32],
+            ['kd_wilayah' => "3273", 'nama_wilayah' => "KOTA BANDUNG ", 'flag' => 3, 'parent_kd' => 32],
+            ['kd_wilayah' => "3274", 'nama_wilayah' => "KOTA CIREBON", 'flag' => 3, 'parent_kd' => 32],
+            ['kd_wilayah' => "3275", 'nama_wilayah' => "KOTA BEKASI", 'flag' => 3, 'parent_kd' => 32],
+            ['kd_wilayah' => "3276", 'nama_wilayah' => "KOTA DEPOK", 'flag' => 3, 'parent_kd' => 32],
+            ['kd_wilayah' => "3278", 'nama_wilayah' => "KOTA TASIKMALAYA", 'flag' => 3, 'parent_kd' => 32],
+            ['kd_wilayah' => "3301", 'nama_wilayah' => "CILACAP", 'flag' => 3, 'parent_kd' => 33],
+            ['kd_wilayah' => "3302", 'nama_wilayah' => "PURWOKERTO", 'flag' => 3, 'parent_kd' => 33],
+            ['kd_wilayah' => "3307", 'nama_wilayah' => "KAB WONOSOBO", 'flag' => 3, 'parent_kd' => 33],
+            ['kd_wilayah' => "3312", 'nama_wilayah' => "KAB WONOGIRI", 'flag' => 3, 'parent_kd' => 33],
+            ['kd_wilayah' => "3317", 'nama_wilayah' => "KAB REMBANG", 'flag' => 3, 'parent_kd' => 33],
+            ['kd_wilayah' => "3319", 'nama_wilayah' => "KUDUS", 'flag' => 3, 'parent_kd' => 33],
+            ['kd_wilayah' => "3372", 'nama_wilayah' => "KOTA SURAKARTA", 'flag' => 3, 'parent_kd' => 33],
+            ['kd_wilayah' => "3374", 'nama_wilayah' => "KOTA SEMARANG", 'flag' => 3, 'parent_kd' => 33],
+            ['kd_wilayah' => "3376", 'nama_wilayah' => "KOTA TEGAL", 'flag' => 3, 'parent_kd' => 33],
+            ['kd_wilayah' => "3403", 'nama_wilayah' => "KAB GUNUNGKIDUL", 'flag' => 3, 'parent_kd' => 34],
+            ['kd_wilayah' => "3471", 'nama_wilayah' => "KOTA YOGYAKARTA", 'flag' => 3, 'parent_kd' => 34],
+            ['kd_wilayah' => "3504", 'nama_wilayah' => "KAB TULUNGAGUNG", 'flag' => 3, 'parent_kd' => 35],
+            ['kd_wilayah' => "3509", 'nama_wilayah' => "JEMBER", 'flag' => 3, 'parent_kd' => 35],
+            ['kd_wilayah' => "3510", 'nama_wilayah' => "BANYUWANGI", 'flag' => 3, 'parent_kd' => 35],
+            ['kd_wilayah' => "3522", 'nama_wilayah' => "KAB BOJONEGORO", 'flag' => 3, 'parent_kd' => 35],
+            ['kd_wilayah' => "3525", 'nama_wilayah' => "KAB GRESIK", 'flag' => 3, 'parent_kd' => 35],
+            ['kd_wilayah' => "3529", 'nama_wilayah' => "SUMENEP", 'flag' => 3, 'parent_kd' => 35],
+            ['kd_wilayah' => "3571", 'nama_wilayah' => "KOTA KEDIRI", 'flag' => 3, 'parent_kd' => 35],
+            ['kd_wilayah' => "3573", 'nama_wilayah' => "KOTA MALANG", 'flag' => 3, 'parent_kd' => 35],
+            ['kd_wilayah' => "3574", 'nama_wilayah' => "KOTA PROBOLINGGO", 'flag' => 3, 'parent_kd' => 35],
+            ['kd_wilayah' => "3577", 'nama_wilayah' => "KOTA MADIUN", 'flag' => 3, 'parent_kd' => 35],
+            ['kd_wilayah' => "3578", 'nama_wilayah' => "KOTA SURABAYA", 'flag' => 3, 'parent_kd' => 35],
+            ['kd_wilayah' => "3601", 'nama_wilayah' => "KAB PANDEGLANG", 'flag' => 3, 'parent_kd' => 36],
+            ['kd_wilayah' => "3602", 'nama_wilayah' => "KAB LEBAK", 'flag' => 3, 'parent_kd' => 36],
+            ['kd_wilayah' => "3671", 'nama_wilayah' => "KOTA TANGERANG", 'flag' => 3, 'parent_kd' => 36],
+            ['kd_wilayah' => "3672", 'nama_wilayah' => "KOTA CILEGON", 'flag' => 3, 'parent_kd' => 36],
+            ['kd_wilayah' => "3673", 'nama_wilayah' => "KOTA SERANG", 'flag' => 3, 'parent_kd' => 36],
+            ['kd_wilayah' => "5102", 'nama_wilayah' => "KAB TABANAN", 'flag' => 3, 'parent_kd' => 51],
+            ['kd_wilayah' => "5103", 'nama_wilayah' => "KAB BADUNG", 'flag' => 3, 'parent_kd' => 51],
+            ['kd_wilayah' => "5108", 'nama_wilayah' => "SINGARAJA", 'flag' => 3, 'parent_kd' => 51],
+            ['kd_wilayah' => "5171", 'nama_wilayah' => "KOTA DENPASAR", 'flag' => 3, 'parent_kd' => 51],
+            ['kd_wilayah' => "5204", 'nama_wilayah' => "KAB SUMBAWA", 'flag' => 3, 'parent_kd' => 52],
+            ['kd_wilayah' => "5271", 'nama_wilayah' => "KOTA MATARAM", 'flag' => 3, 'parent_kd' => 52],
+            ['kd_wilayah' => "5272", 'nama_wilayah' => "KOTA BIMA", 'flag' => 3, 'parent_kd' => 52],
+            ['kd_wilayah' => "5302", 'nama_wilayah' => "WAINGAPU", 'flag' => 3, 'parent_kd' => 53],
+            ['kd_wilayah' => "5304", 'nama_wilayah' => "KAB TIMOR TENGAH SELATAN", 'flag' => 3, 'parent_kd' => 53],
+            ['kd_wilayah' => "5310", 'nama_wilayah' => "MAUMERE", 'flag' => 3, 'parent_kd' => 53],
+            ['kd_wilayah' => "5312", 'nama_wilayah' => "KAB NGADA", 'flag' => 3, 'parent_kd' => 53],
+            ['kd_wilayah' => "5371", 'nama_wilayah' => "KOTA KUPANG", 'flag' => 3, 'parent_kd' => 53],
+            ['kd_wilayah' => "6106", 'nama_wilayah' => "KAB KETAPANG", 'flag' => 3, 'parent_kd' => 61],
+            ['kd_wilayah' => "6107", 'nama_wilayah' => "SINTANG", 'flag' => 3, 'parent_kd' => 61],
+            ['kd_wilayah' => "6111", 'nama_wilayah' => "KAB KAYONG UTARA", 'flag' => 3, 'parent_kd' => 61],
+            ['kd_wilayah' => "6171", 'nama_wilayah' => "KOTA PONTIANAK", 'flag' => 3, 'parent_kd' => 61],
+            ['kd_wilayah' => "6172", 'nama_wilayah' => "KOTA SINGKAWANG", 'flag' => 3, 'parent_kd' => 61],
+            ['kd_wilayah' => "6202", 'nama_wilayah' => "SAMPIT", 'flag' => 3, 'parent_kd' => 62],
+            ['kd_wilayah' => "6203", 'nama_wilayah' => "KAB KAPUAS", 'flag' => 3, 'parent_kd' => 62],
+            ['kd_wilayah' => "6206", 'nama_wilayah' => "KAB SUKAMARA", 'flag' => 3, 'parent_kd' => 62],
+            ['kd_wilayah' => "6271", 'nama_wilayah' => "KOTA PALANGKARAYA", 'flag' => 3, 'parent_kd' => 62],
+            ['kd_wilayah' => "6301", 'nama_wilayah' => "KAB TANAH LAUT", 'flag' => 3, 'parent_kd' => 63],
+            ['kd_wilayah' => "6302", 'nama_wilayah' => "KOTABARU", 'flag' => 3, 'parent_kd' => 63],
+            ['kd_wilayah' => "6307", 'nama_wilayah' => "KAB HULU SUNGAI TENGAH", 'flag' => 3, 'parent_kd' => 63],
+            ['kd_wilayah' => "6309", 'nama_wilayah' => "TANJUNG", 'flag' => 3, 'parent_kd' => 63],
+            ['kd_wilayah' => "6371", 'nama_wilayah' => "KOTA BANJARMASIN", 'flag' => 3, 'parent_kd' => 63],
+            ['kd_wilayah' => "6405", 'nama_wilayah' => "KAB BERAU", 'flag' => 3, 'parent_kd' => 64],
+            ['kd_wilayah' => "6409", 'nama_wilayah' => "KAB PENAJAM PASER UTARA", 'flag' => 3, 'parent_kd' => 64],
+            ['kd_wilayah' => "6471", 'nama_wilayah' => "KOTA BALIKPAPAN", 'flag' => 3, 'parent_kd' => 64],
+            ['kd_wilayah' => "6472", 'nama_wilayah' => "KOTA SAMARINDA", 'flag' => 3, 'parent_kd' => 64],
+            ['kd_wilayah' => "6502", 'nama_wilayah' => "TANJUNG SELOR", 'flag' => 3, 'parent_kd' => 65],
+            ['kd_wilayah' => "6504", 'nama_wilayah' => "KAB NUNUKAN", 'flag' => 3, 'parent_kd' => 65],
+            ['kd_wilayah' => "6571", 'nama_wilayah' => "KOTA TARAKAN", 'flag' => 3, 'parent_kd' => 65],
+            ['kd_wilayah' => "7105", 'nama_wilayah' => "KAB MINAHASA SELATAN", 'flag' => 3, 'parent_kd' => 71],
+            ['kd_wilayah' => "7106", 'nama_wilayah' => "KAB MINAHASA UTARA", 'flag' => 3, 'parent_kd' => 71],
+            ['kd_wilayah' => "7171", 'nama_wilayah' => "KOTA MANADO", 'flag' => 3, 'parent_kd' => 71],
+            ['kd_wilayah' => "7174", 'nama_wilayah' => "KOTA KOTAMOBAGU", 'flag' => 3, 'parent_kd' => 71],
+            ['kd_wilayah' => "7202", 'nama_wilayah' => "LUWUK", 'flag' => 3, 'parent_kd' => 72],
+            ['kd_wilayah' => "7203", 'nama_wilayah' => "KAB MOROWALI", 'flag' => 3, 'parent_kd' => 72],
+            ['kd_wilayah' => "7206", 'nama_wilayah' => "KAB TOLI TOLI", 'flag' => 3, 'parent_kd' => 72],
+            ['kd_wilayah' => "7271", 'nama_wilayah' => "KOTA PALU", 'flag' => 3, 'parent_kd' => 72],
+            ['kd_wilayah' => "7302", 'nama_wilayah' => "BULUKUMBA", 'flag' => 3, 'parent_kd' => 73],
+            ['kd_wilayah' => "7311", 'nama_wilayah' => "WATAMPONE", 'flag' => 3, 'parent_kd' => 73],
+            ['kd_wilayah' => "7313", 'nama_wilayah' => "KAB WAJO", 'flag' => 3, 'parent_kd' => 73],
+            ['kd_wilayah' => "7314", 'nama_wilayah' => "KAB SIDENRENG RAPPANG", 'flag' => 3, 'parent_kd' => 73],
+            ['kd_wilayah' => "7325", 'nama_wilayah' => "KAB LUWU TIMUR", 'flag' => 3, 'parent_kd' => 73],
+            ['kd_wilayah' => "7371", 'nama_wilayah' => "KOTA MAKASSAR", 'flag' => 3, 'parent_kd' => 73],
+            ['kd_wilayah' => "7372", 'nama_wilayah' => "KOTA PARE PARE", 'flag' => 3, 'parent_kd' => 73],
+            ['kd_wilayah' => "7373", 'nama_wilayah' => "KOTA PALOPO", 'flag' => 3, 'parent_kd' => 73],
+            ['kd_wilayah' => "7403", 'nama_wilayah' => "KAB KONAWE", 'flag' => 3, 'parent_kd' => 74],
+            ['kd_wilayah' => "7404", 'nama_wilayah' => "KAB KOLAKA", 'flag' => 3, 'parent_kd' => 74],
+            ['kd_wilayah' => "7471", 'nama_wilayah' => "KOTA KENDARI", 'flag' => 3, 'parent_kd' => 74],
+            ['kd_wilayah' => "7472", 'nama_wilayah' => "KOTA BAU BAU", 'flag' => 3, 'parent_kd' => 74],
+            ['kd_wilayah' => "7502", 'nama_wilayah' => "KAB GORONTALO", 'flag' => 3, 'parent_kd' => 75],
+            ['kd_wilayah' => "7571", 'nama_wilayah' => "KOTA GORONTALO ", 'flag' => 3, 'parent_kd' => 75],
+            ['kd_wilayah' => "7601", 'nama_wilayah' => "KAB MAJENE", 'flag' => 3, 'parent_kd' => 76],
+            ['kd_wilayah' => "7604", 'nama_wilayah' => "MAMUJU", 'flag' => 3, 'parent_kd' => 76],
+            ['kd_wilayah' => "8103", 'nama_wilayah' => "KAB MALUKU TENGAH", 'flag' => 3, 'parent_kd' => 81],
+            ['kd_wilayah' => "8171", 'nama_wilayah' => "KOTA AMBON", 'flag' => 3, 'parent_kd' => 81],
+            ['kd_wilayah' => "8172", 'nama_wilayah' => "KOTA TUAL", 'flag' => 3, 'parent_kd' => 81],
+            ['kd_wilayah' => "8202", 'nama_wilayah' => "KAB HALMAHERA TENGAH", 'flag' => 3, 'parent_kd' => 82],
+            ['kd_wilayah' => "8271", 'nama_wilayah' => "KOTA TERNATE", 'flag' => 3, 'parent_kd' => 82],
+            ['kd_wilayah' => "9105", 'nama_wilayah' => "MANOKWARI", 'flag' => 3, 'parent_kd' => 91],
+            ['kd_wilayah' => "9202", 'nama_wilayah' => "KAB SORONG", 'flag' => 3, 'parent_kd' => 92],
+            ['kd_wilayah' => "9203", 'nama_wilayah' => "KAB SORONG SELATAN", 'flag' => 3, 'parent_kd' => 92],
+            ['kd_wilayah' => "9271", 'nama_wilayah' => "KOTA SORONG ", 'flag' => 3, 'parent_kd' => 92],
+            ['kd_wilayah' => "9471", 'nama_wilayah' => "KOTA JAYAPURA", 'flag' => 3, 'parent_kd' => 94],
+            ['kd_wilayah' => "9501", 'nama_wilayah' => "MERAUKE", 'flag' => 3, 'parent_kd' => 95],
+            ['kd_wilayah' => "9601", 'nama_wilayah' => "TIMIKA", 'flag' => 3, 'parent_kd' => 96],
+            ['kd_wilayah' => "9604", 'nama_wilayah' => "KAB NABIRE", 'flag' => 3, 'parent_kd' => 96],
+            ['kd_wilayah' => "9702", 'nama_wilayah' => "KAB JAYAWIJAYA", 'flag' => 3, 'parent_kd' => 97],
+
+
+        ]);
+
+        // level harga
+        DB::table('level_harga')->insert([
+            ['kd_level' => "01", 'nama_level' => "Harga Konsumen Kota"],
+            ['kd_level' => "02", 'nama_level' => "Harga Konsumen Desa"],
+            ['kd_level' => "03", 'nama_level' => "Harga Perdagangan Besar"],
+            ['kd_level' => "04", 'nama_level' => "Harga Produsen Desa"],
+            ['kd_level' => "05", 'nama_level' => "Harga Produsen"],
+        ]);
+
+        // komoditas
+        DB::table('komoditas')->insert([
+            ['kd_komoditas' => "000", 'nama_komoditas' => "Umum"],
+            ['kd_komoditas' => "001", 'nama_komoditas' => "Gabah"],
+            ['kd_komoditas' => "002", 'nama_komoditas' => "GKG"],
+            ['kd_komoditas' => "003", 'nama_komoditas' => "GKP"],
+            ['kd_komoditas' => "004", 'nama_komoditas' => "Gabah Luar Kualitas"],
+            ['kd_komoditas' => "005", 'nama_komoditas' => "Beras"],
+            ['kd_komoditas' => "006", 'nama_komoditas' => "Beras Premium"],
+            ['kd_komoditas' => "007", 'nama_komoditas' => "Beras Medium"],
+            ['kd_komoditas' => "008", 'nama_komoditas' => "Beras Submedium"],
+            ['kd_komoditas' => "009", 'nama_komoditas' => "Beras Pecah"],
+            ['kd_komoditas' => "010", 'nama_komoditas' => "Jagung"],
+            ['kd_komoditas' => "011", 'nama_komoditas' => "Daging Ayam Ras"],
+            ['kd_komoditas' => "012", 'nama_komoditas' => "Ayam Hidup (RAS)"],
+            ['kd_komoditas' => "013", 'nama_komoditas' => "Ayam Kampung"],
+            ['kd_komoditas' => "014", 'nama_komoditas' => "Daging Sapi"],
+            ['kd_komoditas' => "015", 'nama_komoditas' => "Sapi"],
+            ['kd_komoditas' => "016", 'nama_komoditas' => "Telur Ayam Ras"],
+            ['kd_komoditas' => "017", 'nama_komoditas' => "Bawang Merah"],
+            ['kd_komoditas' => "018", 'nama_komoditas' => "Bawang Putih"],
+            ['kd_komoditas' => "019", 'nama_komoditas' => "Cabai Merah"],
+            ['kd_komoditas' => "020", 'nama_komoditas' => "Cabai Rawit"],
+            ['kd_komoditas' => "021", 'nama_komoditas' => "Tomat"],
+            ['kd_komoditas' => "022", 'nama_komoditas' => "Gula Pasir"],
+            ['kd_komoditas' => "023", 'nama_komoditas' => "Tepung Terigu"],
+            ['kd_komoditas' => "024", 'nama_komoditas' => "Minyak Goreng"],
+            ['kd_komoditas' => "025", 'nama_komoditas' => "CPO"],
+            ['kd_komoditas' => "026", 'nama_komoditas' => "TBS"],
+            ['kd_komoditas' => "027", 'nama_komoditas' => "Tarif Angkutan Udara"],
+            ['kd_komoditas' => "028", 'nama_komoditas' => "AKAP"],
+            ['kd_komoditas' => "029", 'nama_komoditas' => "Angkutan dalam kota"],
+            ['kd_komoditas' => "030", 'nama_komoditas' => "Pengiriman barang"],
+            ['kd_komoditas' => "031", 'nama_komoditas' => "Tarif Kendaraan Travel"],
+            ['kd_komoditas' => "032", 'nama_komoditas' => "Taksi"],
+            ['kd_komoditas' => "033", 'nama_komoditas' => "KAI"],
+            ['kd_komoditas' => "034", 'nama_komoditas' => "Ojek Online 2"],
+            ['kd_komoditas' => "035", 'nama_komoditas' => "Ojek Online 4"],
+            ['kd_komoditas' => "036", 'nama_komoditas' => "Tarif Pulsa"],
+            ['kd_komoditas' => "037", 'nama_komoditas' => "Layanan Internet"],
+            ['kd_komoditas' => "038", 'nama_komoditas' => "PAUD"],
+            ['kd_komoditas' => "039", 'nama_komoditas' => "TK"],
+            ['kd_komoditas' => "040", 'nama_komoditas' => "SD"],
+            ['kd_komoditas' => "041", 'nama_komoditas' => "SLTP"],
+            ['kd_komoditas' => "042", 'nama_komoditas' => "SLTA"],
+            ['kd_komoditas' => "043", 'nama_komoditas' => "PT"],
+            ['kd_komoditas' => "044", 'nama_komoditas' => "Sigaret Kretek Tangan (SKT)"],
+            ['kd_komoditas' => "045", 'nama_komoditas' => "Sigaret Kretek Mesin (SKM)"],
+            ['kd_komoditas' => "046", 'nama_komoditas' => "Sigaret Putih Mesin (SPM)"],
+            ['kd_komoditas' => "047", 'nama_komoditas' => "Emas Perhiasan"],
+            ['kd_komoditas' => "048", 'nama_komoditas' => "Emas Batangan"],
+            ['kd_komoditas' => "049", 'nama_komoditas' => "Bensin"],
+            ['kd_komoditas' => "050", 'nama_komoditas' => "Solar"],
+            ['kd_komoditas' => "051", 'nama_komoditas' => "Tarif PDAM (PAM)"],
+        ]);
+
+        Log::info('Users before user creation: ' . DB::table('user')->count()); // Should be 0
+
+
+        // 3. Create 1 BulanTahun
+        $bulanTahun = BulanTahun::factory()->create([
+            'bulan_tahun_id' => 1,
+            'bulan' => 3,
+            'tahun' => 2025,
+            'aktif' => 1,
+        ]);
+
+        // 4. Create 400 Users with random kd_wilayah
+        $users = collect();
+        for ($i = 1; $i <= 400; $i++) {
+            $user = User::factory()->create([
+                'user_id' => 100 + $i, // 101, 102, ..., 500
+                'is_pusat' => 1,
+                'is_admin' => 0,
+                'kd_wilayah' => 0,
+                'password' => bcrypt('password'),
+            ]);
+            $users->push($user);
+        }
+
+        Log::info('Users after user creation: ' . DB::table('user')->count()); // Should be 400
+
+        // 5. Create 400 Inflasi using existing kd_komoditas, kd_wilayah, kd_level
+        $inflasis = collect();
+        for ($i = 1; $i <= 400; $i++) {
+            $inflasi = Inflasi::factory()->create([
+                'inflasi_id' => $i, // 1 to 400
+                'bulan_tahun_id' => $bulanTahun->bulan_tahun_id, // 1
+            ]);
+            $inflasis->push($inflasi);
+        }
+
+        // 6. Create 400 Rekonsiliasi (one for each inflasi and user)
+        foreach ($inflasis as $index => $inflasi) {
+            Rekonsiliasi::factory()->create([
+                'rekonsiliasi_id' => 364 + $index, // 364, 365, ..., 763
+                'inflasi_id' => $inflasi->inflasi_id,
+                'bulan_tahun_id' => $bulanTahun->bulan_tahun_id,
+            ]);
+        }
+
+        Log::info('Users after rekonsiliasi creation: ' . DB::table('user')->count()); // Should be 400
+    }
+}
