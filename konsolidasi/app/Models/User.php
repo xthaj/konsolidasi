@@ -12,9 +12,20 @@ class User extends Authenticatable
 
     protected $table = 'user';
     protected $primaryKey = 'user_id';
-    protected $fillable = ['username', 'password', 'nama_lengkap', 'is_pusat', 'is_admin', 'kd_wilayah'];
-    protected $hidden = ['password', 'created_at', 'updated_at']; // Hide sensitive fields
 
+    protected $fillable = [
+        'username',
+        'password',
+        'nama_lengkap',
+        'level',
+        'kd_wilayah'
+    ];
+
+    protected $hidden = [
+        'password',
+        'created_at',
+        'updated_at'
+    ];
     public function wilayah()
     {
         return $this->belongsTo(Wilayah::class, 'kd_wilayah', 'kd_wilayah');
@@ -22,12 +33,13 @@ class User extends Authenticatable
 
     public function getAuthIdentifierName()
     {
-        return 'username'; // Return the name of your username field (e.g., 'user_identifier')
+        return 'username'; // Return the name of  username field
     }
 
+    // Helper method
     public function isPusat(): bool
     {
-        return $this->is_pusat;
+        return in_array($this->level, [0, 1]); // Admin or Operator Pusat
     }
 
     public static function usernameExists($username)
@@ -35,7 +47,7 @@ class User extends Authenticatable
         return self::where('username', $username)->exists();
     }
 
-    //mutator
+    // mutator
     public function setUsernameAttribute($value)
     {
         $this->attributes['username'] = strtolower(trim($value));
