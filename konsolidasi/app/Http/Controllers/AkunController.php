@@ -3,13 +3,22 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Services\UserService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
 class AkunController extends Controller
 {
+    protected $userService;
+
+    public function __construct(UserService $userService)
+    {
+        $this->userService = $userService;
+    }
     public function index(Request $request)
     {
         $query = User::with('wilayah');
@@ -65,30 +74,27 @@ class AkunController extends Controller
         ]);
     }
 
+
+
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'username' => ['required', 'string', 'max:255', Rule::unique('user')],
-            'nama_lengkap' => ['required', 'string', 'max:255'],
-            'password' => ['required', 'string', 'min:6'],
-            'is_admin' => ['boolean'],
-            'kd_wilayah' => ['nullable', 'string', 'exists:wilayah,kd_wilayah'],
-        ]);
+        // dd($request->all());
+        try {
+            // Create user using UserService
+            $result = $this->userService->createUser($request, true);
 
-        Log::info('Validated data:', $validated); // Add this line
-
-        $user = User::create([
-            'username' => $validated['username'],
-            'nama_lengkap' => $validated['nama_lengkap'],
-            'password' => Hash::make($validated['password']),
-            'is_admin' => $validated['is_admin'] ?? false,
-            'kd_wilayah' => $validated['kd_wilayah'] ?? null,
-            'is_pusat' => !$validated['kd_wilayah'],
-        ]);
-
-        Log::info('User created:', $user->toArray()); // Add this line
-
-        return response()->json($user->load('wilayah'), 201);
+            return response()->json($result['user'], 201);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'An unexpected error occurred',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 
     public function update(Request $request, $user_id)
