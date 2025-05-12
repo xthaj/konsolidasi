@@ -14,11 +14,15 @@ use App\Http\Middleware\isPusat;
 use App\Models\BulanTahun;
 use App\Models\Komoditas;
 use App\Models\Wilayah;
+use App\Models\Alasan;
 use Illuminate\Support\Facades\Cache;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\KomoditasExport;
 use App\Exports\WilayahExport;
 use App\Http\Controllers\AkunController;
+use App\Http\Resources\AlasanResource;
+use App\Http\Resources\WilayahResource;
+use App\Http\Resources\BulanTahunResource;
 
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth'])
@@ -89,21 +93,45 @@ Route::middleware('auth')->group(function () {
 // APIs
 Route::get('/api/wilayah', function () {
     Log::info('Wilayah data NOT fetched from database', ['timestamp' => now()]);
+
     $data = Cache::rememberForever('wilayah_data', function () {
         Log::info('Wilayah data fetched from database', ['timestamp' => now()]);
         return [
-            'provinces' => Wilayah::where('flag', 2)->get(),
-            'kabkots' => Wilayah::where('flag', 3)->get(),
+            'provinces' => WilayahResource::collection(Wilayah::where('flag', 2)->get()),
+            'kabkots' => WilayahResource::collection(Wilayah::where('flag', 3)->get()),
         ];
     });
 
-    return response()->json($data);
+    return response()->json(['data' => $data]);
+});
+
+Route::get('/api/bulan_tahun', function () {
+    Log::info('BT aktif data NOT fetched from database', ['timestamp' => now()]);
+
+    $data = Cache::remember('bt_aktif', now()->addWeek(), function () {
+        Log::info('BT aktif fetched from database', ['timestamp' => now()]);
+
+        $btAktif = BulanTahun::where('aktif', 1)->first();
+        $minTahun = BulanTahun::min('tahun') ?? now()->year;
+        $maxTahun = BulanTahun::max('tahun') ?? now()->year;
+
+        $tahun = range($minTahun - 2, $maxTahun + 2);
+
+        return [
+            'bt_aktif' => $btAktif,
+            'tahun' => $tahun,
+        ];
+    });
+
+    return BulanTahunResource::make($data);
 });
 
 // Komoditas
 Route::post('/komoditas', [KomoditasController::class, 'store']); // Add Komoditas
 Route::put('/komoditas/{kd_komoditas}', [KomoditasController::class, 'update']); // Edit Komoditas
 Route::delete('/komoditas/{kd_komoditas}', [KomoditasController::class, 'destroy']); // Delete Komoditas
+
+// NOTE: The APIs can be cleaned up further by using resource stuff
 
 Route::get('/api/komoditas', function () {
     Log::info('Komoditas data NOT fetched from database', ['timestamp' => now()]);
@@ -116,6 +144,16 @@ Route::get('/api/komoditas', function () {
 });
 
 
+
+Route::get('/api/alasan', function () {
+    Log::info('Alasan data NOT fetched from database', ['timestamp' => now()]);
+    $data = Cache::rememberForever('alasan_data', function () {
+        Log::info('Alasan data fetched from database', ['timestamp' => now()]);
+        return Alasan::all();
+    });
+    return AlasanResource::collection($data);
+});
+
 Route::get('/komoditas/export', function () {
     return Excel::download(new KomoditasExport, 'master_komoditas.xlsx');
 });
@@ -124,18 +162,7 @@ Route::get('/wilayah/export', function () {
     return Excel::download(new WilayahExport, 'master_wilayah.xlsx');
 });
 
-Route::get('/api/bulan_tahun', function () {
-    Log::info('BT aktif data NOT fetched from database', ['timestamp' => now()]);
-    $data = Cache::remember('bt_aktif', now()->addWeek(), function () {
-        Log::info('BT aktif fetched from database', ['timestamp' => now()]);
-        return [
-            'bt_aktif' => BulanTahun::where('aktif', 1)->first(),
-            'tahun' => BulanTahun::pluck('tahun')->unique()->all(),
-        ];
-    });
 
-    return response()->json($data);
-});
 
 Route::post('/update-bulan-tahun', [DataController::class, 'updateBulanTahun']);
 
