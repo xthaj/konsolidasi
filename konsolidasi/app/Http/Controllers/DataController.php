@@ -6,6 +6,7 @@ use App\Models\Komoditas;
 use App\Models\Wilayah;
 use App\Models\Inflasi;
 use App\Models\BulanTahun;
+use App\Models\LevelHarga;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
@@ -16,6 +17,7 @@ use Illuminate\Support\Facades\Cache;
 use App\Models\Rekonsiliasi;
 use Illuminate\Support\Facades\DB;
 use App\Exports\InflasiExport;
+use Illuminate\Support\Facades\Redirect;
 
 class DataController extends Controller
 {
@@ -229,104 +231,179 @@ class DataController extends Controller
 
     public function upload(Request $request)
     {
-        Log::info('Upload Request Data:', $request->all());
-        Log::info('Uploaded File:', [$request->hasFile('file'), $request->file('file')]);
-
-        $request->merge(['bulan' => (int) $request->bulan]);
-
-        $validated = $request->validate([
-            'file' => 'required|file|mimes:xlsx,xls',
-            'bulan' => 'required|integer|between:1,12',
-            'tahun' => 'required|integer',
-            'level' => 'required|string|in:01,02,03,04,05',
+        // Log the entire request for debugging
+        Log::debug('Upload request received', [
+            'request' => $request->all(),
+            'has_file' => $request->hasFile('file'),
+            'file' => $request->file('file') ? $request->file('file')->getClientOriginalName() : 'No file',
         ]);
 
+        // Validation rules
+        $rules = [
+            'file' => 'required|file|mimes:xlsx,xls|max:5120', // 5MB
+            'bulan' => 'required|integer|between:1,12',
+            'tahun' => 'required|integer|min:2000|max:3000',
+            'level' => 'required|string|in:01,02,03,04,05',
+        ];
+
+        // Custom validation messages
+        $messages = [
+            'file.required' => 'File Excel wajib diunggah.',
+            'file.file' => 'File harus berupa dokumen.',
+            'file.mimes' => 'Format file harus xlsx atau xls.',
+            'file.max' => 'Ukuran file tidak boleh lebih dari 5MB.',
+            'bulan.required' => 'Bulan wajib diisi.',
+            'bulan.integer' => 'Bulan harus berupa angka.',
+            'bulan.between' => 'Bulan tidak valid.',
+            'tahun.required' => 'Tahun wajib diisi.',
+            'tahun.integer' => 'Tahun harus berupa angka.',
+            'tahun.min' => 'Tahun tidak valid.',
+            'tahun.max' => 'Tahun tidak valid.',
+            'level.required' => 'Level harga wajib dipilih.',
+            'level.string' => 'Level harga tidak valid.',
+            'level.in' => 'Level harga harus salah satu dari: 01, 02, 03, 04, atau 05.',
+        ];
+
+        // Validate request
+        try {
+            $validated = $request->validate($rules, $messages);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Log validation errors
+            Log::error('Validation failed', [
+                'errors' => $e->errors(),
+                'request' => $request->all(),
+            ]);
+
+            // Return back with errors
+            return redirect()->back()->withErrors($e->errors())->withInput();
+        }
+
+        // Set PHP runtime limits
         ini_set('memory_limit', '512M');
         ini_set('max_execution_time', 300);
 
         try {
+            // Verify file is valid
+            if (!$request->file('file')->isValid()) {
+                Log::error('File upload failed', [
+                    'error' => $request->file('file')->getErrorMessage(),
+                ]);
+                return redirect()->back()->withErrors(['file' => 'File gagal diunggah: ' . $request->file('file')->getErrorMessage()])->withInput();
+            }
+
+            // Perform import
             $import = new DataImport($validated['bulan'], $validated['tahun'], $validated['level']);
             Excel::import($import, $request->file('file'));
-
             $summary = $import->getSummary();
 
-            // Map level harga to human-readable format
-            $levelHargaMap = [
-                '01' => 'Harga Konsumen Kota',
-                '02' => 'Harga Konsumen Desa',
-                '03' => 'Harga Perdagangan Besar',
-                '04' => 'Harga Produsen Desa',
-                '05' => 'Harga Produsen',
-            ];
-            $levelHarga = $levelHargaMap[$validated['level']] ?? 'Unknown';
-
-            // Map bulan to Indonesian month names
-            $bulanMap = [
-                1 => 'Januari',
-                2 => 'Februari',
-                3 => 'Maret',
-                4 => 'April',
-                5 => 'Mei',
-                6 => 'Juni',
-                7 => 'Juli',
-                8 => 'Agustus',
-                9 => 'September',
-                10 => 'Oktober',
-                11 => 'November',
-                12 => 'Desember'
-            ];
-            $bulan = $bulanMap[$validated['bulan']] ?? $validated['bulan'];
-
-            // Check for errors first
-            if ($import->getErrors()->isNotEmpty()) {
-                $failedRow = $summary['failed_row'];
-                $chunkSize = 100; // Matches DataImport::chunkSize()
-                $lastSuccessfulRow = floor(($failedRow - 1) / $chunkSize) * $chunkSize;
-
-                $errors = $import->getErrors()->all();
-                $firstError = $errors[0] ?? '';
-                $errorMessages = [];
-
-                if ($failedRow === 2 && str_contains($firstError, 'kd_komoditas kosong')) {
-                    $errorMessages = [
-                        "File mungkin tidak memiliki header yang benar. Perbaiki sesuai template",
-                        "Kesalahan ditemukan di baris $failedRow: $firstError",
-                    ];
-                } else {
-                    $errorMessages = [
-                        "Terdapat kesalahan di baris $failedRow",
-                        ...$errors,
-                        "Upload berhasil sampai dengan baris $lastSuccessfulRow",
-                        "Hapus data sampai baris $lastSuccessfulRow (opsional), perbaiki baris selanjutnya.",
-                    ];
-
-                    if ($summary['updated'] > 0 || $summary['inserted'] > 0) {
-                        $errorMessages[] = "Data yang berhasil diproses sebelum kesalahan: {$summary['updated']} update (jika ada perubahan), {$summary['inserted']} data baru.";
-                    }
-                }
-
-                return redirect()->back()->withErrors($errorMessages);
-            }
-
-            // Handle success case explicitly
-            if ($summary['updated'] === 0 && $summary['inserted'] === 0) {
-                $errorMessages = [
-                    "Apakah file kosong? Tidak ada data yang berhasil diimpor.",
-                    "Periksa file Anda dan coba lagi.",
-                ];
-                return redirect()->back()->withErrors($errorMessages);
-            }
-
-            // Success message with level harga, bulan, and tahun
-            $message = [
-                "Data Level Harga $levelHarga bulan $bulan Tahun {$validated['tahun']} berhasil diupload.",
-                "Data berhasil diproses: {$summary['updated']} update, {$summary['inserted']} data baru.",
-            ];
-            return redirect()->back()->with('success', $message);
+            // Handle import results
+            return $this->handleImportResult($import, $summary, $validated);
         } catch (\Exception $e) {
-            return redirect()->back()->withErrors(['Error importing data: ' . $e->getMessage()]);
+            // Log import errors
+            Log::error('Import failed', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return redirect()->back()->withErrors(['file' => 'Error importing data: ' . $e->getMessage()]);
         }
     }
+
+    /**
+     * Handle the result of the import process.
+     *
+     * @param DataImport $import
+     * @param array $summary
+     * @param array $validated
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    private function handleImportResult(DataImport $import, array $summary, array $validated)
+    {
+        $levelHarga = LevelHarga::getLevelHargaNameComplete($validated['level']);
+        $bulan = BulanTahun::getBulanName($validated['bulan']);
+        $tahun = $validated['tahun'];
+
+        // Check for validation errors in rows
+        if ($import->getErrors()->isNotEmpty()) {
+            return $this->handleImportErrors($import, $summary, $levelHarga, $bulan, $tahun);
+        }
+
+        // Check for no data processed
+        if ($summary['updated'] === 0 && $summary['inserted'] === 0) {
+            return Redirect::back()->withErrors([
+                'Apakah file kosong? Tidak ada data yang berhasil diimpor.',
+                'Periksa file Anda dan coba lagi.',
+            ]);
+        }
+
+        // Success case
+        $message = [
+            "Data Level Harga $levelHarga bulan $bulan Tahun $tahun berhasil diupload.",
+            "Data berhasil diproses: {$summary['updated']} update, {$summary['inserted']} data baru.",
+        ];
+
+        // Add warnings if present
+        $warnings = array_filter($import->getErrors()->all(), fn($key) => str_ends_with($key, '_warning'), ARRAY_FILTER_USE_KEY);
+        if (!empty($warnings)) {
+            $message[] = "Peringatan: " . implode(', ', $warnings);
+        }
+
+        return Redirect::back()->with('success', $message);
+    }
+
+    /**
+     * Handle errors during import.
+     *
+     * @param DataImport $import
+     * @param array $summary
+     * @param string $levelHarga
+     * @param string $bulan
+     * @param int $tahun
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    private function handleImportErrors(DataImport $import, array $summary, string $levelHarga, string $bulan, int $tahun)
+    {
+        $errors = $import->getErrors()->all();
+        $failedRow = $summary['failed_row'];
+        $chunkSize = 100;
+        $lastSuccessfulRow = floor(($failedRow - 1) / $chunkSize) * $chunkSize;
+
+        $errorMessages = [];
+        $warnings = [];
+
+        // Separate errors and warnings
+        foreach ($errors as $key => $message) {
+            if (str_ends_with($key, '_warning')) {
+                $warnings[] = $message;
+            } else {
+                $errorMessages[] = $message;
+            }
+        }
+
+        $additionalMessages = [];
+        if ($lastSuccessfulRow > 0) {
+            $additionalMessages[] = "Upload berhasil sampai dengan baris $lastSuccessfulRow";
+            $additionalMessages[] = 'Hapus data sampai baris ' . $lastSuccessfulRow . ' (opsional), perbaiki baris selanjutnya.';
+        }
+
+        $errorMessages = array_merge(
+            ["Terdapat kesalahan di baris $failedRow"],
+            $errorMessages,
+            $additionalMessages
+        );
+
+        if ($summary['updated'] > 0 || $summary['inserted'] > 0) {
+            $errorMessages[] = "Data yang berhasil diproses sebelum kesalahan: {$summary['updated']} update (jika ada perubahan), {$summary['inserted']} data baru.";
+        }
+
+        // Add warnings if present
+        if (!empty($warnings)) {
+            $errorMessages[] = "Peringatan: " . implode(', ', $warnings);
+        }
+
+        return Redirect::back()->withErrors($errorMessages);
+    }
+
 
     public function final_upload(Request $request)
     {

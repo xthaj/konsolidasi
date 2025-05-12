@@ -32,44 +32,81 @@
     <x-modal name="add-user" focusable title="Tambah Pengguna">
         <div class="px-6 py-4">
             <form @submit.prevent="addUser">
-                <div class="mb-4">
-                    <label class="block mb-2 text-sm font-medium text-gray-900">Username</label>
-                    <input type="text" x-model="newUser.username" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5" placeholder="hatta45" required>
-                    <template x-if="newUser.errors.usernameLength">
-                        <p class="mt-2 text-sm text-red-600">Username harus lebih dari 6 karakter.</p>
-                    </template>
-                    <template x-if="newUser.errors.usernameUnique">
-                        <p class="mt-2 text-sm text-red-600">Username sudah digunakan.</p>
-                    </template>
-                </div>
+                <!-- Nama Lengkap -->
                 <div class="mb-4">
                     <label class="block mb-2 text-sm font-medium text-gray-900">Nama Lengkap</label>
-                    <input type="text" x-model="newUser.nama_lengkap" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5" placeholder="Muhammad Hatta" required>
+                    <input
+                        type="text"
+                        x-model="newUser.nama_lengkap"
+                        @input="validateNewUserNamaLengkap()"
+                        x-bind:class="{ 'border-red-600': newUser.errors.nama_lengkap }"
+                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5"
+                        placeholder="Muhammad Hatta"
+                        required>
+                    <template x-if="newUser.errors.nama_lengkap">
+                        <p class="mt-2 text-sm text-red-600" x-text="newUser.errors.nama_lengkap"></p>
+                    </template>
                 </div>
+                <!-- Username -->
+                <div class="mb-4">
+                    <label class="block mb-2 text-sm font-medium text-gray-900">Username</label>
+                    <input
+                        type="text"
+                        x-model.debounce.500ms="newUser.username"
+                        @input="newUser.username = $event.target.value.toLowerCase(); validateNewUserUsername()"
+                        x-bind:class="{ 'border-red-600': newUser.errors.username }"
+                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5"
+                        placeholder="hatta45"
+                        required>
+                    <template x-if="newUser.errors.username">
+                        <p class="mt-2 text-sm text-red-600" x-text="newUser.errors.username"></p>
+                    </template>
+                </div>
+                <!-- Password -->
                 <div class="mb-4">
                     <label class="block mb-2 text-sm font-medium text-gray-900">Password</label>
-                    <input type="password" x-model="newUser.password" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5" placeholder="••••••••" required>
+                    <input
+                        x-bind:type="newUser.showPassword ? 'text' : 'password'"
+                        x-model="newUser.password"
+                        @input="validateNewUserPassword()"
+                        x-bind:class="{ 'border-red-600': newUser.errors.password }"
+                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5"
+                        placeholder="••••••••"
+                        maxlength="255"
+                        required>
+                    <div class="mt-2 flex items-center">
+                        <input
+                            type="checkbox"
+                            x-model="newUser.showPassword"
+                            id="show-password"
+                            class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded">
+                        <label for="show-password" class="ms-2 text-sm font-medium text-gray-900">Tampilkan Password</label>
+                    </div>
                     <template x-if="newUser.errors.password">
-                        <p class="mt-2 text-sm text-red-600">Password minimal sepanjang 6 karakter.</p>
+                        <p class="mt-2 text-sm text-red-600" x-text="newUser.errors.password"></p>
                     </template>
                 </div>
+                <!-- Admin Checkbox -->
                 <div class="mb-4">
-                    <label class="block mb-2 text-sm font-medium text-gray-900">Konfirmasi Password</label>
-                    <input type="password" x-model="newUser.confirmPassword" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5" placeholder="••••••••" required>
-                    <template x-if="newUser.errors.confirmPassword">
-                        <p class="mt-2 text-sm text-red-600">Password dan konfirmasi password berbeda.</p>
-                    </template>
-                </div>
-                <div class="my-4">
+                    <label class="block mb-2 text-sm font-medium text-gray-900">Role</label>
                     <div class="flex items-center">
-                        <input type="checkbox" x-model="editUser.is_admin" id="edit-is-admin" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded">
-                        <label for="edit-is-admin" class="ms-2 text-sm font-medium text-gray-900">Admin</label>
+                        <input
+                            type="checkbox"
+                            x-model="newUser.isAdminCheckbox"
+                            @change="updateNewUserLevel()"
+                            id="add-is-admin"
+                            class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded">
+                        <label for="add-is-admin" class="ms-2 text-sm font-medium text-gray-900">Admin</label>
                     </div>
                 </div>
                 <!-- Wilayah Selection -->
                 <div class="mb-4">
                     <label class="block mb-2 text-sm font-medium text-gray-900">Level Wilayah</label>
-                    <select x-model="newUser.wilayah_level" @change="updateNewUserWilayah()" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
+                    <select
+                        x-model="newUser.wilayah_level"
+                        @change="newUser.selected_province = ''; newUser.selected_kabkot = ''; updateNewUserWilayah(); updateNewUserLevel()"
+                        x-bind:class="{ 'border-red-600': newUser.errors.kd_wilayah }"
+                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                         <option value="pusat">Pusat</option>
                         <option value="provinsi">Provinsi</option>
                         <option value="kabkot">Kabupaten/Kota</option>
@@ -77,7 +114,11 @@
                 </div>
                 <div class="mb-4" x-show="newUser.wilayah_level === 'provinsi' || newUser.wilayah_level === 'kabkot'">
                     <label class="block mb-2 text-sm font-medium text-gray-900">Provinsi</label>
-                    <select x-model="newUser.selected_province" @change="newUser.selected_kabkot = ''; updateNewUserWilayah()" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
+                    <select
+                        x-model="newUser.selected_province"
+                        @change="newUser.selected_kabkot = ''; updateNewUserWilayah()"
+                        x-bind:class="{ 'border-red-600': newUser.errors.kd_wilayah && !newUser.selected_province }"
+                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                         <option value="">Pilih Provinsi</option>
                         <template x-for="province in provinces" :key="province.kd_wilayah">
                             <option :value="province.kd_wilayah" x-text="province.nama_wilayah"></option>
@@ -86,7 +127,11 @@
                 </div>
                 <div class="mb-4" x-show="newUser.wilayah_level === 'kabkot'">
                     <label class="block mb-2 text-sm font-medium text-gray-900">Kabupaten/Kota</label>
-                    <select x-model="newUser.selected_kabkot" @change="updateNewUserWilayah()" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
+                    <select
+                        x-model="newUser.selected_kabkot"
+                        @change="updateNewUserWilayah()"
+                        x-bind:class="{ 'border-red-600': newUser.errors.kd_wilayah && !newUser.selected_kabkot }"
+                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                         <option value="">Pilih Kabupaten/Kota</option>
                         <template x-for="kabkot in newUserFilteredKabkots" :key="kabkot.kd_wilayah">
                             <option :value="kabkot.kd_wilayah" x-text="kabkot.nama_wilayah"></option>
@@ -94,11 +139,15 @@
                     </select>
                 </div>
                 <template x-if="newUser.errors.kd_wilayah">
-                    <p class="mt-2 text-sm text-red-600">Satuan kerja belum dipilih.</p>
+                    <p class="mt-2 text-sm text-red-600" x-text="newUser.errors.kd_wilayah"></p>
                 </template>
+                <!-- Buttons -->
                 <div class="mt-6 flex justify-end gap-3">
                     <x-secondary-button x-on:click="$dispatch('close')">Batal</x-secondary-button>
-                    <x-primary-button type="submit">Tambah</x-primary-button>
+                    <x-primary-button
+                        type="submit"
+                        x-bind:disabled="newUserHasErrors"
+                        x-bind:class="{ 'opacity-50 cursor-not-allowed': newUserHasErrors }">Tambah</x-primary-button>
                 </div>
             </form>
         </div>

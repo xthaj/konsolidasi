@@ -37,10 +37,10 @@
                 </tr>
             </thead>
             <tbody>
-                <template x-for="(alasan, index) in alasanList" :key="index">
+                <template x-for="(alasan, index) in alasanData" :key="alasan.id">
                     <tr class="bg-white border-b border-gray-200">
-                        <td class="px-6 py-4" x-text="index + 1"></td>
-                        <td class="px-6 py-4" x-text="alasan"></td>
+                        <td class="px-6 py-4" x-text="alasan.id"></td>
+                        <td class="px-6 py-4" x-text="alasan.nama"></td>
                     </tr>
                 </template>
             </tbody>

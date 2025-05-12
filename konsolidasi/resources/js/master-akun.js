@@ -17,18 +17,19 @@ Alpine.data("webData", () => ({
         username: "",
         nama_lengkap: "",
         password: "",
-        confirmPassword: "",
-        is_admin: false,
+        showPassword: false,
         kd_wilayah: "0",
         wilayah_level: "pusat",
         selected_province: "",
         selected_kabkot: "",
+        isAdminCheckbox: false,
+        level: 1,
         errors: {
-            usernameLength: false,
-            usernameUnique: false,
+            username: false,
+            nama_lengkap: false,
             password: false,
-            confirmPassword: false,
             kd_wilayah: false,
+            level: false,
         },
         usernameExists: false,
     },
@@ -38,7 +39,6 @@ Alpine.data("webData", () => ({
         nama_lengkap: "",
         password: "",
         confirmPassword: "",
-        is_admin: false,
         kd_wilayah: "",
         wilayah_level: "pusat",
         selected_province: "",
@@ -63,16 +63,15 @@ Alpine.data("webData", () => ({
         this.loading = true;
         try {
             const wilayahResponse = await fetch("/api/wilayah");
+            if (!wilayahResponse.ok) {
+                throw new Error(
+                    `HTTP error! status: ${wilayahResponse.status}`
+                );
+            }
             const wilayahData = await wilayahResponse.json();
-            this.provinces = wilayahData.provinces || [];
-            this.kabkots = wilayahData.kabkots || [];
+            this.provinces = wilayahData.data.provinces || [];
+            this.kabkots = wilayahData.data.kabkots || [];
             await this.getWilayahUsers();
-
-            this.$watch("$dispatch", (event) => {
-                if (event === "close" && this.successMessage) {
-                    window.location.reload();
-                }
-            });
         } catch (error) {
             console.error("Failed to load data:", error);
         } finally {
@@ -132,8 +131,66 @@ Alpine.data("webData", () => ({
         );
     },
 
+    get newUserHasErrors() {
+        return Object.values(this.newUser.errors).some(
+            (error) => error !== false
+        );
+    },
+
     updateKdWilayah() {
         this.kd_wilayah = this.selectedKabkot || this.selectedProvince || "";
+    },
+
+    validateNewUserNamaLengkap() {
+        if (!this.newUser.nama_lengkap) {
+            this.newUser.errors.nama_lengkap = "Nama lengkap wajib diisi.";
+        } else if (this.newUser.nama_lengkap.length > 255) {
+            this.newUser.errors.nama_lengkap = "Nama lengkap terlalu panjang.";
+        } else {
+            this.newUser.errors.nama_lengkap = false;
+        }
+    },
+
+    async validateNewUserUsername() {
+        const regex = /^[a-zA-Z0-9_]+$/;
+        if (!this.newUser.username) {
+            this.newUser.errors.username = "Username wajib diisi.";
+        } else if (this.newUser.username.length < 7) {
+            this.newUser.errors.username =
+                "Username harus lebih dari 6 karakter.";
+        } else if (this.newUser.username.length > 255) {
+            this.newUser.errors.username = "Username terlalu panjang.";
+        } else if (!regex.test(this.newUser.username)) {
+            this.newUser.errors.username =
+                "Username hanya boleh berisi huruf, angka, dan underscore.";
+        } else {
+            await this.checkNewUserUsername();
+            this.newUser.errors.username = this.newUser.usernameExists
+                ? "Username sudah digunakan."
+                : false;
+        }
+    },
+
+    validateNewUserPassword() {
+        if (!this.newUser.password) {
+            this.newUser.errors.password = "Password wajib diisi.";
+        } else if (this.newUser.password.length < 6) {
+            this.newUser.errors.password =
+                "Password minimal sepanjang 6 karakter.";
+        } else if (this.newUser.password.length > 255) {
+            this.newUser.errors.password = "Password terlalu panjang.";
+        } else {
+            this.newUser.errors.password = false;
+        }
+    },
+
+    validateNewUserLevel() {
+        const validLevels = [0, 1, 2, 3, 4, 5];
+        if (!validLevels.includes(this.newUser.level)) {
+            this.newUser.errors.level = "Level pengguna tidak valid.";
+        } else {
+            this.newUser.errors.level = false;
+        }
     },
 
     updateNewUserWilayah() {
@@ -141,31 +198,44 @@ Alpine.data("webData", () => ({
             this.newUser.kd_wilayah = "0";
             this.newUser.selected_province = "";
             this.newUser.selected_kabkot = "";
+            this.newUser.errors.kd_wilayah = false;
         } else if (this.newUser.wilayah_level === "provinsi") {
-            this.newUser.kd_wilayah = this.newUser.selected_province || "";
-            this.newUser.selected_kabkot = "";
+            if (this.newUser.selected_province) {
+                this.newUser.kd_wilayah = this.newUser.selected_province;
+                this.newUser.errors.kd_wilayah =
+                    this.newUser.kd_wilayah.length > 6
+                        ? "Kode wilayah terlalu panjang."
+                        : false;
+            } else {
+                this.newUser.kd_wilayah = "";
+                this.newUser.errors.kd_wilayah = "Satuan kerja belum dipilih.";
+            }
         } else if (this.newUser.wilayah_level === "kabkot") {
-            this.newUser.kd_wilayah =
-                this.newUser.selected_kabkot ||
-                this.newUser.selected_province ||
-                "";
+            if (
+                this.newUser.selected_province &&
+                this.newUser.selected_kabkot
+            ) {
+                this.newUser.kd_wilayah = this.newUser.selected_kabkot;
+                this.newUser.errors.kd_wilayah =
+                    this.newUser.kd_wilayah.length > 6
+                        ? "Kode wilayah terlalu panjang."
+                        : false;
+            } else {
+                this.newUser.kd_wilayah = "";
+                this.newUser.errors.kd_wilayah = "Satuan kerja belum dipilih.";
+            }
         }
     },
 
-    updateEditWilayah() {
-        if (this.editUser.wilayah_level === "pusat") {
-            this.editUser.kd_wilayah = "0";
-            this.editUser.selected_province = "";
-            this.editUser.selected_kabkot = "";
-        } else if (this.editUser.wilayah_level === "provinsi") {
-            this.editUser.kd_wilayah = this.editUser.selected_province || "";
-            this.editUser.selected_kabkot = "";
-        } else if (this.editUser.wilayah_level === "kabkot") {
-            this.editUser.kd_wilayah =
-                this.editUser.selected_kabkot ||
-                this.editUser.selected_province ||
-                "";
+    updateNewUserLevel() {
+        if (this.newUser.wilayah_level === "pusat") {
+            this.newUser.level = this.newUser.isAdminCheckbox ? 0 : 1;
+        } else if (this.newUser.wilayah_level === "provinsi") {
+            this.newUser.level = this.newUser.isAdminCheckbox ? 2 : 3;
+        } else if (this.newUser.wilayah_level === "kabkot") {
+            this.newUser.level = this.newUser.isAdminCheckbox ? 4 : 5;
         }
+        this.validateNewUserLevel();
     },
 
     openAddUserModal() {
@@ -173,18 +243,19 @@ Alpine.data("webData", () => ({
             username: "",
             nama_lengkap: "",
             password: "",
-            confirmPassword: "",
-            is_admin: false,
+            showPassword: false,
             kd_wilayah: "0",
             wilayah_level: "pusat",
             selected_province: "",
             selected_kabkot: "",
+            isAdminCheckbox: false,
+            level: 1,
             errors: {
-                usernameLength: false,
-                usernameUnique: false,
+                username: false,
+                nama_lengkap: false,
                 password: false,
-                confirmPassword: false,
                 kd_wilayah: false,
+                level: false,
             },
             usernameExists: false,
         };
@@ -192,6 +263,7 @@ Alpine.data("webData", () => ({
     },
 
     async checkNewUserUsername() {
+        if (!this.newUser.username) return;
         try {
             let response = await fetch(
                 `/api/check-username?username=${this.newUser.username}`
@@ -204,38 +276,22 @@ Alpine.data("webData", () => ({
     },
 
     async addUser() {
-        // Validate form
-        this.newUser.errors.usernameLength = this.newUser.username.length < 6;
-        this.newUser.errors.password = this.newUser.password.length < 6;
-        this.newUser.errors.confirmPassword =
-            this.newUser.password !== this.newUser.confirmPassword;
-        this.newUser.errors.kd_wilayah =
-            (this.newUser.wilayah_level === "provinsi" &&
-                !this.newUser.selected_province) ||
-            (this.newUser.wilayah_level === "kabkot" &&
-                !this.newUser.selected_kabkot);
+        this.validateNewUserNamaLengkap();
+        await this.validateNewUserUsername();
+        this.validateNewUserPassword();
+        this.updateNewUserWilayah();
+        this.validateNewUserLevel();
 
-        await this.checkNewUserUsername();
-        this.newUser.errors.usernameUnique = this.newUser.usernameExists;
-
-        if (
-            this.newUser.errors.usernameLength ||
-            this.newUser.errors.usernameUnique ||
-            this.newUser.errors.password ||
-            this.newUser.errors.confirmPassword ||
-            this.newUser.errors.kd_wilayah
-        ) {
+        if (this.newUserHasErrors) {
             return;
         }
 
-        // Prepare data for submission
         const userData = {
-            username: this.newUser.username,
             nama_lengkap: this.newUser.nama_lengkap,
-            password: this.newUser.password,
-            is_admin: this.newUser.is_admin,
+            username: this.newUser.username,
             kd_wilayah: this.newUser.kd_wilayah,
-            is_pusat: this.newUser.wilayah_level === "pusat",
+            level: this.newUser.level,
+            password: this.newUser.password,
         };
 
         try {
@@ -278,13 +334,13 @@ Alpine.data("webData", () => ({
             nama_lengkap: user.nama_lengkap,
             password: "",
             confirmPassword: "",
-            is_admin: user.is_admin,
             kd_wilayah: user.kd_wilayah || "",
-            wilayah_level: user.is_pusat
-                ? "pusat"
-                : this.kabkots.some((k) => k.kd_wilayah === user.kd_wilayah)
-                ? "kabkot"
-                : "provinsi",
+            wilayah_level:
+                user.kd_wilayah === "0"
+                    ? "pusat"
+                    : this.kabkots.some((k) => k.kd_wilayah === user.kd_wilayah)
+                    ? "kabkot"
+                    : "provinsi",
             selected_province: this.provinces.some(
                 (p) => p.kd_wilayah === user.kd_wilayah
             )
@@ -305,20 +361,13 @@ Alpine.data("webData", () => ({
             },
             usernameExists: false,
         };
-        console.log(
-            "is_admin:",
-            this.editUser.is_admin,
-            typeof this.editUser.is_admin
-        );
-        this.updateEditWilayah();
         this.$dispatch("open-modal", "edit-user");
     },
 
     async updateUser() {
-        // Validate form
-        this.editUser.errors.usernameLength = this.editUser.username.length < 6;
+        this.editUser.errors.usernameLength = this.editUser.username.length < 7;
         this.editUser.errors.password =
-            this.editUser.password && this.editUser.password.length < 8;
+            this.editUser.password && this.editUser.password.length < 6;
         this.editUser.errors.confirmPassword =
             this.editUser.password &&
             this.editUser.password !== this.editUser.confirmPassword;
@@ -341,14 +390,11 @@ Alpine.data("webData", () => ({
             return;
         }
 
-        // Prepare data for submission
         const userData = {
             username: this.editUser.username,
             nama_lengkap: this.editUser.nama_lengkap,
             password: this.editUser.password || undefined,
-            is_admin: this.editUser.is_admin,
             kd_wilayah: this.editUser.kd_wilayah,
-            is_pusat: this.editUser.wilayah_level === "pusat",
         };
 
         try {
@@ -416,8 +462,7 @@ Alpine.data("webData", () => ({
 
                 this.successMessage = "Berhasil menghapus pengguna!";
                 this.$dispatch("open-modal", "success-update-bulan-tahun");
-                // Refresh page after success
-                setTimeout(() => window.location.reload(), 1000); // Delay to show success modal
+                setTimeout(() => window.location.reload(), 1000);
             } catch (error) {
                 this.failMessage = "An unexpected error occurred";
                 this.failDetails = { error: error.message };

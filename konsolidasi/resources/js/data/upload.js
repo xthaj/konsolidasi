@@ -28,18 +28,16 @@ Alpine.data("webData", () => ({
             const bulanTahunResponse = await fetch("/api/bulan_tahun");
             const bulanTahunData = await bulanTahunResponse.json();
 
-            const aktifData = bulanTahunData.bt_aktif; // First active record
-            this.bulan = aktifData
-                ? String(aktifData.bulan).padStart(2, "0")
-                : "";
-            this.tahun = aktifData ? aktifData.tahun : "";
+            const aktifData = bulanTahunData.data.bt_aktif;
+            this.bulan = aktifData.bulan;
+            this.tahun = aktifData.tahun;
 
             this.activeBulan = this.bulan;
             this.activeTahun = this.tahun;
 
-            // Populate tahunOptions, fallback if tahun is missing
             this.tahunOptions =
-                bulanTahunData.tahun || (aktifData ? [aktifData.tahun] : []);
+                bulanTahunData.data.tahun ||
+                (aktifData ? [aktifData.tahun] : []);
         } catch (error) {
             console.error("Failed to load data:", error);
         } finally {

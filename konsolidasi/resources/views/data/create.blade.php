@@ -4,7 +4,7 @@
     @vite(['resources/css/app.css', 'resources/js/data/upload.js'])
     @endsection
 
-    @if($errors->any())
+    @if(request('error') === 'too-big')
     <div class="flex p-4 mb-4 text-red-800 rounded-lg border border-red-300 bg-red-50" role="alert">
         <svg class="shrink-0 inline w-4 h-4 me-3 mt-[2px]" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
             <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z" />
@@ -12,7 +12,21 @@
         <div>
             <span class="font-medium">Kesalahan:</span>
             <ul class="mt-1.5 list-disc list-inside">
-                @foreach($errors->all() as $error)
+                <li>File terlalu besar. Maksimum 5MB.</li>
+            </ul>
+        </div>
+    </div>
+    @endif
+
+    @if ($errors->any())
+    <div class="flex p-4 mb-4 text-red-800 rounded-lg border border-red-300 bg-red-50" role="alert">
+        <svg class="shrink-0 inline w-4 h-4 me-3 mt-[2px]" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z" />
+        </svg>
+        <div>
+            <span class="font-medium">Kesalahan:</span>
+            <ul class="mt-1.5 list-disc list-inside">
+                @foreach ($errors->all() as $error)
                 <li>{{ $error }}</li>
                 @endforeach
             </ul>
@@ -51,8 +65,8 @@
             <!-- Bulan -->
             <div>
                 <label class="block mb-1 text-sm font-medium text-gray-900">Bulan</label>
-                <select name="bulan" x-model="bulan" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5 focus:ring-primary-500 focus:border-primary-500">
-                    @foreach(['Januari' => '01', 'Februari' => '02', 'Maret' => '03', 'April' => '04', 'Mei' => '05', 'Juni' => '06', 'Juli' => '07', 'Agustus' => '08', 'September' => '09', 'Oktober' => '10', 'November' => '11', 'Desember' => '12'] as $nama => $bln)
+                <select name="bulan" x-model="bulan" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
+                    @foreach(['Januari' => 1, 'Februari' => 2, 'Maret' => 3, 'April' => 4, 'Mei' => 5, 'Juni' => 6, 'Juli' => 7, 'Agustus' => 8, 'September' => 9, 'Oktober' => 10, 'November' => 11, 'Desember' => 12] as $nama => $bln)
                     <option value="{{ $bln }}" @selected(request('bulan')==$bln)>{{ $nama }}</option>
                     @endforeach
                 </select>
@@ -61,9 +75,7 @@
             <!-- Tahun -->
             <div>
                 <label class="block mb-1 text-sm font-medium text-gray-900">Tahun</label>
-                <select name="tahun" x-model="tahun" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5 focus:ring-primary-500 focus:border-primary-500">
-                    <option value="2024">2024</option>
-
+                <select name="tahun" x-model="tahun" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                     <template x-for="year in tahunOptions" :key="year">
                         <option :value="year" :selected="year === tahun" x-text="year"></option>
                     </template>
@@ -73,7 +85,7 @@
             <!-- Level Harga -->
             <div>
                 <label class="block mb-1 text-sm font-medium text-gray-900">Level Harga</label>
-                <select id="level" name="level" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5 focus:ring-primary-500 focus:border-primary-500">
+                <select id="level" name="level" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                     <option value="01">Harga Konsumen Kota</option>
                     <option value="02">Harga Konsumen Desa</option>
                     <option value="03">Harga Perdagangan Besar</option>
@@ -93,29 +105,34 @@
             <label class="block mb-1 text-sm font-medium text-gray-900" for="file_input">Upload File</label>
             <input name="file"
                 x-ref="fileInput"
-                class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:ring-primary-500 focus:border-primary-500"
+                class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50"
                 id="file_input"
-                type="file">
+                type="file"
+                accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
             <p class="mt-1 text-xs text-gray-500">Format: Excel (XLSX). Maks 5MB.</p>
             @error('file')
             <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
             @enderror
         </div>
 
-        <!-- Submit Button with Loading Indicator and Error Message -->
-        <div class="mt-4" x-data="{ loading: false, showError: false }">
-            <!-- Error Message -->
-            <div x-show="showError" class="text-sm text-red-600">
+        <div class="mt-4" x-data="{ loading: false, showError: false, sizeError: false, typeError: false, maxSizeMB: 5 }">
+            <!-- Error Messages -->
+            <div x-show="showError" class="text-sm mb-4 text-red-600">
                 Pilih file terlebih dahulu.
             </div>
-
+            <div x-show="sizeError" class="text-sm mb-4 text-red-600">
+                File terlalu besar. Maksimal 5MB.
+            </div>
+            <div x-show="typeError" class="text-sm mb-4 text-red-600">
+                File harus berupa Excel (XLSX).
+            </div>
             <!-- Button Container -->
             <div class="flex flex-col sm:flex-row sm:justify-between items-center gap-3">
                 <!-- Download Template Button -->
                 <a
                     href="{{ asset('template/template.xlsx') }}"
                     download
-                    class="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-primary-700 bg-white border border-primary-700 rounded-lg  transition-colors duration-200 hover:bg-gray-100 focus:outline-none focus:ring-4 focus:ring-primary-300 w-full sm:w-auto" aria-label="Download Excel template">
+                    class="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-primary-700 bg-white border border-primary-700 rounded-lg transition-colors duration-200 hover:bg-gray-100 focus:outline-none focus:ring-4 focus:ring-primary-300 w-full sm:w-auto" aria-label="Download Excel template">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 16V4m0 12l-4-4m4 4l4-4"></path>
                     </svg>
@@ -127,7 +144,31 @@
                     <!-- Submit Button -->
                     <x-primary-button
                         type="submit"
-                        @click="if (!$refs.fileInput.files.length) { $event.preventDefault(); showError = true; } else { loading = true; showError = false; }"
+                        @click="
+                const file = $refs.fileInput.files[0];
+                const allowedTypes = ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel'];
+                if (!file) {
+                    $event.preventDefault();
+                    showError = true;
+                    sizeError = false;
+                    typeError = false;
+                } else if (file.size > maxSizeMB * 1024 * 1024) {
+                    $event.preventDefault();
+                    showError = false;
+                    sizeError = true;
+                    typeError = false;
+                } else if (!allowedTypes.includes(file.type)) {
+                    $event.preventDefault();
+                    showError = false;
+                    sizeError = false;
+                    typeError = true;
+                } else {
+                    loading = true;
+                    showError = false;
+                    sizeError = false;
+                    typeError = false;
+                }
+            "
                         class="justify-center gap-2 w-full sm:w-auto">
                         Upload/Update Data
                     </x-primary-button>
@@ -145,6 +186,7 @@
         </div>
     </form>
 
+
     <hr class="h-px my-8 bg-gray-200 border-0">
 
     <!-- Bulk Delete Section -->
@@ -159,15 +201,16 @@
 
             <div>
                 <label class="block mb-1 text-sm font-medium text-gray-900">Bulan</label>
-                <select name="bulan" x-model="bulan" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5 focus:ring-primary-500 focus:border-primary-500">
-                    @foreach(['Januari' => '01', 'Februari' => '02', 'Maret' => '03', 'April' => '04', 'Mei' => '05', 'Juni' => '06', 'Juli' => '07', 'Agustus' => '08', 'September' => '09', 'Oktober' => '10', 'November' => '11', 'Desember' => '12'] as $nama => $bln)
+                <select name="bulan" x-model="bulan" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5  ">
+                    @foreach(['Januari' => 1, 'Februari' => 2, 'Maret' => 3, 'April' => 4, 'Mei' => 5, 'Juni' => 6, 'Juli' => 7, 'Agustus' => 8, 'September' => 9, 'Oktober' => 10, 'November' => 11, 'Desember' => 12] as $nama => $bln)
                     <option value="{{ $bln }}" @selected(request('bulan')==$bln)>{{ $nama }}</option>
                     @endforeach
                 </select>
             </div>
+
             <div>
                 <label class="block mb-1 text-sm font-medium text-gray-900">Tahun</label>
-                <select name="tahun" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5 focus:ring-primary-500 focus:border-primary-500">
+                <select name="tahun" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5  ">
                     <template x-for="year in tahunOptions" :key="year">
                         <option :value="year" :selected="year === tahun" x-text="year"></option>
                     </template>
@@ -175,7 +218,7 @@
             </div>
             <div>
                 <label class="block mb-1 text-sm font-medium text-gray-900">Level Harga</label>
-                <select name="level" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5 focus:ring-primary-500 focus:border-primary-500">
+                <select name="level" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5  ">
                     <option value="" disabled selected>Pilih Level Harga</option>
                     <option value="01">Harga Konsumen Kota</option>
                     <option value="02">Harga Konsumen Desa</option>
