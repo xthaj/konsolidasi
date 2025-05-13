@@ -98,7 +98,7 @@ class DataImport implements ToCollection, WithHeadingRow, WithChunkReading
 
     private function isEmptyRow(Collection $row): bool
     {
-        return empty(array_filter($row->toArray(), fn($value) => $value !== null && $value !== ''));
+        return empty(array_filter($row->toArray(), fn($value) => trim((string) $value) !== ''));
     }
 
     private function validateAndPrepareRow(Collection $row, array &$inserts, array &$updates): void
@@ -126,25 +126,35 @@ class DataImport implements ToCollection, WithHeadingRow, WithChunkReading
         }
         $nilai_inflasi = round((float) $nilai_inflasiClean, 2);
 
+        // $andil = null;
+        // if ($kd_wilayah === '0') {
+        //     if ($andilRaw === '') {
+        //         Log::warning("Missing andil for kd_wilayah '0' at row {$this->rowNumber}");
+        //         $this->errors->add("row_{$this->rowNumber}_warning", "Andil diperlukan untuk kd_wilayah nasional");
+        //     } else {
+        //         $andilClean = str_replace(',', '.', $andilRaw);
+        //         if (!is_numeric($andilClean)) {
+        //             $this->throwError('Andil harus numerik');
+        //         }
+        //         $andil = round((float) $andilClean, 4);
+        //     }
+        // } elseif ($andilRaw !== '') {
+        //     $andilClean = str_replace(',', '.', $andilRaw);
+        //     if (!is_numeric($andilClean)) {
+        //         $this->throwError('Andil harus numerik');
+        //     }
+        //     Log::warning("Ignoring andil for kd_wilayah '$kd_wilayah' at row {$this->rowNumber}");
+        //     // $this->errors->add("row_{$this->rowNumber}_warning", "Andil diabaikan untuk kd_wilayah '$kd_wilayah'");
+        // }
+
         $andil = null;
-        if ($kd_wilayah === '0') {
-            if ($andilRaw === '') {
-                Log::warning("Missing andil for kd_wilayah '0' at row {$this->rowNumber}");
-                $this->errors->add("row_{$this->rowNumber}_warning", "Andil diperlukan untuk kd_wilayah nasional");
-            } else {
-                $andilClean = str_replace(',', '.', $andilRaw);
-                if (!is_numeric($andilClean)) {
-                    $this->throwError('Andil harus numerik');
-                }
-                $andil = round((float) $andilClean, 4);
-            }
-        } elseif ($andilRaw !== '') {
+
+        if ($andilRaw !== '') {
             $andilClean = str_replace(',', '.', $andilRaw);
             if (!is_numeric($andilClean)) {
                 $this->throwError('Andil harus numerik');
             }
-            Log::warning("Ignoring andil for kd_wilayah '$kd_wilayah' at row {$this->rowNumber}");
-            $this->errors->add("row_{$this->rowNumber}_warning", "Andil diabaikan untuk kd_wilayah '$kd_wilayah'");
+            $andil = round((float) $andilClean, 4);
         }
 
         $key = "{$kd_komoditas}-{$kd_wilayah}";
@@ -234,7 +244,7 @@ class DataImport implements ToCollection, WithHeadingRow, WithChunkReading
             }
         } catch (Exception $e) {
             DB::rollBack();
-            $this->throwError("Bulk error: " . $e->getMessage());
+            // $this->throwError("Bulk error: " . $e->getMessage());
         }
     }
 
