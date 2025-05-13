@@ -309,6 +309,16 @@ class DataController extends Controller
         }
     }
 
+    private function buildTitleMessage(int $bulan, int $tahun, string $level, bool $success = true): string
+    {
+        $namaBulan = BulanTahun::getBulanName($bulan);
+        $namaLevel = LevelHarga::getLevelHargaNameComplete($level);
+        $status = $success ? 'berhasil' : 'gagal';
+
+        return "Data {$namaBulan} Tahun {$tahun} level {$namaLevel} {$status} diimpor.";
+    }
+
+
     /**
      * Handle the result of the import process.
      *
@@ -319,37 +329,42 @@ class DataController extends Controller
      */
     private function handleImportResult(DataImport $import, array $summary, array $validated)
     {
-        $levelHarga = LevelHarga::getLevelHargaNameComplete($validated['level']);
-        $bulan = BulanTahun::getBulanName($validated['bulan']);
+        $errors = $import->getErrors()->all();
+        $inserted = $summary['inserted'];
+        $updated = $summary['updated'];
+        $failedRow = $summary['failed_row'];
+        $levelHarga = $validated['level'];
+        $bulan = $validated['bulan'];
         $tahun = $validated['tahun'];
 
-        // Check for validation errors in rows
-        if ($import->getErrors()->isNotEmpty()) {
+        // Log the summary for debugging
+        Log::debug('Import summary', [
+            'inserted' => $inserted,
+            'updated' => $updated,
+            'failed_row' => $failedRow,
+            'errors' => $errors,
+        ]);
+
+        // Title prefix
+        $title = "Data " . BulanTahun::getBulanName($bulan) . " Tahun {$tahun} level " . LevelHarga::getLevelHargaNameComplete($levelHarga);
+
+        // If there are errors, handle them
+        if (!empty($errors) || $failedRow !== null) {
             return $this->handleImportErrors($import, $summary, $levelHarga, $bulan, $tahun);
         }
 
-        // Check for no data processed
-        if ($summary['updated'] === 0 && $summary['inserted'] === 0) {
-            return Redirect::back()->withErrors([
-                'Apakah file kosong? Tidak ada data yang berhasil diimpor.',
-                'Periksa file Anda dan coba lagi.',
+        // If no data was processed
+        if ($inserted === 0 && $updated === 0) {
+            return redirect()->back()->withErrors([
+                'file' => "$title gagal diimpor: Tidak ada data yang berhasil diimpor. Pastikan file Anda tidak kosong dan formatnya sesuai.",
             ]);
         }
 
         // Success case
-        $message = [
-            "Data Level Harga $levelHarga bulan $bulan Tahun $tahun berhasil diupload.",
-            "Data berhasil diproses: {$summary['updated']} update, {$summary['inserted']} data baru.",
-        ];
-
-        // Add warnings if present
-        $warnings = array_filter($import->getErrors()->all(), fn($key) => str_ends_with($key, '_warning'), ARRAY_FILTER_USE_KEY);
-        if (!empty($warnings)) {
-            $message[] = "Peringatan: " . implode(', ', $warnings);
-        }
-
-        return Redirect::back()->with('success', $message);
+        $message = "$title berhasil diimpor: {$inserted} data baru ditambahkan, {$updated} data diperbarui.";
+        return redirect()->back()->with('success', $message);
     }
+
 
     /**
      * Handle errors during import.
@@ -365,45 +380,48 @@ class DataController extends Controller
     {
         $errors = $import->getErrors()->all();
         $failedRow = $summary['failed_row'];
-        $chunkSize = 100;
+        $chunkSize = 200;
         $lastSuccessfulRow = floor(($failedRow - 1) / $chunkSize) * $chunkSize;
+
+        // Title prefix
+        $title = "Data " . BulanTahun::getBulanName($bulan) . " Tahun {$tahun} level " . LevelHarga::getLevelHargaNameComplete($levelHarga) . " gagal diimpor";
 
         $errorMessages = [];
         $warnings = [];
 
         // Separate errors and warnings
         foreach ($errors as $key => $message) {
-            if (str_ends_with($key, '_warning')) {
+            if (str_contains($key, '_warning')) {
                 $warnings[] = $message;
             } else {
                 $errorMessages[] = $message;
             }
         }
 
-        $additionalMessages = [];
-        if ($lastSuccessfulRow > 0) {
-            $additionalMessages[] = "Upload berhasil sampai dengan baris $lastSuccessfulRow";
-            $additionalMessages[] = 'Hapus data sampai baris ' . $lastSuccessfulRow . ' (opsional), perbaiki baris selanjutnya.';
+        // Build error messages
+        $messages = ["$title: Terdapat kesalahan di baris {$failedRow}"];
+        if (!empty($errorMessages)) {
+            $messages = array_merge($messages, $errorMessages);
         }
 
-        $errorMessages = array_merge(
-            ["Terdapat kesalahan di baris $failedRow"],
-            $errorMessages,
-            $additionalMessages
-        );
+        // Add info about successful rows
+        if ($lastSuccessfulRow > 0) {
+            $messages[] = "Upload berhasil sampai dengan baris {$lastSuccessfulRow}.";
+            $messages[] = "Perbaiki baris mulai dari {$failedRow} atau hapus data sampai baris {$lastSuccessfulRow} sebelum mencoba lagi.";
+        }
 
+        // Summarize processed data
         if ($summary['updated'] > 0 || $summary['inserted'] > 0) {
-            $errorMessages[] = "Data yang berhasil diproses sebelum kesalahan: {$summary['updated']} update (jika ada perubahan), {$summary['inserted']} data baru.";
+            $messages[] = "Data yang berhasil diproses sebelum kesalahan: {$summary['updated']} diperbarui, {$summary['inserted']} ditambahkan.";
         }
 
         // Add warnings if present
         if (!empty($warnings)) {
-            $errorMessages[] = "Peringatan: " . implode(', ', $warnings);
+            $messages[] = "Peringatan: " . implode(', ', $warnings);
         }
 
-        return Redirect::back()->withErrors($errorMessages);
+        return redirect()->back()->withErrors($messages);
     }
-
 
     public function final_upload(Request $request)
     {
