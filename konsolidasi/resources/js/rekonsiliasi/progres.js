@@ -4,15 +4,33 @@ window.Alpine = Alpine;
 
 Alpine.data("webData", () => ({
     loading: true, // Start with loading true
+
     bulan: "",
     tahun: "",
     activeBulan: "",
     activeTahun: "",
     tahunOptions: [],
+    bulanOptions: [
+        ["Januari", 1],
+        ["Februari", 2],
+        ["Maret", 3],
+        ["April", 4],
+        ["Mei", 5],
+        ["Juni", 6],
+        ["Juli", 7],
+        ["Agustus", 8],
+        ["September", 9],
+        ["Oktober", 10],
+        ["November", 11],
+        ["Desember", 12],
+    ],
+
     provinces: [],
     kabkots: [],
+    komoditas: [],
     selectedProvince: "",
     selectedKabkot: "",
+    selectedKomoditas: "",
     selectedKdLevel: "",
     kd_wilayah: "",
     status: "all",
@@ -30,32 +48,70 @@ Alpine.data("webData", () => ({
     linkTerkait: "",
 
     get isActivePeriod() {
-        return (
-            this.bulan === this.activeBulan && this.tahun === this.activeTahun
-        );
+        const result =
+            +this.bulan === +this.activeBulan &&
+            +this.tahun === +this.activeTahun;
+        return result;
     },
 
     async init() {
         this.loading = true;
         try {
-            // Fetch Wilayah data
-            const wilayahResponse = await fetch("/api/wilayah");
-            const wilayahData = await wilayahResponse.json();
-            this.provinces = wilayahData.provinces || [];
-            this.kabkots = wilayahData.kabkots || [];
+            const [
+                wilayahResponse,
+                komoditasResponse,
+                bulanTahunResponse,
+                alasanResponse,
+            ] = await Promise.all([
+                fetch("/api/wilayah").then((res) => {
+                    if (!res.ok)
+                        throw new Error(
+                            `Wilayah API error! status: ${res.status}`
+                        );
+                    return res.json();
+                }),
+                fetch("/api/komoditas").then((res) => {
+                    if (!res.ok)
+                        throw new Error(
+                            `Komoditas API error! status: ${res.status}`
+                        );
+                    return res.json();
+                }),
+                fetch("/api/bulan_tahun").then((res) => {
+                    if (!res.ok)
+                        throw new Error(
+                            `BulanTahun API error! status: ${res.status}`
+                        );
+                    return res.json();
+                }),
+                fetch("/api/alasan").then((res) => {
+                    if (!res.ok)
+                        throw new Error(
+                            `Alasan API error! status: ${res.status}`
+                        );
+                    return res.json();
+                }),
+            ]);
 
-            // Fetch active BulanTahun
-            const bulanTahunResponse = await fetch("/api/bulan_tahun");
-            const bulanTahunData = await bulanTahunResponse.json();
-            const aktifData = bulanTahunData.bt_aktif || {};
+            // Process wilayah data
+            this.provinces = wilayahResponse.data.provinces || [];
+            this.kabkots = wilayahResponse.data.kabkots || [];
 
-            console.log("bt responsde: ", bulanTahunData);
+            // Process alasan data
+            this.alasans = alasanResponse || [];
 
-            // Set defaults
-            this.bulan = aktifData.bulan
-                ? String(aktifData.bulan).padStart(2, "0")
-                : "";
-            this.tahun = String(aktifData.tahun || new Date().getFullYear());
+            // Process komoditas data
+            this.komoditas = komoditasResponse.data || [];
+
+            // Process bulan and tahun data
+            const aktifData = bulanTahunResponse.data.bt_aktif;
+            this.bulan = aktifData.bulan;
+            this.tahun = aktifData.tahun;
+            this.activeBulan = this.bulan;
+            this.activeTahun = this.tahun;
+            this.tahunOptions =
+                bulanTahunResponse.data.tahun ||
+                (aktifData ? [aktifData.tahun] : []);
 
             // Override with URL params
             const urlParams = new URLSearchParams(window.location.search);
@@ -67,29 +123,7 @@ Alpine.data("webData", () => ({
             this.selectedKabkot = urlParams.get("kd_wilayah") || "";
             this.status = urlParams.get("status") || "all";
 
-            // Set active values *after* URL params
-            this.activeBulan = aktifData.bulan
-                ? String(aktifData.bulan).padStart(2, "0")
-                : this.bulan;
-            this.activeTahun = String(
-                aktifData.tahun || new Date().getFullYear()
-            );
-
-            // Populate tahunOptions
-            this.tahunOptions =
-                bulanTahunData.tahun && Object.keys(bulanTahunData.tahun).length
-                    ? Object.values(bulanTahunData.tahun).map(String)
-                    : [this.tahun];
-
-            console.log("tahunOptions: ", this.tahunOptions);
-            // Debugging
-            console.log("tahun:", this.tahun);
-            console.log("bulan:", this.bulan);
-            console.log("activeTahun:", this.activeTahun);
-            console.log("activeBulan:", this.activeBulan);
-            console.log("urlParams.get('tahun'):", urlParams.get("tahun"));
-            console.log("urlParams.get('bulan'):", urlParams.get("bulan"));
-
+            this.selectedKomoditas = "";
             this.updateKdWilayah();
 
             // Check editability
@@ -98,9 +132,6 @@ Alpine.data("webData", () => ({
                 urlParams.get("tahun") === this.activeTahun
             ) {
                 this.isEditable = true;
-                console.log("editable");
-            } else {
-                console.log("not editable");
             }
         } catch (error) {
             console.error("Failed to load data:", error);
@@ -110,9 +141,9 @@ Alpine.data("webData", () => ({
     },
 
     get filteredKabkots() {
-        if (!this.selectedProvince) return this.kabkots;
-        return this.kabkots.filter((k) =>
-            k.kd_wilayah.startsWith(this.selectedProvince.substring(0, 2))
+        if (!this.selectedProvince) return [];
+        return this.kabkots.filter(
+            (k) => k.parent_kd === this.selectedProvince
         );
     },
 
@@ -124,7 +155,7 @@ Alpine.data("webData", () => ({
     },
 
     submitForm() {
-        this.$refs.filterForm.submit(); // Manually trigger form submission if needed
+        this.$refs.filterForm.submit();
     },
 
     alasanList: [

@@ -3,7 +3,6 @@
     @vite(['resources/css/app.css', 'resources/js/rekonsiliasi/progres.js'])
     @endsection
 
-    @if (auth()->user()->isPusat())
     <x-slot name="sidebar">
         <form id="filter-form" x-data="filterForm()" x-ref="filterForm" method="GET" action="{{ route('rekon.progres') }}">
             <div class="space-y-4 md:space-y-6 mt-4">
@@ -12,28 +11,30 @@
                     <div class="flex gap-4">
                         <div class="w-1/2">
                             <label class="block mb-2 text-sm font-medium text-gray-900">Bulan<span class="text-red-500 ml-1">*</span></label>
-                            <select name="bulan" x-model="bulan" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5 focus:ring-primary-500 focus:border-primary-500">
-                                @foreach(['Januari' => '01', 'Februari' => '02', 'Maret' => '03', 'April' => '04', 'Mei' => '05', 'Juni' => '06', 'Juli' => '07', 'Agustus' => '08', 'September' => '09', 'Oktober' => '10', 'November' => '11', 'Desember' => '12'] as $nama => $bln)
-                                <option value="{{ $bln }}" @selected($filters['bulan']==$bln)>{{ $nama }}</option>
-                                @endforeach
+                            <select name="bulan" x-model="bulan" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
+                                <template x-for="[nama, bln] in bulanOptions" :key="bln">
+                                    <option :value="bln" :selected="bulan == bln" x-text="nama"></option>
+                                </template>
                             </select>
                         </div>
                         <div class="w-1/2">
                             <label class="block mb-2 text-sm font-medium text-gray-900">Tahun<span class="text-red-500 ml-1">*</span></label>
-                            <select name="tahun" x-model="tahun" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5 focus:ring-primary-500 focus:border-primary-500">
+                            <select name="tahun" x-model="tahun" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                                 <template x-for="year in tahunOptions" :key="year">
-                                    <option :value="year" :selected="year == '{{ $filters['tahun'] }}'" x-text="year"></option>
+                                    <option :value="year" :selected="year == tahun" x-text="year"></option>
                                 </template>
                             </select>
                         </div>
                     </div>
-                    <p id="helper-text-explanation" class="text-sm text-gray-500" x-show="isActivePeriod">Periode aktif</p>
                 </div>
+
+                <p id="helper-text-explanation" class="text-sm text-gray-500" x-show="isActivePeriod">Periode aktif</p>
 
                 <!-- Level Harga -->
                 <div>
                     <label class="block mb-2 text-sm font-medium text-gray-900">Level Harga<span class="text-red-500 ml-1">*</span></label>
                     <select name="kd_level" x-model="selectedKdLevel" @change="updateKdWilayah()" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
+                        <option value="00" @selected($filters['kdLevel']=='00' )">Semua Level Harga</option>
                         <option value="01" @selected($filters['kdLevel']=='01' )">Harga Konsumen Kota</option>
                         <option value="02" @selected($filters['kdLevel']=='02' )">Harga Konsumen Desa</option>
                         <option value="03" @selected($filters['kdLevel']=='03' )">Harga Perdagangan Besar</option>
@@ -50,9 +51,10 @@
                         <label class="block mb-2 text-sm font-medium text-gray-900">Provinsi</label>
                         <select x-model="selectedProvince" @change="selectedKabkot = ''; updateKdWilayah()" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                             <option value="">Semua Provinsi</option>
-                            @foreach (\App\Models\Wilayah::whereRaw('LENGTH(kd_wilayah) = 2')->get() as $province)
-                            <option value="{{ $province->kd_wilayah }}" @selected($province->kd_wilayah == substr($filters['kdWilayah'], 0, 2))>{{ $province->nama_wilayah }}</option>
-                            @endforeach
+                            <option value="">Tanpa Provinsi</option>
+                            <template x-for="province in provinces" :key="province.kd_wilayah">
+                                <option :value="province.kd_wilayah" x-text="province.nama_wilayah" :selected="province.kd_wilayah == selectedProvince"></option>
+                            </template>
                         </select>
                     </div>
                     <!-- Kabkot Dropdown (shown for kd_level = '01') -->
@@ -60,83 +62,42 @@
                         <label class="block mb-2 text-sm font-medium text-gray-900">Kabupaten/Kota</label>
                         <select x-model="selectedKabkot" @change="updateKdWilayah()" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                             <option value="">Semua Kabupaten/Kota</option>
+                            <option value="">Tanpa Kabupaten/Kota</option>
                             <template x-for="kabkot in filteredKabkots" :key="kabkot.kd_wilayah">
-                                <option :value="kabkot.kd_wilayah" x-text="kabkot.nama_wilayah" :selected="kabkot.kd_wilayah == '{{ $filters['kdWilayah'] }}'"></option>
+                                <option :value="kabkot.kd_wilayah" x-text="kabkot.nama_wilayah" :selected="kabkot.kd_wilayah == selectedKabkot"></option>
                             </template>
                         </select>
                     </div>
                     <input type="hidden" name="kd_wilayah" x-model="kd_wilayah" required>
                 </div>
 
+                <!-- Komoditas (Not Required) -->
+                <div>
+                    <label for="komoditas" class="block mb-2 text-sm font-medium text-gray-900">Komoditas</label>
+                    <select id="komoditas" name="kd_komoditas" x-model="selectedKomoditas" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5">
+                        <option value="">Semua Komoditas</option>
+                        <template x-for="komoditi in komoditas" :key="komoditi.kd_komoditas">
+                            <option :value="komoditi.kd_komoditas" x-text="komoditi.nama_komoditas" :selected="komoditi.kd_komoditas == selectedKomoditas"></option>
+                        </template>
+                    </select>
+                </div>
+
                 <!-- Status -->
                 <div>
                     <label class="block mb-2 text-sm font-medium text-gray-900">Status<span class="text-red-500 ml-1">*</span></label>
                     <select name="status" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
-                        <option value="all" @selected($filters['status']=='all' )">Semua Status</option>
+                        <option value="00" @selected($filters['status']=='00' )">Semua Status</option>
                         <option value="01" @selected($filters['status']=='01' )">Belum diisi</option>
                         <option value="02" @selected($filters['status']=='02' )">Sudah diisi</option>
                     </select>
                 </div>
 
-                <button type="submit" class="w-full bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 text-white font-medium rounded-lg text-sm px-5 py-2.5 text-center">Filter</button>
-            </div>
-        </form>
-    </x-slot>
-    @else
-    <x-slot name="sidebar">
-        <form id="filter-form-non-pusat" method="GET" action="{{ route('rekon.progres') }}">
-            <div class="space-y-4 mt-4">
-                <!-- Hidden inputs for active Bulan, Tahun, and (for kabkot) kd_wilayah -->
-                <input type="hidden" name="bulan" value="{{ $filters['bulan'] }}">
-                <input type="hidden" name="tahun" value="{{ $filters['tahun'] }}">
-                @if (strlen(auth()->user()->kd_wilayah) === 4)
-                <input type="hidden" name="kd_wilayah" value="{{ auth()->user()->kd_wilayah }}">
-                @endif
-
-                <!-- Level Harga -->
-                <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-900">Level Harga<span class="text-red-500 ml-1">*</span></label>
-                    <select name="kd_level" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5 focus:ring-primary-500 focus:border-primary-500">
-                        <option value="01" @selected($filters['kdLevel']=='01' )">Harga Konsumen Kota</option>
-                        <option value="02" @selected($filters['kdLevel']=='02' )">Harga Konsumen Desa</option>
-                        <option value="03" @selected($filters['kdLevel']=='03' )">Harga Perdagangan Besar</option>
-                        <option value="04" @selected($filters['kdLevel']=='04' )">Harga Produsen Desa</option>
-                        <option value="05" @selected($filters['kdLevel']=='05' )">Harga Produsen</option>
-                    </select>
-                </div>
-
-                <!-- Wilayah (for provinsi users only) -->
-                @if (strlen(auth()->user()->kd_wilayah) === 2)
-                <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-900">Wilayah<span class="text-red-500 ml-1">*</span></label>
-                    <select name="kd_wilayah" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5 focus:ring-primary-500 focus:border-primary-500">
-                        <!-- TODO: yeah this  code messy as hell dawg   -->
-                        <option value="{{ auth()->user()->kd_wilayah }}" @selected($filters['kdWilayah']==auth()->user()->kd_wilayah)>
-                            Provinsi {{ \App\Models\Wilayah::where('kd_wilayah', auth()->user()->kd_wilayah)->first()->nama_wilayah ?? 'N/A' }}
-                        </option>
-                        @foreach (\App\Models\Wilayah::where('kd_wilayah', 'LIKE', auth()->user()->kd_wilayah . '%')->whereRaw('LENGTH(kd_wilayah) = 4')->orderBy('nama_wilayah')->get() as $kabkot)
-                        <option value="{{ $kabkot->kd_wilayah }}" @selected($filters['kdWilayah']==$kabkot->kd_wilayah)>{{ $kabkot->nama_wilayah }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                @endif
-
-                <!-- Status -->
-                <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-900">Status<span class="text-red-500 ml-1">*</span></label>
-                    <select name="status" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5 focus:ring-primary-500 focus:border-primary-500">
-                        <option value="all" @selected($filters['status']=='all' )">Semua Status</option>
-                        <option value="01" @selected($filters['status']=='01' )">Belum diisi</option>
-                        <option value="02" @selected($filters['status']=='02' )">Sudah diisi</option>
-                    </select>
-                </div>
+                <!-- hidden auth()->user()->kd_wilayah -->
 
                 <button type="submit" class="w-full bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 text-white font-medium rounded-lg text-sm px-5 py-2.5 text-center">Filter</button>
             </div>
         </form>
     </x-slot>
-    @endif
-
 
     <!-- Modals -->
     <x-modal name="edit-rekonsiliasi" focusable title="Edit Rekonsiliasi" x-cloak>
