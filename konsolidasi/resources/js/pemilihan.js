@@ -31,39 +31,74 @@ Alpine.data("webData", () => ({
         missingItems: [],
     },
     get isActivePeriod() {
-        return (
-            this.bulan === this.activeBulan && this.tahun === this.activeTahun
-        );
+        const result =
+            +this.bulan === +this.activeBulan &&
+            +this.tahun === +this.activeTahun;
+        return result;
     },
     hasUnconfirmedChanges: false,
+    bulanOptions: [
+        ["Januari", 1],
+        ["Februari", 2],
+        ["Maret", 3],
+        ["April", 4],
+        ["Mei", 5],
+        ["Juni", 6],
+        ["Juli", 7],
+        ["Agustus", 8],
+        ["September", 9],
+        ["Oktober", 10],
+        ["November", 11],
+        ["Desember", 12],
+    ],
 
     async init() {
         this.loading = true;
         try {
-            const wilayahResponse = await fetch("/api/wilayah");
-            const wilayahData = await wilayahResponse.json();
-            this.provinces = wilayahData.provinces || [];
-            this.kabkots = wilayahData.kabkots || [];
+            const [wilayahResponse, komoditasResponse, bulanTahunResponse] =
+                await Promise.all([
+                    fetch("/api/wilayah").then((res) => {
+                        if (!res.ok)
+                            throw new Error(
+                                `Wilayah API error! status: ${res.status}`
+                            );
+                        return res.json();
+                    }),
+                    fetch("/api/komoditas").then((res) => {
+                        if (!res.ok)
+                            throw new Error(
+                                `Komoditas API error! status: ${res.status}`
+                            );
+                        return res.json();
+                    }),
+                    fetch("/api/bulan_tahun").then((res) => {
+                        if (!res.ok)
+                            throw new Error(
+                                `BulanTahun API error! status: ${res.status}`
+                            );
+                        return res.json();
+                    }),
+                ]);
+
+            // Process wilayah data
+            this.provinces = wilayahResponse.data.provinces || [];
+            this.kabkots = wilayahResponse.data.kabkots || [];
             this.filteredProvinces = [...this.provinces];
             this.updateFilteredKabkots(); // Initialize filteredKabkots
 
-            const komoditasResponse = await fetch("/api/komoditas");
-            const komoditasData = await komoditasResponse.json();
-            this.komoditas = komoditasData || [];
+            // Process komoditas data
+            this.komoditas = komoditasResponse.data || [];
             this.filteredKomoditas = [...this.komoditas];
 
-            const bulanTahunResponse = await fetch("/api/bulan_tahun");
-            const bulanTahunData = await bulanTahunResponse.json();
-
-            const aktifData = bulanTahunData.bt_aktif;
-            this.bulan = aktifData
-                ? String(aktifData.bulan).padStart(2, "0")
-                : "";
-            this.tahun = aktifData ? aktifData.tahun : "";
+            // Process bulan and tahun data
+            const aktifData = bulanTahunResponse.data.bt_aktif;
+            this.bulan = aktifData.bulan;
+            this.tahun = aktifData.tahun;
             this.activeBulan = this.bulan;
             this.activeTahun = this.tahun;
             this.tahunOptions =
-                bulanTahunData.tahun || (aktifData ? [aktifData.tahun] : []);
+                bulanTahunResponse.data.tahun ||
+                (aktifData ? [aktifData.tahun] : []);
 
             this.selectedKdLevel = document.querySelector(
                 'select[name="kd_level"]'
@@ -328,7 +363,7 @@ Alpine.data("webData", () => ({
     confirmAddToTable() {
         this.tableData = [...this.tableData, ...this.modalContent.items];
         this.$dispatch("close");
-        console.log("Table Data Updated:", this.tableData);
+        // console.log("Table Data Updated:", this.tableData);
     },
 
     async confirmRekonsiliasi() {
@@ -370,7 +405,7 @@ Alpine.data("webData", () => ({
                     console.log("Duplikat:", result.duplicates);
                     this.tableData = [];
                 } else {
-                    alert("Pemilihan komoditas berhasil!");
+                    alert("Pemilihan komoditas rekonsiliasi berhasil!");
                     this.tableData = [];
                 }
             } else {

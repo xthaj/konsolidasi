@@ -44,7 +44,13 @@
                     :class="tableData.length === 0 ? 'text-blue-700 bg-blue-100 border-blue-300 dark:bg-gray-800 dark:border-blue-800 dark:text-blue-400' : 'text-green-700 bg-green-50 border-green-300 dark:bg-gray-800 dark:border-green-800 dark:text-green-400'">
                     <div class="flex items-center justify-between">
                         <span class="sr-only">Tambah ke Tabel</span>
-                        <h3 class="font-medium">1. Tambah ke Tabel</h3>
+                        <div>
+                            <h3 class="font-medium" id="step-1-title">1. Tambah ke Tabel</h3>
+                            <!-- Added smaller text for more info -->
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1" id="step-1-desc">
+                                Pilih provinsi, kabupaten/kota, dan komoditas, lalu tambahkan ke tabel untuk ditinjau. Pada tahap ini, komoditas rekonsiliasi <b>belum</b> tersimpan.
+                            </p>
+                        </div>
                         <svg x-show="tableData.length > 0" class="w-4 h-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 12">
                             <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1 5.917 5.724 10.5 15 1.5" />
                         </svg>
@@ -59,8 +65,14 @@
                     :class="tableData.length > 0 ? 'text-blue-700 bg-blue-100 border-blue-300 dark:bg-gray-800 dark:border-blue-800 dark:text-blue-400' : 'text-gray-900 bg-gray-100 border-gray-300 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400'">
                     <div class="flex items-center justify-between">
                         <span class="sr-only">Konfirmasi Komoditas</span>
-                        <h3 class="font-medium">2. Konfirmasi Komoditas</h3>
-                        <svg x-show="tableData.length > 0" class="rtl:rotate-180 w-4 h-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg | http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 10">
+                        <div>
+                            <h3 class="font-medium" id="step-2-title">2. Konfirmasi Komoditas</h3>
+                            <!-- Added smaller text for more info -->
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1" id="step-2-desc">
+                                Klik konfirmasi untuk menyelesaikan pemilihan komoditas rekonsiliasi.
+                            </p>
+                        </div>
+                        <svg x-show="tableData.length > 0" class="rtl:rotate-180 w-4 h-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 10">
                             <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1 5h12m0 0L9 1m4 4L9 9" />
                         </svg>
                     </div>
@@ -72,23 +84,22 @@
             <!-- Bulan & Tahun -->
             <div class="flex gap-4">
                 <div class="w-1/2">
-                    <label class="block mb-2 text-sm font-medium text-gray-900">Bulan<span class="text-red-500 ml-1">*</span></label>
-                    <select name="bulan" x-model="bulan" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5 focus:ring-primary-500 focus:border-primary-500" disabled>
-                        @foreach(['Januari' => '01', 'Februari' => '02', 'Maret' => '03', 'April' => '04', 'Mei' => '05', 'Juni' => '06', 'Juli' => '07', 'Agustus' => '08', 'September' => '09', 'Oktober' => '10', 'November' => '11', 'Desember' => '12'] as $nama => $bln)
-                        <option value="{{ $bln }}" @selected(request('bulan')==$bln)>{{ $nama }}</option>
-                        @endforeach
+                    <label class="block mb-2 text-sm font-medium text-gray-900">Bulan</label>
+                    <select name="bulan" x-model="bulan" required class="bg-gray-200 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5 cursor-not-allowed " disabled>
+                        <template x-for="[nama, bln] in bulanOptions" :key="bln">
+                            <option :value="bln" :selected="bulan == bln" x-text="nama"></option>
+                        </template>
                     </select>
                 </div>
                 <div class="w-1/2">
-                    <label class="block mb-2 text-sm font-medium text-gray-900">Tahun<span class="text-red-500 ml-1">*</span></label>
-                    <select name="tahun" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5 focus:ring-primary-500 focus:border-primary-500" disabled>
+                    <label class="block mb-2 text-sm font-medium text-gray-900">Tahun</label>
+                    <select name="tahun" required class="bg-gray-200 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5 cursor-not-allowed" disabled>
                         <template x-for="year in tahunOptions" :key="year">
                             <option :value="year" :selected="year === tahun" x-text="year"></option>
                         </template>
                     </select>
                 </div>
             </div>
-
 
             <!-- Level Harga -->
             <div>
@@ -107,7 +118,7 @@
             <div class="flex justify-between items-center mb-2">
                 <label class="text-sm font-medium text-gray-900 dark:text-white">Provinsi</label>
                 <div class="flex items-center p-2 rounded-sm hover:bg-gray-100 dark:hover:bg-gray-600">
-                    <input type="checkbox" id="select-all-provinces" :checked="selectAllProvincesChecked" @click="selectAllProvinces($event.target.checked)" class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-primary-500 dark:focus:ring-primary-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500">
+                    <input type="checkbox" id="select-all-provinces" :checked="selectAllProvincesChecked" @click="selectAllProvinces($event.target.checked)" class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded-sm  dark:focus:ring-primary-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500">
                     <label for="select-all-provinces" class="w-full ms-2 text-sm font-medium text-gray-900 rounded-sm dark:text-gray-300">Pilih Semua</label>
                 </div>
             </div>
@@ -121,14 +132,14 @@
                                 <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z" />
                             </svg>
                         </div>
-                        <input type="text" id="input-group-search-provinsi" @input="searchProvince($event.target.value)" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full ps-10 p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" placeholder="Search provinsi">
+                        <input type="text" id="input-group-search-provinsi" @input="searchProvince($event.target.value)" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg   block w-full ps-10 p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark: dark:" placeholder="Search provinsi">
                     </div>
                 </div>
                 <ul class="max-h-48 px-3 pb-3 overflow-y-auto text-sm text-gray-700 dark:text-gray-200">
                     <template x-for="provinsi in filteredProvinces" :key="provinsi.kd_wilayah">
                         <li>
                             <div class="flex items-center p-2 rounded-sm hover:bg-gray-100 dark:hover:bg-gray-600">
-                                <input type="checkbox" :id="'provinsi-' + provinsi.kd_wilayah" :checked="selectedProvinces.some(p => p.kd_wilayah === provinsi.kd_wilayah)" @click="toggleProvince(provinsi)" class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-primary-500 dark:focus:ring-primary-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500">
+                                <input type="checkbox" :id="'provinsi-' + provinsi.kd_wilayah" x-bind:checked="selectedProvinces.some(function(p) { return p.kd_wilayah === provinsi.kd_wilayah })" @click="toggleProvince(provinsi)" class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded-sm  dark:focus:ring-primary-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500">
                                 <label :for="'provinsi-' + provinsi.kd_wilayah" class="w-full ms-2 text-sm font-medium text-gray-900 rounded-sm dark:text-gray-300" x-text="provinsi.nama_wilayah"></label>
                             </div>
                         </li>
@@ -141,7 +152,7 @@
                 <div class="flex justify-between items-center mb-2">
                     <label class="text-sm font-medium text-gray-900 dark:text-white">Kabupaten/Kota</label>
                     <div class="flex items-center p-2 rounded-sm hover:bg-gray-100 dark:hover:bg-gray-600">
-                        <input type="checkbox" id="select-all-kabkots" :checked="selectAllKabkotsChecked" @click="selectAllKabkots($event.target.checked)" class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-primary-500 dark:focus:ring-primary-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500">
+                        <input type="checkbox" id="select-all-kabkots" :checked="selectAllKabkotsChecked" @click="selectAllKabkots($event.target.checked)" class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded-sm  dark:focus:ring-primary-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500">
                         <label for="select-all-kabkots" class="w-full ms-2 text-sm font-medium text-gray-900 rounded-sm dark:text-gray-300">Pilih Semua</label>
                     </div>
                 </div>
@@ -155,14 +166,14 @@
                                     <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z" />
                                 </svg>
                             </div>
-                            <input type="text" id="input-group-search-kabkot" @input="searchKabkot($event.target.value)" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full ps-10 p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" placeholder="Search kabupaten/kota">
+                            <input type="text" id="input-group-search-kabkot" @input="searchKabkot($event.target.value)" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg   block w-full ps-10 p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark: dark:" placeholder="Search kabupaten/kota">
                         </div>
                     </div>
                     <ul class="max-h-48 px-3 pb-3 overflow-y-auto text-sm text-gray-700 dark:text-gray-200">
                         <template x-for="kabkot in filteredKabkots" :key="kabkot.kd_wilayah">
                             <li>
                                 <div class="flex items-center p-2 rounded-sm hover:bg-gray-100 dark:hover:bg-gray-600">
-                                    <input type="checkbox" :id="'kabkot-' + kabkot.kd_wilayah" :checked="selectedKabkots.some(k => k.kd_wilayah === kabkot.kd_wilayah)" @click="toggleKabkot(kabkot)" class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-primary-500 dark:focus:ring-primary-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500">
+                                    <input type="checkbox" :id="'kabkot-' + kabkot.kd_wilayah" :checked="selectedKabkots.some(k => k.kd_wilayah === kabkot.kd_wilayah)" @click="toggleKabkot(kabkot)" class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded-sm  dark:focus:ring-primary-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500">
                                     <label :for="'kabkot-' + kabkot.kd_wilayah" class="w-full ms-2 text-sm font-medium text-gray-900 rounded-sm dark:text-gray-300" x-text="kabkot.nama_wilayah"></label>
                                 </div>
                             </li>
@@ -176,7 +187,7 @@
                 <div class="flex justify-between items-center mb-2">
                     <label class="text-sm font-medium text-gray-900 dark:text-white">Komoditas</label>
                     <div class="flex items-center p-2 rounded-sm hover:bg-gray-100 dark:hover:bg-gray-600">
-                        <input type="checkbox" id="select-all-komoditas" :checked="selectAllKomoditasChecked" @click="selectAllKomoditas($event.target.checked)" class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-primary-500 dark:focus:ring-primary-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500">
+                        <input type="checkbox" id="select-all-komoditas" :checked="selectAllKomoditasChecked" @click="selectAllKomoditas($event.target.checked)" class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded-sm  dark:focus:ring-primary-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500">
                         <label for="select-all-komoditas" class="w-full ms-2 text-sm font-medium text-gray-900 rounded-sm dark:text-gray-300">Pilih Semua</label>
                     </div>
                 </div>
@@ -190,14 +201,14 @@
                                     <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z" />
                                 </svg>
                             </div>
-                            <input type="text" id="input-group-search-komoditas" @input="searchKomoditas($event.target.value)" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full ps-10 p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" placeholder="Search komoditas">
+                            <input type="text" id="input-group-search-komoditas" @input="searchKomoditas($event.target.value)" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg   block w-full ps-10 p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white dark: dark:" placeholder="Search komoditas">
                         </div>
                     </div>
                     <ul class="max-h-48 px-3 pb-3 overflow-y-auto text-sm text-gray-700 dark:text-gray-200">
                         <template x-for="komoditas in filteredKomoditas" :key="komoditas.kd_komoditas">
                             <li>
                                 <div class="flex items-center p-2 rounded-sm hover:bg-gray-100 dark:hover:bg-gray-600">
-                                    <input type="checkbox" :id="'komoditas-' + komoditas.kd_komoditas" :value="komoditas.kd_komoditas" x-model="selectedKomoditas" @change="updateSelectAllKomoditas()" class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-primary-500 dark:focus:ring-primary-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500">
+                                    <input type="checkbox" :id="'komoditas-' + komoditas.kd_komoditas" :value="komoditas.kd_komoditas" x-model="selectedKomoditas" @change="updateSelectAllKomoditas()" class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded-sm  dark:focus:ring-primary-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500">
                                     <label :for="'komoditas-' + komoditas.kd_komoditas" class="w-full ms-2 text-sm font-medium text-gray-900 rounded-sm dark:text-gray-300" x-text="komoditas.nama_komoditas"></label>
                                 </div>
                             </li>
@@ -211,7 +222,7 @@
                 <span x-text="errorMessage"></span>
             </div>
 
-            <button class="w-full bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 text-white font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800" @click="addRow">Tambah ke Tabel</button>
+            <x-secondary-button class="!w-full" @click="addRow">Tambah ke Tabel</x-secondary-button>
 
             <form @submit.prevent="confirmRekonsiliasi">
                 @csrf
