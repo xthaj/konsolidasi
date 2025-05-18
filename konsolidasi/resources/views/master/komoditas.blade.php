@@ -5,31 +5,21 @@
     @endsection
 
     <!-- New Success Modal -->
-    <x-modal name="success-update-bulan-tahun" focusable title="Sukses">
-        <div class="px-6 py-4">
-            <p x-text="successMessage" class="text-green-600"></p>
-            <div class="mt-6 flex justify-end">
-                <x-primary-button x-on:click="$dispatch('close')">OK</x-primary-button>
+    <!-- Success Modal -->
+    <x-modal name="success-modal" title="Berhasil" maxWidth="md">
+        <div class="text-gray-900 dark:text-white">
+            <p x-text="modalMessage"></p>
+            <div class="mt-4 flex justify-end">
+                <x-primary-button
+                    type="button"
+                    x-on:click="$dispatch('close-modal', 'success-modal')">
+                    Tutup
+                </x-primary-button>
             </div>
         </div>
     </x-modal>
 
-    <!-- New Fail Modal -->
-    <x-modal name="fail-update-bulan-tahun" focusable title="Error">
-        <div class="px-6 py-4">
-            <p x-text="failMessage" class="text-red-600"></p>
-            <template x-if="failDetails">
-                <div class="mt-2 text-sm text-gray-600">
-                    <p><strong>Requested:</strong> <span x-text="failDetails.requested_bulan"></span> - <span x-text="failDetails.requested_tahun"></span></p>
-                    <p><strong>Current Active:</strong> <span x-text="failDetails.current_active_bulan"></span> - <span x-text="failDetails.current_active_tahun"></span></p>
-                    <p><strong>Hint:</strong> <span x-text="failDetails.hint"></span></p>
-                </div>
-            </template>
-            <div class="mt-6 flex justify-end">
-                <x-primary-button x-on:click="$dispatch('close')">OK</x-primary-button>
-            </div>
-        </div>
-    </x-modal>
+
 
     <!-- Modal for Adding Komoditas -->
     <x-modal name="add-komoditas" focusable title="Konfirmasi Penambahan Komoditas">
@@ -49,8 +39,8 @@
     <x-modal name="edit-komoditas" focusable title="Edit Komoditas">
         <div class="px-6 py-4">
             <div class="mb-4">
-                <label class="block mb-2 text-sm font-medium text-gray-900">Kode Komoditas (tidak bisa diubah)</label>
-                <input type="text" x-model="editKomoditas.kd_komoditas" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5" disabled>
+                <label class="block mb-2 text-sm font-medium text-gray-900">Kode Komoditas</label>
+                <input type="text" x-model="editKomoditas.kd_komoditas" class="bg-gray-200 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5 cursor-not-allowed" disabled>
             </div>
             <div class="mb-4">
                 <label class="block mb-2 text-sm font-medium text-gray-900">Nama Komoditas</label>
@@ -73,6 +63,20 @@
             <div class="mt-6 flex justify-end gap-3">
                 <x-secondary-button x-on:click="$dispatch('close')">Batal</x-secondary-button>
                 <x-primary-button @click="confirmAction(); $dispatch('close')">Hapus</x-primary-button>
+            </div>
+        </div>
+    </x-modal>
+
+    <!-- Error Modal -->
+    <x-modal name="error-modal" title="Gagal" maxWidth="md">
+        <div class="text-gray-900 dark:text-white">
+            <p x-text="modalMessage"></p>
+            <div class="mt-4 flex justify-end">
+                <x-primary-button
+                    type="button"
+                    x-on:click="$dispatch('close-modal', 'error-modal')">
+                    Tutup
+                </x-primary-button>
             </div>
         </div>
     </x-modal>
