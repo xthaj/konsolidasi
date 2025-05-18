@@ -24,4 +24,14 @@ class Wilayah extends Model
     {
         return $this->hasMany(Wilayah::class, 'parent_kd', 'kd_wilayah');
     }
+
+    public static function getWilayahName(?string $kdWilayah): ?string
+    {
+        if (is_null($kdWilayah)) {
+            return null;
+        }
+        return self::query()
+            ->where('kd_wilayah', $kdWilayah)
+            ->value('nama_wilayah');
+    }
 }

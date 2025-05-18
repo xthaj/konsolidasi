@@ -18,8 +18,12 @@ class BulanTahun extends Model
         return $this->hasMany(Inflasi::class);
     }
 
-    public static function getBulanName(int $bulan): ?string
+    public static function getBulanName(?int $bulan): ?string
     {
+        if (is_null($bulan)) {
+            return null;
+        }
+
         $bulanNames = [
             1 => 'Januari',
             2 => 'Februari',

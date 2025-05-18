@@ -19,4 +19,14 @@ class Komoditas extends Model
     {
         return $this->hasMany(Inflasi::class);
     }
+
+    public static function getKomoditasName(?string $kdKomoditas): ?string
+    {
+        if (is_null($kdKomoditas)) {
+            return null;
+        }
+        return self::query()
+            ->where('kd_komoditas', $kdKomoditas)
+            ->value('nama_komoditas');
+    }
 }
