@@ -2,196 +2,358 @@
 
 namespace App\Imports;
 
-use Illuminate\Support\Collection;
-use Maatwebsite\Excel\Concerns\ToCollection;
-use App\Models\Wilayah;
-use App\Models\Komoditas;
 use App\Models\BulanTahun;
 use App\Models\Inflasi;
+use App\Models\Komoditas;
+use App\Models\Wilayah;
+use Illuminate\Support\Collection;
+use Illuminate\Support\MessageBag;
+use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
-use Illuminate\Support\MessageBag;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class FinalImport implements ToCollection, WithHeadingRow, WithChunkReading
 {
-    private $validKdWilayah;
-    private $validKdKomoditas;
-    private $bulanTahunId;
-    private $errors;
-    private $rowNumber;
-    private $level;
-    private $existingInflasi;
-    private $updatedCount = 0;
-    private $insertedCount = 0; // New property to track inserted records
-    private $failedRow = null;
-    private $seenKeys = [];
-    private $stopAfterSmallChunk = false;
-    private $debugMode = false;
+    /**
+     * @var array List of valid `kd_wilayah` codes from the Wilayah table.
+     */
+    private array $validKdWilayah;
 
-    public function __construct($bulan, $tahun, $level, $debugMode = false)
+    /**
+     * @var array List of valid `kd_komoditas` codes from the Komoditas table.
+     */
+    private array $validKdKomoditas;
+
+    /**
+     * @var int The `bulan_tahun_id` for the import, linking to a BulanTahun record.
+     */
+    private int $bulanTahunId;
+
+    /**
+     * @var MessageBag Stores validation errors for each row.
+     */
+    private MessageBag $errors;
+
+    /**
+     * @var int Tracks the current row number in the Excel file (including header).
+     */
+    private int $rowNumber = 1;
+
+    /**
+     * @var string The level (`kd_level`) for the Inflasi records (e.g., regional or national).
+     */
+    private string $level;
+
+    /**
+     * @var Collection Existing Inflasi records for the given `bulan_tahun_id` and `kd_level`, keyed by `kd_komoditas-kd_wilayah`.
+     */
+    private Collection $existingInflasi;
+
+    /**
+     * @var int Count of updated Inflasi records.
+     */
+    private int $updatedCount = 0;
+
+    /**
+     * @var int Count of inserted Inflasi records.
+     */
+    private int $insertedCount = 0;
+
+    /**
+     * @var int|null The row number where the first error occurred, if any.
+     */
+    private ?int $failedRow = null;
+
+    /**
+     * @var array Tracks `kd_komoditas-kd_wilayah` combinations in the current batch to prevent duplicates.
+     */
+    private array $seenKeys = [];
+
+    /**
+     * @var bool Flag to stop processing further chunks after an error or end of data.
+     */
+    private bool $stopProcessing = false;
+
+    /**
+     * @var bool Enables debug mode for single-row processing and detailed logging.
+     */
+    private bool $debugMode;
+
+    /**
+     * @var int Number of rows to process per chunk for memory efficiency.
+     */
+    private const CHUNK_SIZE = 100;
+
+    /**
+     * Constructor to initialize the import process.
+     *
+     * @param int $bulan The month (1-12) for the import.
+     * @param int $tahun The year for the import.
+     * @param string $level The level (`kd_level`) for the Inflasi records.
+     * @param bool $debugMode Enables debug mode for single-row processing.
+     */
+    public function __construct(int $bulan, int $tahun, string $level, bool $debugMode = false)
     {
+        // Load valid codes for validation
         $this->validKdWilayah = Wilayah::pluck('kd_wilayah')->toArray();
         $this->validKdKomoditas = Komoditas::pluck('kd_komoditas')->toArray();
+
+        // Initialize error bag
         $this->errors = new MessageBag();
-        $this->rowNumber = 1;
+
+        // Store level and debug mode
         $this->level = $level;
         $this->debugMode = $debugMode;
 
-        $bulanTahun = BulanTahun::where('bulan', $bulan)->where('tahun', $tahun)->first();
-        if ($bulanTahun) {
-            $this->bulanTahunId = $bulanTahun->bulan_tahun_id;
-        } else {
-            $bulanTahun = BulanTahun::create(['bulan' => $bulan, 'tahun' => $tahun, 'aktif' => 0]);
-            $this->bulanTahunId = $bulanTahun->bulan_tahun_id;
-        }
+        // Initialize BulanTahun and load existing Inflasi records
+        $this->initializeBulanTahun($bulan, $tahun);
+        $this->loadExistingInflasi();
+    }
 
+    /**
+     * Initializes or retrieves the BulanTahun record for the given month and year.
+     *
+     * @param int $bulan The month (1-12).
+     * @param int $tahun The year.
+     */
+    private function initializeBulanTahun(int $bulan, int $tahun): void
+    {
+        $bulanTahun = BulanTahun::firstOrCreate(
+            ['bulan' => $bulan, 'tahun' => $tahun],
+            ['aktif' => 0]
+        );
+        $this->bulanTahunId = $bulanTahun->bulan_tahun_id;
+    }
+
+    /**
+     * Loads existing Inflasi records to check for updates or inserts.
+     *
+     * Stores records in a Collection for efficient lookup during processing.
+     */
+    private function loadExistingInflasi(): void
+    {
         $this->existingInflasi = Inflasi::where('bulan_tahun_id', $this->bulanTahunId)
             ->where('kd_level', $this->level)
+            ->select('inflasi_id', 'kd_komoditas', 'kd_wilayah')
             ->get()
             ->keyBy(fn($item) => "{$item->kd_komoditas}-{$item->kd_wilayah}");
     }
 
-    public function collection(Collection $rows)
+    /**
+     * Processes a chunk of Excel rows.
+     *
+     * @param Collection $rows The rows in the current chunk.
+     */
+    public function collection(Collection $rows): void
     {
+        // Skip processing if a previous error or stop condition was triggered
+        if ($this->stopProcessing) {
+            Log::info("Skipping chunk due to previous stop condition at row {$this->rowNumber}");
+            return;
+        }
+
         Log::info("Processing chunk, rows: " . count($rows) . ", starting at row {$this->rowNumber}");
 
-        if ($this->stopAfterSmallChunk) {
-            Log::info("Skipping chunk due to previous small chunk stop");
-            return;
-        }
-
-        if ($this->failedRow !== null) {
-            Log::warning("Skipping chunk due to previous failure at row {$this->failedRow}");
-            return;
-        }
-
+        $inserts = [];
         $updates = [];
-        $inserts = []; // New array for inserts (if needed)
 
         foreach ($rows as $row) {
             $this->rowNumber++;
-            $rowData = $row->toArray();
-            Log::info("Processing row {$this->rowNumber}: " . json_encode($rowData));
 
-            if (empty(array_filter($rowData, fn($value) => $value !== null && $value !== ''))) {
-                Log::info("Detected end of file at row {$this->rowNumber}");
-                $this->stopAfterSmallChunk = true;
+            // Check for empty row (indicates EOF)
+            if (empty(array_filter($row->toArray(), fn($value) => $value !== null && $value !== ''))) {
+                Log::info("Detected empty row (likely EOF) at row {$this->rowNumber}");
+                $this->stopProcessing = true;
                 break;
             }
 
-            $kd_wilayah = trim($row['kd_wilayah'] ?? '0');
-            if ($kd_wilayah === '') {
-                $kd_wilayah = '0';
-            }
-            if (!in_array($kd_wilayah, $this->validKdWilayah)) {
-                $this->errors->add("row_{$this->rowNumber}", "kd_wilayah '$kd_wilayah' tidak valid");
-                $this->failedRow = $this->rowNumber;
+            try {
+                $this->validateAndPrepareRow($row, $inserts, $updates);
+            } catch (\Exception $e) {
+                Log::error("Error at row {$this->rowNumber}: " . $e->getMessage());
+                $this->stopProcessing = true;
                 break;
-            }
-
-            $kd_komoditasRaw = trim($row['kd_komoditas'] ?? '');
-            if ($kd_komoditasRaw === '') {
-                $this->errors->add("row_{$this->rowNumber}", "kd_komoditas kosong");
-                $this->failedRow = $this->rowNumber;
-                break;
-            }
-            $kd_komoditas = str_pad($kd_komoditasRaw, 3, '0', STR_PAD_LEFT);
-            if (!in_array($kd_komoditas, $this->validKdKomoditas)) {
-                $this->errors->add("row_{$this->rowNumber}", "kd_komoditas '$kd_komoditas' tidak valid");
-                $this->failedRow = $this->rowNumber;
-                break;
-            }
-
-            $finalInflasiRaw = trim($row['inflasi'] ?? '');
-            if ($finalInflasiRaw === '' || !is_numeric($finalInflasiRaw)) {
-                $this->errors->add("row_{$this->rowNumber}", "final_inflasi harus numerik");
-                $this->failedRow = $this->rowNumber;
-                Log::error("Invalid final_inflasi at row {$this->rowNumber}: " . json_encode($finalInflasiRaw));
-                break;
-            }
-            $finalInflasiClean = str_replace(',', '.', $finalInflasiRaw);
-            if (!is_numeric($finalInflasiClean)) {
-                $this->errors->add("row_{$this->rowNumber}", "final_inflasi tidak valid setelah normalisasi");
-                $this->failedRow = $this->rowNumber;
-                break;
-            }
-            $finalInflasi = round((float) $finalInflasiClean, 2);
-
-            $finalAndilRaw = trim($row['andil'] ?? '');
-            $finalAndil = null;
-            if ($finalAndilRaw !== '') {
-                if (!is_numeric($finalAndilRaw)) {
-                    $this->errors->add("row_{$this->rowNumber}", "final_andil harus numerik");
-                    $this->failedRow = $this->rowNumber;
-                    Log::error("Invalid final_andil at row {$this->rowNumber}: " . json_encode($finalAndilRaw));
-                    break;
-                }
-                $finalAndilClean = str_replace(',', '.', $finalAndilRaw);
-                if (!is_numeric($finalAndilClean)) {
-                    $this->errors->add("row_{$this->rowNumber}", "final_andil tidak valid setelah normalisasi");
-                    $this->failedRow = $this->rowNumber;
-                    break;
-                }
-                $finalAndil = round((float) $finalAndilClean, 2);
-            }
-
-            $key = "{$kd_komoditas}-{$kd_wilayah}";
-            if (isset($this->seenKeys[$key])) {
-                $this->errors->add("row_{$this->rowNumber}", "Duplikat: $key sudah ada");
-                $this->failedRow = $this->rowNumber;
-                break;
-            }
-            $this->seenKeys[$key] = true;
-
-            // Check if record exists
-            if (!isset($this->existingInflasi[$key])) {
-                // Optionally insert new record (if allowed)
-                $inserts[] = [
-                    'bulan_tahun_id' => $this->bulanTahunId,
-                    'kd_level' => $this->level,
-                    'kd_komoditas' => $kd_komoditas,
-                    'kd_wilayah' => $kd_wilayah,
-                    'final_inflasi' => $finalInflasi,
-                    'final_andil' => $finalAndil,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ];
-            } else {
-                // Update existing record
-                $data = [
-                    'inflasi_id' => $this->existingInflasi[$key]->inflasi_id,
-                    'final_inflasi' => $finalInflasi,
-                    'final_andil' => $finalAndil,
-                    'updated_at' => now(),
-                ];
-                $updates[] = $data;
-            }
-
-            if ($this->debugMode && $this->failedRow === null) {
-                if (!empty($updates)) {
-                    $this->processSingleUpdate(end($updates));
-                    $updates = [];
-                }
-                if (!empty($inserts)) {
-                    $this->processSingleInsert(end($inserts));
-                    $inserts = [];
-                }
             }
         }
 
-        if (!$this->debugMode && $this->failedRow === null) {
-            if (!empty($updates)) {
-                $this->processBulk($updates);
-            }
-            if (!empty($inserts)) {
-                $this->processBulkInserts($inserts);
+        // Process valid rows before any error
+        if (!empty($inserts) || !empty($updates)) {
+            if ($this->debugMode) {
+                foreach ($updates as $update) {
+                    $this->processSingleUpdate($update);
+                }
+                foreach ($inserts as $insert) {
+                    $this->processSingleInsert($insert);
+                }
+            } else {
+                try {
+                    $this->processBulk($inserts, $updates);
+                } catch (\Exception $e) {
+                    Log::error("Failed to process collected rows: " . $e->getMessage());
+                }
             }
         }
     }
 
-    private function processSingleUpdate(array $data)
+    /**
+     * Validates a single row and prepares data for Inflasi.
+     *
+     * Checks required fields (`kd_wilayah`, `kd_komoditas`, `inflasi`), validates their values,
+     * and handles optional `andil`. Prevents duplicates within the batch and prepares data
+     * for insert or update.
+     *
+     * @param Collection $row The Excel row data.
+     * @param array &$inserts Array to store new Inflasi records.
+     * @param array &$updates Array to store updates for existing Inflasi records.
+     * @throws \Exception If validation fails.
+     */
+    private function validateAndPrepareRow(Collection $row, array &$inserts, array &$updates): void
+    {
+        $kd_wilayah = trim($row['kd_wilayah'] ?? '0');
+        if ($kd_wilayah === '') {
+            $kd_wilayah = '0';
+        }
+        $kd_komoditasRaw = trim($row['kd_komoditas'] ?? '');
+        $final_inflasiRaw = trim($row['final_inflasi'] ?? '');
+        $final_andilRaw = trim($row['final_andil'] ?? '');
+
+        // Validate kd_wilayah
+        if (!in_array($kd_wilayah, $this->validKdWilayah)) {
+            $this->throwError("kd_wilayah '$kd_wilayah' tidak valid");
+        }
+
+        // Validate kd_komoditas
+        if ($kd_komoditasRaw === '') {
+            $this->throwError('kd_komoditas kosong');
+        }
+        $kd_komoditas = str_pad($kd_komoditasRaw, 3, '0', STR_PAD_LEFT);
+        if (!in_array($kd_komoditas, $this->validKdKomoditas)) {
+            $this->throwError("kd_komoditas '$kd_komoditas' tidak valid");
+        }
+
+        // Validate final_inflasi (required, numeric)
+        $final_inflasiClean = str_replace(',', '.', $final_inflasiRaw);
+        if ($final_inflasiRaw === '' || !is_numeric($final_inflasiClean)) {
+            $this->throwError('final_inflasi harus numerik');
+        }
+        $final_inflasi = round((float) $final_inflasiClean, 2);
+
+        // Validate final_andil (optional, numeric if provided)
+        $final_andil = null;
+        if ($final_andilRaw !== '') {
+            $final_andilClean = str_replace(',', '.', $final_andilRaw);
+            if (!is_numeric($final_andilClean)) {
+                $this->throwError('final_andil harus numerik');
+            }
+            $final_andil = round((float) $final_andilClean, 4);
+        }
+
+        // Check for duplicates in the current batch
+        $key = "{$kd_komoditas}-{$kd_wilayah}";
+        if (isset($this->seenKeys[$key])) {
+            $this->throwError("Duplikat: kombinasi kd_komoditas-kd_wilayah $key sudah ada");
+        }
+        $this->seenKeys[$key] = true;
+
+        // Prepare data for insert or update
+        $data = [
+            'bulan_tahun_id' => $this->bulanTahunId,
+            'kd_level' => $this->level,
+            'kd_komoditas' => $kd_komoditas,
+            'kd_wilayah' => $kd_wilayah,
+            'final_inflasi' => $final_inflasi,
+            'final_andil' => $final_andil,
+            'updated_at' => now(),
+        ];
+
+        if (isset($this->existingInflasi[$key])) {
+            $updates[] = array_merge($data, ['inflasi_id' => $this->existingInflasi[$key]->inflasi_id]);
+        } else {
+            $inserts[] = array_merge($data, ['created_at' => now()]);
+        }
+    }
+
+    /**
+     * Throws a validation error and logs it.
+     *
+     * Adds the error to the MessageBag, sets the failed row number, and throws an exception
+     * to stop processing the current row.
+     *
+     * @param string $message The error message.
+     * @throws \Exception
+     */
+    private function throwError(string $message): void
+    {
+        $this->errors->add("row_{$this->rowNumber}", $message);
+        $this->failedRow = $this->rowNumber;
+        throw new \Exception("Kegagalan di baris {$this->rowNumber}: $message");
+    }
+
+    /**
+     * Processes bulk inserts and updates for Inflasi records.
+     *
+     * Performs bulk inserts for new Inflasi records and updates for existing ones.
+     * Uses a transaction to ensure atomicity and rolls back on error.
+     *
+     * @param array $inserts Array of new Inflasi records to insert.
+     * @param array $updates Array of updates for existing Inflasi records.
+     * @throws \Exception If the bulk operation fails.
+     */
+    private function processBulk(array $inserts, array $updates): void
+    {
+        Log::info("Bulk processing: " . count($inserts) . " inserts, " . count($updates) . " updates");
+
+        DB::beginTransaction();
+        try {
+            // Handle inserts
+            if (!empty($inserts)) {
+                DB::table('inflasi')->insert($inserts);
+                $this->insertedCount += count($inserts);
+                Log::debug("Inserted {$this->insertedCount} rows");
+            }
+
+            // Handle updates
+            if (!empty($updates)) {
+                $updatedRows = 0;
+                foreach ($updates as $update) {
+                    $affected = DB::table('inflasi')
+                        ->where('inflasi_id', $update['inflasi_id'])
+                        ->update([
+                            'final_inflasi' => $update['final_inflasi'],
+                            'final_andil' => $update['final_andil'],
+                            'updated_at' => $update['updated_at'],
+                        ]);
+                    $updatedRows += $affected;
+                }
+                $this->updatedCount += $updatedRows;
+                Log::debug("Updated {$updatedRows} rows, total updated: {$this->updatedCount}");
+            }
+
+            DB::commit();
+            Log::debug("Transaction committed");
+
+            // Stop processing if the chunk is smaller than CHUNK_SIZE (end of data)
+            if (count($inserts) + count($updates) < self::CHUNK_SIZE) {
+                $this->stopProcessing = true;
+                Log::info("Stopping processing: chunk size " . (count($inserts) + count($updates)) . " < " . self::CHUNK_SIZE);
+            }
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error("Bulk processing failed: " . $e->getMessage());
+            $this->throwError("Bulk error: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Processes a single update in debug mode.
+     *
+     * Updates an existing Inflasi record and logs the result.
+     *
+     * @param array $data The data to update.
+     */
+    private function processSingleUpdate(array $data): void
     {
         Log::info("Debug: Attempting to update row {$this->rowNumber}: " . json_encode($data));
         try {
@@ -213,10 +375,18 @@ class FinalImport implements ToCollection, WithHeadingRow, WithChunkReading
                 'data' => $data,
                 'trace' => $e->getTraceAsString(),
             ]);
+            $this->stopProcessing = true;
         }
     }
 
-    private function processSingleInsert(array $data)
+    /**
+     * Processes a single insert in debug mode.
+     *
+     * Inserts a new Inflasi record and logs the result.
+     *
+     * @param array $data The data to insert.
+     */
+    private function processSingleInsert(array $data): void
     {
         Log::info("Debug: Attempting to insert row {$this->rowNumber}: " . json_encode($data));
         try {
@@ -230,72 +400,40 @@ class FinalImport implements ToCollection, WithHeadingRow, WithChunkReading
                 'data' => $data,
                 'trace' => $e->getTraceAsString(),
             ]);
+            $this->stopProcessing = true;
         }
     }
 
-    private function processBulk(array $updates)
-    {
-        Log::info("Bulk processing: " . count($updates) . " updates");
-        DB::beginTransaction();
-        try {
-            foreach ($updates as $update) {
-                $affected = DB::table('inflasi')
-                    ->where('inflasi_id', $update['inflasi_id'])
-                    ->update([
-                        'final_inflasi' => $update['final_inflasi'],
-                        'final_andil' => $update['final_andil'],
-                        'updated_at' => $update['updated_at'],
-                    ]);
-                $this->updatedCount += $affected;
-            }
-            DB::commit();
-            Log::info("Bulk transaction committed, updated {$this->updatedCount} rows");
-            if (count($updates) < $this->chunkSize()) {
-                $this->stopAfterSmallChunk = true;
-            }
-        } catch (\Exception $e) {
-            DB::rollBack();
-            $this->errors->add("row_{$this->rowNumber}", "Bulk error: " . $e->getMessage());
-            $this->failedRow = $this->rowNumber;
-            Log::error("Bulk error: " . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
-        }
-    }
-
-    private function processBulkInserts(array $inserts)
-    {
-        Log::info("Bulk inserting: " . count($inserts) . " records");
-        DB::beginTransaction();
-        try {
-            DB::table('inflasi')->insert($inserts);
-            $this->insertedCount += count($inserts);
-            DB::commit();
-            Log::info("Bulk insert transaction committed, inserted {$this->insertedCount} rows");
-            if (count($inserts) < $this->chunkSize()) {
-                $this->stopAfterSmallChunk = true;
-            }
-        } catch (\Exception $e) {
-            DB::rollBack();
-            $this->errors->add("row_{$this->rowNumber}", "Bulk insert error: " . $e->getMessage());
-            $this->failedRow = $this->rowNumber;
-            Log::error("Bulk insert error: " . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
-        }
-    }
-
+    /**
+     * Returns the chunk size for processing.
+     *
+     * @return int The number of rows per chunk.
+     */
     public function chunkSize(): int
     {
-        return 100;
+        return self::CHUNK_SIZE;
     }
 
-    public function getErrors()
+    /**
+     * Returns the errors encountered during import.
+     *
+     * @return MessageBag The error messages.
+     */
+    public function getErrors(): MessageBag
     {
         return $this->errors;
     }
 
-    public function getSummary()
+    /**
+     * Returns a summary of the import process.
+     *
+     * @return array Summary of updated and inserted records, and the failed row (if any).
+     */
+    public function getSummary(): array
     {
         return [
             'updated' => $this->updatedCount,
-            'inserted' => $this->insertedCount, // Added inserted count
+            'inserted' => $this->insertedCount,
             'failed_row' => $this->failedRow,
         ];
     }
