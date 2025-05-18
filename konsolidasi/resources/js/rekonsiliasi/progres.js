@@ -3,7 +3,12 @@ import Alpine from "alpinejs";
 window.Alpine = Alpine;
 
 Alpine.data("webData", () => ({
-    loading: true, // Start with loading true
+    loading: true,
+
+    modalMessage: "",
+    status: "no_filters",
+    message: "Silakan pilih filter untuk menampilkan data.",
+    data: { rekonsiliasi: null, title: null },
 
     bulan: "",
     tahun: "",
@@ -32,27 +37,26 @@ Alpine.data("webData", () => ({
     selectedKabkot: "",
     selectedKomoditas: "",
     selectedKdLevel: "",
+    wilayahLevel: "",
     kd_wilayah: "",
-    status: "all",
-    isEditable: false,
+    status_rekon: "00",
+    isPusat: false,
+    message: "",
+    errorMessage: "",
     modalData: {
-        id: "",
-        komoditas: "",
+        rekonsiliasi_id: "",
+        nama_wilayah: "",
+        nama_komoditas: "",
         kd_level: "",
         alasan: "",
         detail: "",
-        media: "",
-        user_id: "",
+        sumber: "",
     },
     detail: "",
     linkTerkait: "",
-
-    get isActivePeriod() {
-        const result =
-            +this.bulan === +this.activeBulan &&
-            +this.tahun === +this.activeTahun;
-        return result;
-    },
+    alasan: [],
+    filteredAlasan: [],
+    selectedAlasan: [],
 
     async init() {
         this.loading = true;
@@ -97,9 +101,6 @@ Alpine.data("webData", () => ({
             this.provinces = wilayahResponse.data.provinces || [];
             this.kabkots = wilayahResponse.data.kabkots || [];
 
-            // Process alasan data
-            this.alasans = alasanResponse || [];
-
             // Process komoditas data
             this.komoditas = komoditasResponse.data || [];
 
@@ -113,31 +114,35 @@ Alpine.data("webData", () => ({
                 bulanTahunResponse.data.tahun ||
                 (aktifData ? [aktifData.tahun] : []);
 
-            // Override with URL params
-            const urlParams = new URLSearchParams(window.location.search);
-            this.bulan = urlParams.get("bulan")
-                ? String(urlParams.get("bulan")).padStart(2, "0")
-                : this.bulan;
-            this.tahun = urlParams.get("tahun") || this.tahun;
-            this.selectedKdLevel = urlParams.get("kd_level") || "01";
-            this.selectedKabkot = urlParams.get("kd_wilayah") || "";
-            this.status = urlParams.get("status") || "all";
+            this.alasan = alasanResponse.data || [];
+            this.filteredAlasan = [...this.alasan];
 
+            // Set default values for form fields
+            this.selectedKdLevel = "01";
+            this.wilayahLevel = "semua-provinsi";
+            this.kd_wilayah = "0";
             this.selectedKomoditas = "";
-            this.updateKdWilayah();
+            this.isPusat = true;
+            this.selectedProvince = "";
+            this.selectedKabkot = "";
 
-            // Check editability
-            if (
-                urlParams.get("bulan") === this.activeBulan &&
-                urlParams.get("tahun") === this.activeTahun
-            ) {
-                this.isEditable = true;
-            }
+            this.updateKdWilayah();
+            await this.fetchData();
         } catch (error) {
             console.error("Failed to load data:", error);
+            this.status = "error";
+            this.message = "Gagal memuat data awal.";
+            this.data.rekonsiliasi = [];
         } finally {
             this.loading = false;
         }
+    },
+
+    get isActivePeriod() {
+        return (
+            +this.bulan === +this.activeBulan &&
+            +this.tahun === +this.activeTahun
+        );
     },
 
     get filteredKabkots() {
@@ -147,124 +152,197 @@ Alpine.data("webData", () => ({
         );
     },
 
+    updateWilayahOptions() {
+        this.selectedProvince = "";
+        this.selectedKabkot = "";
+        this.updateKdWilayah();
+    },
+
     updateKdWilayah() {
         this.kd_wilayah =
-            this.selectedKabkot && this.selectedKabkot !== ""
+            // If user selected "all provinces" or "all kabkot", set code to "0"
+            this.wilayahLevel === "semua" ||
+            this.wilayahLevel === "semua-provinsi" ||
+            this.wilayahLevel === "semua-kabkot"
+                ? "0"
+                : // Else, if user selected a specific province, use that province code
+                this.wilayahLevel === "provinsi" && this.selectedProvince
+                ? this.selectedProvince
+                : // Else, if user selected a specific kabkot AND the selected level is "01", use that kabkot code
+                this.wilayahLevel === "kabkot" &&
+                  this.selectedKabkot &&
+                  this.selectedKdLevel === "01"
                 ? this.selectedKabkot
-                : this.selectedProvince || "";
+                : // If none of the conditions match, leave it as an empty string
+                  "";
     },
 
-    submitForm() {
-        this.$refs.filterForm.submit();
+    checkFormValidity() {
+        if (
+            !this.bulan ||
+            !this.tahun ||
+            !this.selectedKdLevel ||
+            !this.status ||
+            !this.wilayahLevel
+        ) {
+            this.errorMessage =
+                "Harap isi bulan, tahun, level harga, status, dan level wilayah.";
+            return false;
+        }
+        if (
+            this.wilayahLevel === "semua" ||
+            this.wilayahLevel === "semua-provinsi" ||
+            this.wilayahLevel === "semua-kabkot"
+        ) {
+            if (!this.isPusat) {
+                this.errorMessage =
+                    "Hanya pengguna pusat yang dapat mengakses semua provinsi atau kabupaten/kota.";
+                return false;
+            }
+            return true;
+        }
+        if (this.wilayahLevel === "provinsi" && this.selectedProvince) {
+            return true;
+        }
+        if (
+            this.wilayahLevel === "kabkot" &&
+            this.selectedProvince &&
+            this.selectedKabkot &&
+            this.selectedKdLevel === "01"
+        ) {
+            return true;
+        }
+
+        return false;
     },
 
-    alasanList: [
-        "Kondisi Alam",
-        "Masa Panen",
-        "Gagal Panen",
-        "Promo dan Diskon",
-        "Harga Stok Melimpah",
-        "Stok Menipis/Langka",
-        "Harga Kembali Normal",
-        "Turun Harga dari Distributor",
-        "Kenaikan Harga dari Distributor",
-        "Perbedaan Kualitas",
-        "Supplier Menaikkan Harga",
-        "Supplier Menurunkan Harga",
-        "Persaingan Harga",
-        "Permintaan Meningkat",
-        "Permintaan Menurun",
-        "Operasi Pasar",
-        "Kebijakan Pemerintah Pusat",
-        "Kebijakan Pemerintah Daerah",
-        "Kesalahan Petugas Mencacah",
-        "Penurunan Produksi",
-        "Kenaikan Produksi",
-        "Salah Entri Data",
-        "Penggantian Responden",
-        "Lainnya",
-    ],
-    selectedAlasan: [],
+    async fetchData() {
+        if (!this.checkFormValidity()) return;
+        // this.loading = true;
+        this.errorMessage = "";
+        try {
+            const params = new URLSearchParams({
+                bulan: this.bulan,
+                tahun: this.tahun,
+                kd_level: this.selectedKdLevel,
+                level_wilayah: this.wilayahLevel,
+                kd_wilayah: this.kd_wilayah,
+                kd_komoditas: this.selectedKomoditas,
+                status_rekon: this.status_rekon,
+            });
+            const response = await fetch(`/api/rekonsiliasi/progres?${params}`);
 
-    // Dropdown handlers
-    toggleDropdown(menu) {
-        this.dropdowns[menu] = !this.dropdowns[menu];
-    },
-    closeDropdown(menu) {
-        this.dropdowns[menu] = false;
-    },
-
-    modalOpen: false,
-
-    openModal() {
-        this.modalOpen = true;
+            const result = await response.json();
+            if (
+                !response.ok ||
+                result.status === "validation_error" ||
+                result.status === "unauthorized"
+            ) {
+                this.errorMessage = result.message;
+                this.data = {
+                    rekonsiliasi: [],
+                    title: result.data?.title || "Rekonsiliasi",
+                };
+                this.status = result.status;
+                return;
+            }
+            this.data.rekonsiliasi = result.data.rekonsiliasi || [];
+            this.data.title = result.data.title || "Rekonsiliasi";
+            this.status = result.status;
+            this.message = result.message;
+        } catch (error) {
+            console.error("Fetch error:", error);
+            this.errorMessage = "Gagal memuat data.";
+            this.status = "error";
+        }
     },
 
     openEditRekonModal(
-        id,
-        komoditas,
+        rekonsiliasi_id,
+        nama_komoditas,
         kd_level,
         alasan,
         detail,
-        media,
-        user_id
+        sumber,
+        nama_wilayah
     ) {
-        // Populate modalData for display fields
         this.modalData = {
-            id,
-            komoditas,
+            rekonsiliasi_id,
+            nama_komoditas,
             kd_level,
             alasan,
             detail,
-            media,
-            user_id, // Include user_id
+            sumber,
+            nama_wilayah,
         };
-
-        // Populate form fields
         this.selectedAlasan = alasan ? alasan.split(", ") : [];
-        this.detail = detail || ""; // Set detail for textarea
-        this.linkTerkait = media || ""; // Set linkTerkait for input
-        this.user_id = user_id || ""; // Set user_id for form submission
-
-        console.log("Opening edit modal with:", this.modalData);
-
-        // Open the modal
+        this.detail = detail || "";
+        this.linkTerkait = sumber || "";
         this.$dispatch("open-modal", "edit-rekonsiliasi");
     },
 
-    openDeleteModal(id, komoditas, nama_wilayah, kd_level, bulan_tahun_id) {
+    openDeleteModal(rekonsiliasi_id, nama_komoditas, nama_wilayah, kd_level) {
         this.modalData = {
-            id,
-            komoditas,
+            rekonsiliasi_id,
+            nama_komoditas,
             nama_wilayah,
             kd_level,
-            bulan_tahun_id,
         };
         this.$dispatch("open-modal", "delete-rekonsiliasi");
-        console.log("Opening delete modal with:", this.modalData);
     },
 
+    // toggleAlasan(keterangan) {
+    //     let alasanArray = this.selectedAlasan
+    //         ? this.selectedAlasan.split(",").map((s) => s.trim())
+    //         : [];
+
+    //     const index = alasanArray.indexOf(keterangan);
+    //     if (index === -1) {
+    //         alasanArray.push(keterangan);
+    //     } else {
+    //         alasanArray.splice(index, 1);
+    //     }
+
+    //     this.selectedAlasan = alasanArray.join(", ");
+    //     console.log(this.selectedAlasan);
+    // },
+
     async submitEditRekon() {
-        // Validate checkbox selection
         if (
             !Array.isArray(this.selectedAlasan) ||
             this.selectedAlasan.length === 0
         ) {
-            alert("Pilih setidaknya satu alasan");
+            this.modalMessage = "Isi minimal 1 alasan.";
+            this.$dispatch("open-modal", "error-modal");
             return;
         }
 
-        const sanitizeInput = (input) => {
-            if (typeof input !== "string") return input; // Only process strings
-            return input
-                .trim() // Remove leading/trailing whitespace
-                .replace(/[\r\n]+/g, " ") // Replace all line breaks with a space
-                .replace(/`+/g, "'") // Replace backticks with single quotes
-                .replace(/\s+/g, " "); // Replace multiple spaces with a single space
+        const isValidUrl = (string) => {
+            try {
+                new URL(string);
+                return true;
+            } catch (_) {
+                return false;
+            }
         };
 
+        if (this.linkTerkait && !isValidUrl(this.linkTerkait)) {
+            this.modalMessage =
+                "Tautan tidak valid. Harap masukkan URL yang benar.";
+            this.$dispatch("open-modal", "error-modal");
+            return;
+        }
+
+        const sanitizeInput = (input) =>
+            typeof input === "string"
+                ? input
+                      .trim()
+                      .replace(/[\r\n]+/g, " ")
+                      .replace(/`+/g, "'")
+                      .replace(/\s+/g, " ")
+                : input;
+
         const data = {
-            user_id: this.user_id,
             alasan: this.selectedAlasan.join(", "),
             detail: sanitizeInput(this.detail),
             media: this.linkTerkait,
@@ -272,7 +350,7 @@ Alpine.data("webData", () => ({
 
         try {
             const response = await fetch(
-                `/rekonsiliasi/update/${this.modalData.id}`,
+                `/rekonsiliasi/update/${this.modalData.rekonsiliasi_id}`,
                 {
                     method: "PUT",
                     headers: {
@@ -285,64 +363,59 @@ Alpine.data("webData", () => ({
                 }
             );
 
-            if (response.ok) {
-                alert("Berhasil menyimpan perubahan");
-                location.reload(); // Refresh page on success
+            const result = await response.json();
+            if (result.status === "success") {
+                this.modalMessage = result.message;
+                this.$dispatch("close");
+                this.fetchData();
+                this.$dispatch("open-modal", "success-modal");
             } else {
-                alert("Gagal menyimpan perubahan");
+                this.modalMessage =
+                    result.message || "Gagal mengkonfirmasi rekonsiliasi.";
+                this.$dispatch("open-modal", "error-modal");
             }
         } catch (error) {
-            console.error("Edit error:", error);
-            alert("Error saat menyimpan");
-        } finally {
-            this.$dispatch("close-modal", "edit-rekonsiliasi");
+            this.modalMessage =
+                "Terjadi kesalahan saat mengkonfirmasi rekonsiliasi.";
+            this.$dispatch("open-modal", "error-modal");
         }
-    },
-
-    submitForm() {
-        this.$refs.filterForm.submit();
     },
 
     async confirmDelete(id) {
         try {
-            console.log("Deleting rekonsiliasi:", id);
-
             const response = await fetch(`/rekonsiliasi/${id}`, {
                 method: "DELETE",
                 headers: {
                     "X-CSRF-TOKEN": document.querySelector(
                         'meta[name="csrf-token"]'
                     ).content,
-                    Accept: "application/json",
+                    "Content-Type": "application/json",
                 },
             });
-
-            if (response.ok) {
-                alert("Berhasil menghapus data");
-                // console.log("Delete successful, reloading page");
-                location.reload();
+            const result = await response.json();
+            if (result.status === "success") {
+                this.modalMessage = result.message;
+                this.$dispatch("close");
+                this.$dispatch("open-modal", "success-modal");
+                this.fetchData();
             } else {
-                alert("Gagal menghapus");
-                console.error("Delete failed:", response.status);
+                this.modalMessage =
+                    result.message || "Gagal menghapus rekonsiliasi.";
+                this.$dispatch("open-modal", "error-modal");
             }
         } catch (error) {
-            console.error("Delete error:", error);
-            alert("Error saat menghapus");
-        } finally {
-            this.$dispatch("close-modal", "delete-rekonsiliasi"); // Fix modal name to match template
+            this.modalMessage =
+                "Terjadi kesalahan saat menghapus rekonsiliasi.";
+            this.$dispatch("open-modal", "error-modal");
         }
     },
 
-    closeModal() {
-        this.modalOpen = false;
-        this.item = {
-            id: null,
-            komoditas: "",
-            harga: "",
-            wilayah: "",
-            levelHarga: "",
-            periode: "",
-        };
+    searchAlasan(query) {
+        query = query.toLowerCase();
+        this.filteredAlasan = this.alasan.filter((alasan) =>
+            alasan.keterangan.toLowerCase().includes(query)
+        );
     },
 }));
+
 Alpine.start();
