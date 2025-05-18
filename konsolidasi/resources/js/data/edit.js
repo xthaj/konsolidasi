@@ -5,6 +5,11 @@ window.Alpine = Alpine;
 Alpine.data("webData", () => ({
     loading: true,
 
+    modalMessage: "",
+    status: "no_filters",
+    message: "Silakan pilih filter untuk menampilkan data.",
+    data: { inflasi: null, title: null, kd_level: null, kd_wilayah: null },
+
     bulan: "",
     tahun: "",
     activeBulan: "",
@@ -14,23 +19,121 @@ Alpine.data("webData", () => ({
     provinces: [],
     kabkots: [],
     komoditas: [],
-    wilayahLevel: "pusat", // Default to 'pusat'
+    wilayahLevel: "pusat",
     selectedProvince: "",
     selectedKabkot: "",
     selectedKomoditas: "",
-    selectedKdLevel: "all", // Default to
-    isPusat: true, // Default to national level
-    kd_wilayah: "0", // Default to '0' for national
-    item: { id: null, komoditas: "", harga: "", wilayah: "", levelHarga: "" },
-    sortColumn: "kd_komoditas",
-    sortDirection: "asc",
+    selectedKdLevel: "01", // Default to Harga Konsumen Kota
+    isPusat: true,
+    kd_wilayah: "0",
+    sort: "kd_komoditas",
+    direction: "asc",
     deleteRekonsiliasi: false,
     modalData: { id: "", komoditas: "" },
+    data: {
+        inflasi: {
+            data: [],
+            current_page: 1,
+            last_page: 1,
+            prev_page_url: null,
+            next_page_url: null,
+        },
+        title: null,
+        kd_level: null,
+        kd_wilayah: null,
+    },
+    bulanOptions: [
+        ["Januari", 1],
+        ["Februari", 2],
+        ["Maret", 3],
+        ["April", 4],
+        ["Mei", 5],
+        ["Juni", 6],
+        ["Juli", 7],
+        ["Agustus", 8],
+        ["September", 9],
+        ["Oktober", 10],
+        ["November", 11],
+        ["Desember", 12],
+    ],
+
+    async init() {
+        this.loading = true;
+        try {
+            const [wilayahResponse, komoditasResponse, bulanTahunResponse] =
+                await Promise.all([
+                    fetch("/api/wilayah").then((res) => {
+                        if (!res.ok)
+                            throw new Error(
+                                `Wilayah API error! status: ${res.status}`
+                            );
+                        return res.json();
+                    }),
+                    fetch("/api/komoditas").then((res) => {
+                        if (!res.ok)
+                            throw new Error(
+                                `Komoditas API error! status: ${res.status}`
+                            );
+                        return res.json();
+                    }),
+                    fetch("/api/bulan_tahun").then((res) => {
+                        if (!res.ok)
+                            throw new Error(
+                                `BulanTahun API error! status: ${res.status}`
+                            );
+                        return res.json();
+                    }),
+                ]);
+
+            // Process wilayah data
+            this.provinces = wilayahResponse.data.provinces || [];
+            this.kabkots = wilayahResponse.data.kabkots || [];
+
+            // Process komoditas data
+            this.komoditas = komoditasResponse.data || [];
+
+            // Process bulan and tahun data
+            const aktifData = bulanTahunResponse.data.bt_aktif;
+            this.bulan = aktifData.bulan;
+            this.tahun = aktifData.tahun;
+            this.activeBulan = this.bulan;
+            this.activeTahun = this.tahun;
+            this.tahunOptions =
+                bulanTahunResponse.data.tahun ||
+                (aktifData ? [aktifData.tahun] : []);
+
+            // Set default values for form fields
+            this.selectedKdLevel = "01";
+            this.selectedKomoditas = "";
+            this.wilayahLevel = "pusat";
+            this.isPusat = true;
+            this.selectedProvince = "";
+            this.selectedKabkot = "";
+            this.kd_wilayah = "0";
+            this.sort = "kd_komoditas";
+            this.direction = "asc";
+
+            // Update kd_wilayah
+            this.updateKdWilayah();
+
+            // Fetch initial data
+            // Improve:
+            await this.fetchData();
+        } catch (error) {
+            console.error("Failed to load data:", error);
+            this.status = "error";
+            this.message = "Gagal memuat data awal.";
+            this.data.inflasi = [];
+        } finally {
+            this.loading = false;
+        }
+    },
 
     get isActivePeriod() {
-        return (
-            this.bulan === this.activeBulan && this.tahun === this.activeTahun
-        );
+        const result =
+            +this.bulan === +this.activeBulan &&
+            +this.tahun === +this.activeTahun;
+        return result;
     },
 
     get filteredKabkots() {
@@ -40,108 +143,9 @@ Alpine.data("webData", () => ({
         );
     },
 
-    async init() {
-        this.loading = true;
-
-        try {
-            // Fetch wilayah data
-            const wilayahResponse = await fetch("/api/wilayah");
-            const wilayahData = await wilayahResponse.json();
-            this.provinces = wilayahData.provinces || [];
-            this.kabkots = wilayahData.kabkots || [];
-
-            // Fetch komoditas data
-            const komoditasResponse = await fetch("/api/komoditas");
-            const komoditasData = await komoditasResponse.json();
-            this.komoditas = komoditasData || [];
-
-            // Fetch bulan and tahun
-            const bulanTahunResponse = await fetch("/api/bulan_tahun");
-            const bulanTahunData = await bulanTahunResponse.json();
-            const aktifData = bulanTahunData.bt_aktif;
-            this.activeBulan = aktifData
-                ? String(aktifData.bulan).padStart(2, "0")
-                : "";
-            this.activeTahun = aktifData ? aktifData.tahun : "";
-
-            // Set default values for form fields
-            this.bulan = this.activeBulan; // Default to active month
-            this.tahun = this.activeTahun; // Default to active year
-            this.selectedKdLevel = "all"; // Default to empty (or set to a specific value like "05" for Harga Produsen)
-            this.selectedKomoditas = ""; // Default to empty
-            this.wilayahLevel = "pusat"; // Default to national
-            this.isPusat = true; // Default to national
-            this.selectedProvince = ""; // Clear province
-            this.selectedKabkot = ""; // Clear kabkot
-            this.kd_wilayah = "0"; // Default to national
-            this.tahunOptions =
-                bulanTahunData.tahun || (aktifData ? [aktifData.tahun] : []);
-
-            // Update kd_wilayah
-            this.updateKdWilayah();
-        } catch (error) {
-            console.error("Failed to load data:", error);
-        } finally {
-            this.loading = false;
-        }
-    },
-
-    //Bulan Tahun methods
-    async updateBulanTahun() {
-        if (this.isActivePeriod) {
-            this.failMessage = "Bulan dan tahun terpilih sudah aktif";
-            this.failDetails = null;
-            this.$dispatch("open-modal", "fail-update-bulan-tahun");
-            return;
-        }
-
-        console.log(this.bulan, this.tahun);
-
-        const requestConfig = {
-            method: "POST",
-            url: "/update-bulan-tahun",
-            headers: {
-                "Content-Type": "application/json",
-                Accept: "application/json",
-                "X-CSRF-TOKEN": document.querySelector(
-                    'meta[name="csrf-token"]'
-                ).content,
-            },
-            body: JSON.stringify({ bulan: this.bulan, tahun: this.tahun }),
-        };
-
-        console.log(requestConfig.body);
-
-        try {
-            const response = await fetch(requestConfig.url, {
-                method: requestConfig.method,
-                headers: requestConfig.headers,
-                body: requestConfig.body,
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                this.failMessage = data.message;
-                this.failDetails = data.details || null;
-                this.$dispatch("open-modal", "fail-update-bulan-tahun");
-                return;
-            }
-
-            this.activeBulan = this.bulan;
-            this.activeTahun = this.tahun;
-            this.successMessage = data.message;
-            this.$dispatch("open-modal", "success-update-bulan-tahun");
-        } catch (error) {
-            this.failMessage = "An unexpected error occurred";
-            this.failDetails = { error: error.message };
-            this.$dispatch("open-modal", "fail-update-bulan-tahun");
-        }
-    },
-
     updateKdWilayah() {
         this.isPusat = this.wilayahLevel === "pusat";
-        if (this.selectedKdLevel === "all") {
+        if (this.selectedKdLevel === "00") {
             this.wilayahLevel = "pusat";
             this.isPusat = true;
             this.kd_wilayah = "0";
@@ -161,36 +165,19 @@ Alpine.data("webData", () => ({
     },
 
     checkFormValidity() {
-        console.log("Checking form validity...");
-        console.log("bulan:", this.bulan);
-        console.log("tahun:", this.tahun);
-        console.log("selectedKdLevel:", this.selectedKdLevel);
-
         if (!this.bulan || !this.tahun || !this.selectedKdLevel) {
-            console.log("Missing bulan, tahun, or selectedKdLevel");
             return false;
         }
 
-        if (this.selectedKdLevel === "all") {
-            this.wilayahLevel = "pusat";
-            this.isPusat = true;
-            console.log("Level is 'all' → Valid: true");
+        if (this.selectedKdLevel === "00") {
             return true;
         }
 
-        console.log("wilayahLevel:", this.wilayahLevel);
-        console.log("selectedProvince:", this.selectedProvince);
-        console.log("selectedKabkot:", this.selectedKabkot);
-
         if (this.wilayahLevel === "pusat") {
-            console.log("wilayahLevel is pusat → Valid: true");
             return true;
         }
 
         if (this.wilayahLevel === "provinsi" && this.selectedProvince) {
-            console.log(
-                "wilayahLevel is provinsi and province selected → Valid: true"
-            );
             return true;
         }
 
@@ -200,21 +187,17 @@ Alpine.data("webData", () => ({
             this.selectedKabkot &&
             this.selectedKdLevel === "01"
         ) {
-            console.log(
-                "wilayahLevel is kabkot, with province, kabkot, and kdLevel === 01 → Valid: true"
-            );
             return true;
         }
 
-        console.log("No valid condition met → Valid: false");
         return false;
     },
 
     getValidationMessage() {
         if (!this.bulan) return "Bulan belum dipilih.";
         if (!this.tahun) return "Tahun belum dipilih.";
-        // if (!this.selectedKdLevel) return "Level harga belum dipilih.";
-        if (this.selectedKdLevel === "all") return "";
+        if (!this.selectedKdLevel) return "Level harga belum dipilih.";
+        if (this.selectedKdLevel === "00") return "";
         if (this.wilayahLevel === "pusat") return "";
         if (this.wilayahLevel === "provinsi" && !this.selectedProvince) {
             return "Provinsi belum dipilih.";
@@ -229,23 +212,66 @@ Alpine.data("webData", () => ({
         return "";
     },
 
+    async fetchData(page) {
+        if (!this.checkFormValidity()) {
+            return;
+        }
+
+        // this.loading = true;
+
+        try {
+            const params = new URLSearchParams({
+                bulan: this.bulan,
+                tahun: this.tahun,
+                kd_level: this.selectedKdLevel,
+                kd_wilayah: this.kd_wilayah,
+                kd_komoditas: this.selectedKomoditas,
+                sort: this.sort,
+                direction: this.direction,
+                page: page,
+            });
+
+            const response = await fetch(`/api/data/edit?${params.toString()}`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            this.status = result.status;
+            this.message = result.message;
+            this.data = {
+                inflasi: result.data.inflasi,
+                title: result.data.title,
+                kd_level: this.selectedKdLevel,
+                kd_wilayah: this.kd_wilayah,
+            };
+        } catch (error) {
+            console.error("Failed to fetch data:", error);
+            this.status = "error";
+            this.message = "Gagal memuat data.";
+            this.data.inflasi = null;
+        }
+    },
+
     openDeleteModal(id, komoditas) {
         this.modalData = { id, komoditas };
         this.deleteRekonsiliasi = false;
         this.$dispatch("open-modal", "confirm-delete");
-        console.log("Opening modal with:", this.modalData);
     },
 
     async confirmDelete() {
+        // Exit if deleteRekonsiliasi is not true
         if (!this.deleteRekonsiliasi) {
-            console.log("Delete aborted: deleteRekonsiliasi is false");
             return;
         }
 
         try {
+            // Retrieve CSRF token
             const csrfToken = document
                 .querySelector('meta[name="csrf-token"]')
                 .getAttribute("content");
+
+            // Send DELETE request
             const response = await fetch(`/data/delete/${this.modalData.id}`, {
                 method: "DELETE",
                 headers: {
@@ -255,36 +281,30 @@ Alpine.data("webData", () => ({
                 body: JSON.stringify({ delete_rekonsiliasi: true }),
             });
 
+            // Close the confirmation modal
+            this.$dispatch("close-modal", "confirm-delete");
+
+            // Parse response body
+            const result = await response.json();
+
             if (response.ok) {
-                console.log("Delete successful, reloading page");
-                location.reload();
+                // On success, store the message and refresh data
+                this.modalMessage = result.message || "Data berhasil dihapus!";
+                await this.fetchData(this.data.inflasi.current_page);
+                this.$dispatch("open-modal", "success-modal");
             } else {
-                console.error("Delete failed:", response.status);
-                alert("Gagal menghapus");
+                // On failure, store the error message
+                this.modalMessage =
+                    result.message ||
+                    "Gagal menghapus data. Silakan coba lagi.";
+                console.error("Delete failed:", response.status, result);
+                this.$dispatch("open-modal", "error-modal");
             }
         } catch (error) {
+            // Handle network or parsing errors
+            this.modalMessage = "Terjadi kesalahan saat menghapus data.";
             console.error("Delete error:", error);
-            alert("Error saat menghapus");
-        } finally {
-            this.$dispatch("close-modal", "confirm-delete");
-        }
-    },
-
-    setItem(id, komoditas, harga, wilayah, levelHarga) {
-        console.log("Setting item:", {
-            id,
-            komoditas,
-            harga,
-            wilayah,
-            levelHarga,
-        });
-        this.item = { id, komoditas, harga, wilayah, levelHarga };
-        const form = document.querySelector("#edit-harga-form");
-        if (form) {
-            form.action = `/data/update/${id}`;
-            console.log("Form action updated to:", form.action);
-        } else {
-            console.error("Edit form not found!");
+            this.$dispatch("open-modal", "error-modal");
         }
     },
 }));
