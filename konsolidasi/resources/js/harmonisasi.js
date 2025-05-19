@@ -25,9 +25,10 @@ Alpine.data("webData", () => ({
     kd_wilayah: "",
 
     get isActivePeriod() {
-        return (
-            this.bulan === this.activeBulan && this.tahun === this.activeTahun
-        );
+        const result =
+            +this.bulan === +this.activeBulan &&
+            +this.tahun === +this.activeTahun;
+        return result;
     },
 
     async init() {

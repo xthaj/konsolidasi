@@ -10,15 +10,30 @@ Alpine.data("webData", () => ({
     activeBulan: "", // Store the active bulan
     activeTahun: "", // Store the active tahun
     tahunOptions: [],
+    bulanOptions: [
+        ["Januari", 1],
+        ["Februari", 2],
+        ["Maret", 3],
+        ["April", 4],
+        ["Mei", 5],
+        ["Juni", 6],
+        ["Juli", 7],
+        ["Agustus", 8],
+        ["September", 9],
+        ["Oktober", 10],
+        ["November", 11],
+        ["Desember", 12],
+    ],
 
     confirmMessage: "",
     confirmDetails: "",
     formEvent: null,
 
     get isActivePeriod() {
-        return (
-            this.bulan === this.activeBulan && this.tahun === this.activeTahun
-        );
+        const result =
+            +this.bulan === +this.activeBulan &&
+            +this.tahun === +this.activeTahun;
+        return result;
     },
 
     async init() {
@@ -41,7 +56,7 @@ Alpine.data("webData", () => ({
         } catch (error) {
             console.error("Failed to load data:", error);
         } finally {
-            this.loading = false; // Turn off loading after initialization
+            this.loading = false;
         }
     },
 

@@ -53,7 +53,7 @@ class RegisteredUserController extends Controller
     public function store(Request $request): RedirectResponse
     {
 
-        dd($request->all());
+        // dd($request->all());
 
         // UserService to create user
         $result = $this->userService->createUser($request);

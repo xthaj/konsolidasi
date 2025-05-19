@@ -4,181 +4,225 @@ window.Alpine = Alpine;
 
 Alpine.data("webData", () => ({
     loading: true,
+    modalMessage: "",
+    status: "no_filters", // API response status
+    message: "Silakan pilih filter untuk menampilkan data.",
+    data: { rekonsiliasi: null, title: null },
+
     bulan: "",
     tahun: "",
     activeBulan: "",
     activeTahun: "",
     tahunOptions: [],
+    bulanOptions: [
+        ["Januari", 1],
+        ["Februari", 2],
+        ["Maret", 3],
+        ["April", 4],
+        ["Mei", 5],
+        ["Juni", 6],
+        ["Juli", 7],
+        ["Agustus", 8],
+        ["September", 9],
+        ["Oktober", 10],
+        ["November", 11],
+        ["Desember", 12],
+    ],
+
     provinces: [],
     kabkots: [],
+    komoditas: [],
     selectedProvince: "",
     selectedKabkot: "",
-    selectedKdLevel: "",
-    kd_wilayah: "",
-    status: "all",
-    isEditable: false,
-    komoditas: [],
     selectedKomoditas: "",
-    modalData: {
-        id: "",
-        komoditas: "",
-        kd_level: "",
-        alasan: "",
-        detail: "",
-        media: "",
-    },
-    detail: "",
-    linkTerkait: "",
-
-    get isActivePeriod() {
-        return (
-            this.bulan === this.activeBulan && this.tahun === this.activeTahun
-        );
-    },
+    selectedKdLevel: "01", // Confirmed level after fetch
+    pendingKdLevel: "01", // Temporary level before fetch
+    wilayahLevel: "",
+    kd_wilayah: "",
+    status_rekon: "00",
+    isPusat: true,
+    errorMessage: "",
 
     async init() {
         this.loading = true;
         try {
-            const wilayahResponse = await fetch("/api/wilayah");
-            const wilayahData = await wilayahResponse.json();
-            this.provinces = wilayahData.provinces || [];
-            this.kabkots = wilayahData.kabkots || [];
+            const [wilayahResponse, komoditasResponse, bulanTahunResponse] =
+                await Promise.all([
+                    fetch("/api/wilayah").then((res) => {
+                        if (!res.ok)
+                            throw new Error(
+                                `Wilayah API error! status: ${res.status}`
+                            );
+                        return res.json();
+                    }),
+                    fetch("/api/komoditas").then((res) => {
+                        if (!res.ok)
+                            throw new Error(
+                                `Komoditas API error! status: ${res.status}`
+                            );
+                        return res.json();
+                    }),
+                    fetch("/api/bulan_tahun").then((res) => {
+                        if (!res.ok)
+                            throw new Error(
+                                `BulanTahun API error! status: ${res.status}`
+                            );
+                        return res.json();
+                    }),
+                ]);
 
-            const bulanTahunResponse = await fetch("/api/bulan_tahun");
-            const bulanTahunData = await bulanTahunResponse.json();
-            const aktifData = bulanTahunData.bt_aktif || {};
+            this.provinces = wilayahResponse.data.provinces || [];
+            this.kabkots = wilayahResponse.data.kabkots || [];
+            this.komoditas = komoditasResponse.data || [];
 
-            const komoditasResponse = await fetch("/api/komoditas");
-            const komoditasData = await komoditasResponse.json();
-            this.komoditas = komoditasData || [];
-
-            this.bulan = aktifData.bulan
-                ? String(aktifData.bulan).padStart(2, "0")
-                : "";
-            this.tahun = String(aktifData.tahun || new Date().getFullYear());
-
-            const urlParams = new URLSearchParams(window.location.search);
-            this.bulan = urlParams.get("bulan")
-                ? String(urlParams.get("bulan")).padStart(2, "0")
-                : this.bulan;
-            this.tahun = urlParams.get("tahun") || this.tahun;
-            this.selectedKdLevel = urlParams.get("kd_level") || "01";
-            this.selectedKabkot = urlParams.get("kd_wilayah") || "";
-            this.status = urlParams.get("status") || "all";
-
-            this.activeBulan = aktifData.bulan
-                ? String(aktifData.bulan).padStart(2, "0")
-                : this.bulan;
-            this.activeTahun = String(
-                aktifData.tahun || new Date().getFullYear()
-            );
-
+            const aktifData = bulanTahunResponse.data.bt_aktif;
+            this.bulan = aktifData.bulan;
+            this.tahun = aktifData.tahun;
+            this.activeBulan = this.bulan;
+            this.activeTahun = this.tahun;
             this.tahunOptions =
-                bulanTahunData.tahun && Object.keys(bulanTahunData.tahun).length
-                    ? Object.values(bulanTahunData.tahun).map(String)
-                    : [this.tahun];
+                bulanTahunResponse.data.tahun ||
+                (aktifData ? [aktifData.tahun] : []);
+
+            this.selectedKdLevel = "01";
+            this.wilayahLevel = "semua-provinsi";
+            this.kd_wilayah = "0";
+            this.selectedKomoditas = "";
+            this.status_rekon = "00";
+            this.isPusat = true;
+            this.selectedProvince = "";
+            this.selectedKabkot = "";
 
             this.updateKdWilayah();
-
-            if (
-                urlParams.get("bulan") === this.activeBulan &&
-                urlParams.get("tahun") === this.activeTahun
-            ) {
-                this.isEditable = true;
-            }
-
-            // Add event listener for toggle-pembahasan
-            this.$el.addEventListener("toggle-pembahasan", async (event) => {
-                console.log("Toggle-pembahasan event received:", event.detail);
-                const { id, checked } = event.detail;
-                const success = await this.togglePembahasan(id, checked);
-                if (!success) {
-                    // Revert checkbox state on failure
-                    event.target.checked = !checked;
-                }
-            });
+            await this.fetchData();
         } catch (error) {
             console.error("Failed to load data:", error);
+            this.status = "error";
+            this.message = "Gagal memuat data awal.";
+            this.data.rekonsiliasi = [];
         } finally {
             this.loading = false;
         }
     },
 
-    get filteredKabkots() {
-        if (!this.selectedProvince) return this.kabkots;
-        return this.kabkots.filter((k) =>
-            k.kd_wilayah.startsWith(this.selectedProvince.substring(0, 2))
+    get isActivePeriod() {
+        return (
+            +this.bulan === +this.activeBulan &&
+            +this.tahun === +this.activeTahun
         );
+    },
+
+    get filteredKabkots() {
+        if (!this.selectedProvince) return [];
+        return this.kabkots.filter(
+            (k) => k.parent_kd === this.selectedProvince
+        );
+    },
+
+    updateWilayahOptions() {
+        this.selectedProvince = "";
+        this.selectedKabkot = "";
+        this.updateKdWilayah();
     },
 
     updateKdWilayah() {
         this.kd_wilayah =
-            this.selectedKabkot && this.selectedKabkot !== ""
+            this.wilayahLevel === "semua" ||
+            this.wilayahLevel === "semua-provinsi" ||
+            this.wilayahLevel === "semua-kabkot"
+                ? "0"
+                : this.wilayahLevel === "provinsi" && this.selectedProvince
+                ? this.selectedProvince
+                : this.wilayahLevel === "kabkot" &&
+                  this.selectedKabkot &&
+                  this.selectedKdLevel === "01"
                 ? this.selectedKabkot
-                : this.selectedProvince || "";
+                : "";
+        this.errorMessage = this.kd_wilayah
+            ? ""
+            : "Harap pilih wilayah yang valid.";
     },
 
-    submitForm() {
-        this.$refs.filterForm.submit();
+    checkFormValidity() {
+        if (
+            !this.bulan ||
+            !this.tahun ||
+            !this.selectedKdLevel ||
+            !this.wilayahLevel
+        ) {
+            this.errorMessage =
+                "Harap isi bulan, tahun, level harga, dan level wilayah.";
+            return false;
+        }
+        if (this.wilayahLevel === "provinsi" && !this.selectedProvince) {
+            this.errorMessage = "Harap pilih provinsi.";
+            return false;
+        }
+        if (
+            this.wilayahLevel === "kabkot" &&
+            (!this.selectedProvince || !this.selectedKabkot)
+        ) {
+            this.errorMessage = "Harap pilih provinsi dan kabupaten/kota.";
+            return false;
+        }
+        if (this.wilayahLevel === "kabkot" && this.selectedKdLevel !== "01") {
+            this.errorMessage =
+                "Kabupaten/kota hanya tersedia untuk Harga Konsumen Kota.";
+            return false;
+        }
+        return true;
     },
 
-    alasanList: [
-        "Kondisi Alam",
-        "Masa Panen",
-        "Gagal Panen",
-        "Promo dan Diskon",
-        "Harga Stok Melimpah",
-        "Stok Menipis/Langka",
-        "Harga Kembali Normal",
-        "Turun Harga dari Distributor",
-        "Kenaikan Harga dari Distributor",
-        "Perbedaan Kualitas",
-        "Supplier Menaikkan Harga",
-        "Supplier Menurunkan Harga",
-        "Persaingan Harga",
-        "Permintaan Meningkat",
-        "Permintaan Menurun",
-        "Operasi Pasar",
-        "Kebijakan Pemerintah Pusat",
-        "Kebijakan Pemerintah Daerah",
-        "Kesalahan Petugas Mencacah",
-        "Penurunan Produksi",
-        "Kenaikan Produksi",
-        "Salah Entri Data",
-        "Penggantian Responden",
-        "Lainnya",
-    ],
-    selectedAlasan: [],
-
-    modalOpen: false,
-
-    openModal() {
-        this.modalOpen = true;
-    },
-
-    closeModal() {
-        this.modalOpen = false;
-        this.item = {
-            id: null,
-            komoditas: "",
-            harga: "",
-            wilayah: "",
-            levelHarga: "",
-            periode: "",
-        };
+    async fetchData() {
+        if (!this.checkFormValidity()) return;
+        this.errorMessage = "";
+        this.loading = true;
+        try {
+            const params = new URLSearchParams({
+                bulan: this.bulan,
+                tahun: this.tahun,
+                kd_level: this.pendingKdLevel,
+                level_wilayah: this.wilayahLevel,
+                kd_wilayah: this.kd_wilayah,
+                kd_komoditas: this.selectedKomoditas,
+                status_rekon: this.status_rekon, // Updated to status_rekon
+            });
+            const response = await fetch(
+                `/api/rekonsiliasi/pembahasan?${params}`
+            );
+            const result = await response.json();
+            if (
+                !response.ok ||
+                ["validation_error", "unauthorized"].includes(result.status)
+            ) {
+                this.errorMessage = result.message;
+                this.data = {
+                    rekonsiliasi: [],
+                    title: result.data?.title || "Pembahasan Rekonsiliasi",
+                };
+                this.status = result.status;
+                return;
+            }
+            // Update selectedKdLevel only after successful fetch
+            this.selectedKdLevel = this.pendingKdLevel;
+            this.data.rekonsiliasi = result.data.rekonsiliasi || [];
+            this.data.title = result.data.title || "Pembahasan Rekonsiliasi";
+            this.status = result.status;
+            this.message = result.message;
+        } catch (error) {
+            console.error("Fetch error:", error);
+            this.errorMessage = "Gagal memuat data.";
+            this.status = "error";
+        } finally {
+            this.loading = false;
+        }
     },
 
     async togglePembahasan(rekonsiliasiId, checked) {
+        this.loading = true;
         try {
-            console.log(
-                "Toggling pembahasan for ID:",
-                rekonsiliasiId,
-                "Checked:",
-                checked
-            );
-            // this.loading = true;
             const response = await fetch(
-                `/rekonsiliasi/${rekonsiliasiId}/pembahasan`,
+                `/api/rekonsiliasi/${rekonsiliasiId}/pembahasan`,
                 {
                     method: "PATCH",
                     headers: {
@@ -201,14 +245,26 @@ Alpine.data("webData", () => ({
             }
 
             const result = await response.json();
-            console.log("Pembahasan updated:", result);
+            this.modalMessage =
+                result.message || "Status pembahasan berhasil diperbarui.";
+            this.$dispatch("open-modal", "success-modal");
+
+            this.data.rekonsiliasi = this.data.rekonsiliasi.map((item) => {
+                if (item.rekonsiliasi_id === rekonsiliasiId) {
+                    return { ...item, pembahasan: checked ? 1 : 0 };
+                }
+                return item;
+            });
+
             return true;
         } catch (error) {
             console.error("Error updating pembahasan:", error);
-            alert("Gagal memperbarui status pembahasan. Silakan coba lagi.");
+            this.modalMessage =
+                "Gagal memperbarui status pembahasan. Silakan coba lagi.";
+            this.$dispatch("open-modal", "error-modal");
             return false;
         } finally {
-            // this.loading = false;
+            this.loading = false;
         }
     },
 }));

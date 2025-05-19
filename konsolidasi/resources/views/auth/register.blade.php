@@ -89,6 +89,7 @@
             </template>
         </select>
     </div>
+
     <input type="hidden" name="kd_wilayah" x-model="kd_wilayah">
     <input type="hidden" name="level" x-model="level">
     <template x-if="errors.kd_wilayah && (wilayah_level === 'provinsi' || wilayah_level === 'kabkot')">
