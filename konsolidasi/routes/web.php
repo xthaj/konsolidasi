@@ -62,6 +62,7 @@ Route::middleware(['auth'])->group(function () {
 
     //visualisasi
     Route::get('/visualisasi', [VisualisasiController::class, 'create'])->name('visualisasi.create');
+    Route::get('/api/visualisasi', [VisualisasiController::class, 'apiVisualisasi']);
     Route::post('/visualisasi/cek-data', [VisualisasiController::class, 'cekData']);
 });
 

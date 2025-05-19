@@ -35,8 +35,7 @@ Alpine.data("webData", () => ({
     selectedProvince: "",
     selectedKabkot: "",
     selectedKomoditas: "",
-    selectedKdLevel: "01", // Confirmed level after fetch
-    pendingKdLevel: "01", // Temporary level before fetch
+    selectedKdLevel: "",
     wilayahLevel: "",
     kd_wilayah: "",
     status_rekon: "00",
@@ -181,7 +180,7 @@ Alpine.data("webData", () => ({
             const params = new URLSearchParams({
                 bulan: this.bulan,
                 tahun: this.tahun,
-                kd_level: this.pendingKdLevel,
+                kd_level: this.selectedKdLevel,
                 level_wilayah: this.wilayahLevel,
                 kd_wilayah: this.kd_wilayah,
                 kd_komoditas: this.selectedKomoditas,
@@ -203,8 +202,6 @@ Alpine.data("webData", () => ({
                 this.status = result.status;
                 return;
             }
-            // Update selectedKdLevel only after successful fetch
-            this.selectedKdLevel = this.pendingKdLevel;
             this.data.rekonsiliasi = result.data.rekonsiliasi || [];
             this.data.title = result.data.title || "Pembahasan Rekonsiliasi";
             this.status = result.status;

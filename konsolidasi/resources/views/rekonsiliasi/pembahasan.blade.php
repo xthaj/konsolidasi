@@ -6,6 +6,7 @@
     <x-slot name="sidebar">
         <form id="filter-form" x-ref="filterForm" @submit.prevent="fetchData">
             <div class="space-y-4 md:space-y-6 mt-4">
+                <!-- Bulan & Tahun -->
                 <div class="flex gap-4">
                     <div class="w-1/2">
                         <label class="block mb-2 text-sm font-medium text-gray-900">Bulan<span class="text-red-500 ml-1">*</span></label>
@@ -25,6 +26,7 @@
                     </div>
                 </div>
                 <p x-show="isActivePeriod" class="text-sm text-gray-500">Periode aktif</p>
+
                 <div>
                     <label class="block mb-2 text-sm font-medium text-gray-900">Level Harga<span class="text-red-500 ml-1">*</span></label>
                     <select name="kd_level" x-model="pendingKdLevel" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
