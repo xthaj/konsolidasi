@@ -61,18 +61,30 @@ Alpine.data("webData", () => ({
         HP: "#FC8452",
         Deflation: "#EE6666",
         Inflation: "#65B581",
-        VisualMap: ["#FD665F", "#FFCE34", "#65B581"],
+        VisualMap: [
+            "#65B581", // green
+            "#FFCE34", //yellow
+            "#FD665F", // red
+        ],
     },
 
     get priceLevels() {
-        [
+        return [
             "Harga Konsumen Kota",
             "Harga Konsumen Desa",
             "Harga Perdagangan Besar",
             "Harga Produsen Desa",
             "Harga Produsen",
-            "Harga Konsumen Kota",
         ];
+    },
+    // Computed property for summary data
+    get summaryData() {
+        return this.data?.chart_data?.summary || {};
+    },
+
+    // Helper function to format percentages
+    formatPercentage(value) {
+        return value != null ? `${value.toFixed(2)}%` : "N/A";
     },
 
     // Computed property to check if the selected period is active
@@ -443,12 +455,7 @@ Alpine.data("webData", () => ({
         this.data = data;
         const isNational = this.kd_wilayah === "0";
         const chartKey = isNational ? "line" : "provinsiLine";
-        const stackedBarColors = {
-            "Turun (<0)": "#EE6666",
-            "Stabil (=0)": "#FFCE34",
-            "Naik (>0)": "#91CC75",
-            "Data tidak tersedia": "#DCDDE2",
-        };
+
         const levelColorMap = {
             "01": this.colorPalette.HK,
             "02": this.colorPalette.HK_Desa,
@@ -530,6 +537,7 @@ Alpine.data("webData", () => ({
                             (d) => d.inflasi[d.inflasi.length - 1]
                         ),
                         itemStyle: { color: this.colorPalette.HK },
+                        label: { show: true, position: "right" },
                     },
                     {
                         name: "Andil",
@@ -538,6 +546,7 @@ Alpine.data("webData", () => ({
                             (d) => d.andil[d.andil.length - 1]
                         ),
                         itemStyle: { color: this.colorPalette.HK_Desa },
+                        label: { show: true, position: "right" },
                     },
                 ],
             });
@@ -554,7 +563,18 @@ Alpine.data("webData", () => ({
         const heatmapChart = charts.get("heatmapChart");
         if (isNational && heatmapChart && data?.chart_data?.heatmap) {
             heatmapChart.setOption({
-                tooltip: { position: "top" },
+                tooltip: {
+                    position: "top",
+                    formatter: function (params) {
+                        const xLabel =
+                            data.chart_data.heatmap.xAxis[params.data[0]];
+                        const yLabel =
+                            data.chart_data.heatmap.yAxis[params.data[1]];
+                        const value = params.data[2];
+                        return ` ${xLabel}<br>${yLabel}<br>${params.marker} Inflasi: ${value}%`;
+                    },
+                },
+
                 toolbox: {
                     feature: {
                         saveAsImage: { title: "Save as PNG" },
@@ -571,6 +591,7 @@ Alpine.data("webData", () => ({
                     type: "category",
                     data: data.chart_data.heatmap.yAxis,
                     splitArea: { show: true },
+                    inverse: true, //  flip the yAxis order
                 },
                 visualMap: {
                     min: data.chart_data.heatmap.min ?? -5,
@@ -615,15 +636,26 @@ Alpine.data("webData", () => ({
         // Stacked Bar Chart
         const stackedBarChart = charts.get("stackedBarChart");
         if (isNational && stackedBarChart && data?.chart_data?.stackedBar) {
-            const series = data.chart_data.stackedBar.datasets.map((d) => ({
-                name: d.label,
-                type: "bar",
-                stack: "total",
-                data: d.data,
-                itemStyle: {
-                    color: stackedBarColors[d.label] || this.colorPalette.HK,
-                },
-            }));
+            const colorMap = {
+                "Menurun (<0)": "#91CC75",
+                "Stabil (=0)": "#FFCE34",
+                "Naik (>0)": "#EE6666",
+                "Data tidak tersedia": "#DCDDE2",
+            };
+
+            const series = data.chart_data.stackedBar.datasets.map((d) => {
+                const label = d.label?.trim();
+                return {
+                    name: label,
+                    type: "bar",
+                    stack: "total",
+                    data: d.data,
+                    itemStyle: {
+                        color: colorMap[label] || undefined,
+                    },
+                };
+            });
+
             stackedBarChart.setOption({
                 tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
                 toolbox: {
@@ -632,6 +664,12 @@ Alpine.data("webData", () => ({
                         restore: {},
                     },
                 },
+                colors: [
+                    "#DCDDE2", // Gray – Data tidak tersedia
+                    "#EE6666", // Red – Turun (<0)
+                    "#FFCE34", // Yellow – Stabil (=0)
+                    "#91CC75", // Green – Naik (>0)
+                ],
                 legend: { bottom: 0 },
                 grid: { left: "10%", right: "10%", bottom: "15%", top: "10%" },
                 xAxis: {
@@ -767,76 +805,369 @@ Alpine.data("webData", () => ({
         }
 
         // Province Choropleth Charts (01 to 05)
-        [1, 2, 3, 4, 5].forEach((index) => {
-            const chartId = `provinsiChoropleth_0${index}`;
-            const kdLevel = `0${index}`;
-            const chart = charts.get(chartId);
-            if (
-                chart &&
-                data?.chart_data?.provinsiChoropleth &&
-                this.provinsiGeoJson
-            ) {
-                const provData = data.chart_data.provinsiChoropleth.find(
-                    (d) => d.kd_level === kdLevel
-                );
-                if (provData) {
-                    const provChoroData = this.provinsiGeoJson.features.map(
-                        (feature) => {
-                            const regionCode = feature.properties.KODE_PROV;
-                            const index = provData.regions.findIndex(
-                                (code) => String(code) === regionCode
-                            );
-                            return {
-                                name:
-                                    index !== -1
-                                        ? provData.names[index]
-                                        : regionCode,
-                                value:
-                                    index !== -1
-                                        ? provData.inflasi[index]
-                                        : null,
-                            };
-                        }
+        // Register GeoJSON for Indonesian provinces
+        $.get(ROOT_PATH + "/data/asset/geo/Indonesia.json", function (geoJson) {
+            echarts.registerMap("Provinsi_Indonesia", geoJson);
+            console.log("GeoJSON for Provinsi_Indonesia registered");
+
+            [1, 2, 3, 4, 5].forEach((index) => {
+                const chartId = `provinsiChoropleth_0${index}`;
+                const kdLevel = `0${index}`;
+                const chart = charts.get(chartId);
+                if (
+                    chart &&
+                    data?.chart_data?.provinsiChoropleth &&
+                    this.provinsiGeoJson
+                ) {
+                    // Log GeoJSON registration
+                    console.log(
+                        `GeoJSON registered for kd_level ${kdLevel}:`,
+                        this.provinsiGeoJson ? "Yes" : "No"
                     );
-                    chart.setOption({
-                        tooltip: { trigger: "item", formatter: "{b}: {c}%" },
-                        visualMap: {
-                            min: provData.min ?? -5,
-                            max: provData.max ?? 5,
-                            calculable: true,
-                            inRange: { color: this.colorPalette.VisualMap },
-                            left: "right",
-                            bottom: 10,
-                        },
-                        series: [
+
+                    // Hardcode data for kd_level 03, use original data otherwise
+                    let provData;
+                    if (kdLevel === "03") {
+                        provData = {
+                            kd_level: "03",
+                            regions: [
+                                "11",
+                                "12",
+                                "13",
+                                "14",
+                                "15",
+                                "16",
+                                "17",
+                                "18",
+                                "19",
+                                "21",
+                                "31",
+                                "32",
+                                "33",
+                                "34",
+                                "35",
+                                "36",
+                                "51",
+                                "52",
+                                "53",
+                                "61",
+                                "62",
+                                "63",
+                                "64",
+                                "65",
+                                "71",
+                                "72",
+                                "73",
+                                "74",
+                                "75",
+                                "76",
+                                "81",
+                                "82",
+                                "91",
+                                "92",
+                                "93",
+                                "94",
+                                "95",
+                                "96",
+                            ],
+                            names: [
+                                "ACEH",
+                                "SUMATERA UTARA",
+                                "SUMATERA BARAT",
+                                "RIAU",
+                                "JAMBI",
+                                "SUMATERA SELATAN",
+                                "BENGKULU",
+                                "LAMPUNG",
+                                "KEPULAUAN BANGKA BELITUNG",
+                                "KEPULAUAN RIAU",
+                                "DKI JAKARTA",
+                                "JAWA BARAT",
+                                "JAWA TENGAH",
+                                "DI YOGYAKARTA",
+                                "JAWA TIMUR",
+                                "BANTEN",
+                                "BALI",
+                                "NUSA TENGGARA BARAT",
+                                "NUSA TENGGARA TIMUR",
+                                "KALIMANTAN BARAT",
+                                "KALIMANTAN TENGAH",
+                                "KALIMANTAN SELATAN",
+                                "KALIMANTAN TIMUR",
+                                "KALIMANTAN UTARA",
+                                "SULAWESI UTARA",
+                                "SULAWESI TENGAH",
+                                "SULAWESI SELATAN",
+                                "SULAWESI TENGGARA",
+                                "GORONTALO",
+                                "SULAWESI BARAT",
+                                "MALUKU",
+                                "MALUKU UTARA",
+                                "PAPUA BARAT",
+                                "PAPUA SELATAN",
+                                "PAPUA BARAT DAYA",
+                                "PAPUA",
+                                "PAPUA PEGUNUNGAN",
+                                "PAPUA TENGAH",
+                            ],
+                            inflasi: [
+                                -2.11, -2.09, -0.66, -999, -999, 0, 0, -0.85,
+                                -999, -999, -999, 0.09, -2.14, -999, -1.84,
+                                -1.71, -2.65, 1.67, -999, 9.09, 0, 0, -999,
+                                -999, -999, -999, 0.8, -999, -999, -0.55, -999,
+                                -999, -999, -999, -999, -999, -999, -999,
+                            ],
+                        };
+                    } else {
+                        provData = data.chart_data.provinsiChoropleth.find(
+                            (d) => d.kd_level === kdLevel
+                        );
+                    }
+
+                    if (provData) {
+                        // Log all provinsiChoropleth data
+                        console.log(
+                            `provinsiChoropleth data for kd_level ${kdLevel}:`,
+                            kdLevel === "03"
+                                ? [provData]
+                                : data.chart_data.provinsiChoropleth
+                        );
+                        console.log(
+                            `GeoJSON provno values for kd_level ${kdLevel}:`,
+                            this.provinsiGeoJson.features.map((f) => ({
+                                provno: f.properties.provno,
+                                provinsi: f.properties.provinsi || "N/A",
+                            }))
+                        );
+                        console.log(
+                            `provData.regions for kd_level ${kdLevel}:`,
+                            provData.regions
+                        );
+                        console.log(
+                            `provData.inflasi for kd_level ${kdLevel}:`,
+                            provData.inflasi
+                        );
+                        console.log(
+                            `provData.names for kd_level ${kdLevel}:`,
+                            provData.names
+                        );
+
+                        // Convert inflasi to numbers and validate
+                        const validInflasi = provData.inflasi
+                            .map((val) => {
+                                if (
+                                    val === null ||
+                                    isNaN(val) ||
+                                    val === undefined
+                                )
+                                    return null;
+                                const num = Number(val);
+                                return isNaN(num) ? null : num;
+                            })
+                            .filter((val) => val !== null);
+                        if (validInflasi.length === 0) {
+                            console.warn(
+                                `All inflasi values are null or invalid for kd_level ${kdLevel}`
+                            );
+                        } else {
+                            console.log(
+                                `Valid inflasi values for kd_level ${kdLevel}:`,
+                                validInflasi
+                            );
+                        }
+
+                        // Calculate min/max for visualMap
+                        const min =
+                            validInflasi.length > 0
+                                ? Math.min(...validInflasi)
+                                : -5;
+                        const max =
+                            validInflasi.length > 0
+                                ? Math.max(...validInflasi)
+                                : 5;
+                        console.log(
+                            `visualMap min/max for kd_level ${kdLevel}:`,
                             {
-                                name: "Inflasi",
-                                type: "map",
-                                map: "Provinsi_Indonesia",
-                                data: provChoroData,
-                                nameProperty: "KODE_PROV",
+                                min,
+                                max,
+                            }
+                        );
+
+                        // Debug matches, mismatches, and provChoroData
+                        const matchLog = [];
+                        const mismatchLog = [];
+                        const provChoroData = this.provinsiGeoJson.features.map(
+                            (feature) => {
+                                const regionCode = String(
+                                    feature.properties.provno
+                                ); // e.g., "12"
+                                const index = provData.regions.findIndex(
+                                    (code) => String(code) === regionCode
+                                );
+                                const provName =
+                                    feature.properties.provinsi || regionCode;
+                                const inflasiValue =
+                                    index !== -1
+                                        ? provData.inflasi[index] !== null &&
+                                          !isNaN(provData.inflasi[index]) &&
+                                          provData.inflasi[index] !== undefined
+                                            ? Number(provData.inflasi[index])
+                                            : -999
+                                        : -999;
+                                if (index !== -1) {
+                                    matchLog.push({
+                                        kd_level: kdLevel,
+                                        provno: regionCode,
+                                        region: provData.regions[index],
+                                        name: provData.names[index],
+                                        inflasi: provData.inflasi[index],
+                                        convertedInflasi: inflasiValue,
+                                    });
+                                } else {
+                                    mismatchLog.push({
+                                        kd_level: kdLevel,
+                                        provno: regionCode,
+                                        provinsi: provName,
+                                    });
+                                }
+                                return {
+                                    name:
+                                        index !== -1
+                                            ? provData.names[index]
+                                            : provName,
+                                    value: inflasiValue,
+                                };
+                            }
+                        );
+
+                        // Log matches, mismatches, and provChoroData
+                        console.log(
+                            `Matched regions for kd_level ${kdLevel}:`,
+                            matchLog
+                        );
+                        console.log(
+                            `Mismatched regions for kd_level ${kdLevel}:`,
+                            mismatchLog
+                        );
+                        console.log(
+                            `provChoroData for kd_level ${kdLevel}:`,
+                            provChoroData
+                        );
+
+                        // Check for NaN in provChoroData
+                        const nanValues = provChoroData.filter((item) =>
+                            isNaN(item.value)
+                        );
+                        if (nanValues.length > 0) {
+                            console.warn(
+                                `NaN values found in provChoroData for kd_level ${kdLevel}:`,
+                                nanValues
+                            );
+                        }
+
+                        chart.setOption({
+                            tooltip: {
+                                trigger: "item",
+                                formatter: (params) =>
+                                    `${params.name}: ${
+                                        params.value === -999
+                                            ? "-"
+                                            : params.value + "%"
+                                    }`,
                             },
-                        ],
-                    });
-                    chart.hideLoading();
-                } else {
+                            visualMap: {
+                                min: min,
+                                max: max,
+                                calculable: true,
+                                inRange: { color: this.colorPalette.VisualMap },
+                                pieces: [
+                                    {
+                                        value: -999,
+                                        label: "N/A",
+                                        color: "#d3d3d3",
+                                    }, // Gray for missing data
+                                    { min: min, max: max },
+                                ],
+                                left: "right",
+                                bottom: 10,
+                            },
+                            series: [
+                                {
+                                    name: "Inflasi",
+                                    type: "map",
+                                    map: "Provinsi_Indonesia",
+                                    data: provChoroData,
+                                    nameProperty: "provinsi", // Changed to match GeoJSON property
+                                    nameMap: {
+                                        // Map GeoJSON provinsi names to provData.names if needed
+                                        Aceh: "ACEH",
+                                        "Sumatera Utara": "SUMATERA UTARA",
+                                        "Sumatera Barat": "SUMATERA BARAT",
+                                        Riau: "RIAU",
+                                        Jambi: "JAMBI",
+                                        "Sumatera Selatan": "SUMATERA SELATAN",
+                                        Bengkulu: "BENGKULU",
+                                        Lampung: "LAMPUNG",
+                                        "Kepulauan Bangka Belitung":
+                                            "KEPULAUAN BANGKA BELITUNG",
+                                        "Kepulauan Riau": "KEPULAUAN RIAU",
+                                        "DKI Jakarta": "DKI JAKARTA",
+                                        "Jawa Barat": "JAWA BARAT",
+                                        "Jawa Tengah": "JAWA TENGAH",
+                                        "DI Yogyakarta": "DI YOGYAKARTA",
+                                        "Jawa Timur": "JAWA TIMUR",
+                                        Banten: "BANTEN",
+                                        Bali: "BALI",
+                                        "Nusa Tenggara Barat":
+                                            "NUSA TENGGARA BARAT",
+                                        "Nusa Tenggara Timur":
+                                            "NUSA TENGGARA TIMUR",
+                                        "Kalimantan Barat": "KALIMANTAN BARAT",
+                                        "Kalimantan Tengah":
+                                            "KALIMANTAN TENGAH",
+                                        "Kalimantan Selatan":
+                                            "KALIMANTAN SELATAN",
+                                        "Kalimantan Timur": "KALIMANTAN TIMUR",
+                                        "Kalimantan Utara": "KALIMANTAN UTARA",
+                                        "Sulawesi Utara": "SULAWESI UTARA",
+                                        "Sulawesi Tengah": "SULAWESI TENGAH",
+                                        "Sulawesi Selatan": "SULAWESI SELATAN",
+                                        "Sulawesi Tenggara":
+                                            "SULAWESI TENGGARA",
+                                        Gorontalo: "GORONTALO",
+                                        "Sulawesi Barat": "SULAWESI BARAT",
+                                        Maluku: "MALUKU",
+                                        "Maluku Utara": "MALUKU UTARA",
+                                        "Papua Barat": "PAPUA BARAT",
+                                        "Papua Selatan": "PAPUA SELATAN",
+                                        "Papua Barat Daya": "PAPUA BARAT DAYA",
+                                        Papua: "PAPUA",
+                                        "Papua Pegunungan": "PAPUA PEGUNUNGAN",
+                                        "Papua Tengah": "PAPUA TENGAH",
+                                    },
+                                },
+                            ],
+                        });
+                        chart.hideLoading();
+                    } else {
+                        chart.showLoading({
+                            text: "No data available",
+                            color: "#FD665F",
+                        });
+                        console.warn(
+                            `Provinsi choropleth data missing for kd_level ${kdLevel}`
+                        );
+                    }
+                } else if (chart) {
                     chart.showLoading({
                         text: "No data available",
                         color: "#FD665F",
                     });
                     console.warn(
-                        `Provinsi choropleth data missing for kd_level ${kdLevel}`
+                        `Provinsi choropleth data or GeoJSON missing for ${chartId}`
                     );
                 }
-            } else if (chart) {
-                chart.showLoading({
-                    text: "No data available",
-                    color: "#FD665F",
-                });
-                console.warn(
-                    `Provinsi choropleth data or GeoJSON missing for ${chartId}`
-                );
-            }
+            });
         });
 
         // Kabkot Choropleth (only for HK, kd_level 01)
