@@ -46,19 +46,21 @@ Alpine.data("webData", () => ({
     selectedProvince: "",
     selectedKabkot: "",
     selectedKomoditas: "",
-    selectedKdLevel: "01",
+    selectedKdLevel: "",
+    pendingKdLevel: "",
     selectedLevel: "HK",
     isPusat: false,
     kd_wilayah: "",
     wilayahLevel: "1",
+    pendingWilayahLevel: "1",
     provinsiGeoJson: null,
     kabkotGeoJson: null,
-    showAndil: false,
+    showAndil: false, // Toggle to switch between inflasi and andil
     colorPalette: {
         HK: "#5470C6",
         HK_Desa: "#73C0DE",
         HPB: "#8A9A5B",
-        HP_Desa: "#9A60B4",
+        HPD: "#9A60B4",
         HP: "#FC8452",
         Deflation: "#EE6666",
         Inflation: "#65B581",
@@ -76,9 +78,8 @@ Alpine.data("webData", () => ({
     // Initialize the component
     async init() {
         this.loading = true;
-        // Initialize charts immediately to ensure DOM readiness
         this.initializeCharts();
-        this.resizeCharts(); // Set initial chart sizes
+        this.resizeCharts();
         try {
             const [
                 wilayahResponse,
@@ -143,6 +144,7 @@ Alpine.data("webData", () => ({
             this.isPusat = true;
             this.kd_wilayah = "0";
             this.wilayahLevel = "1";
+            this.pendingWilayahLevel = "1";
             this.provinsiGeoJson = provGeo;
             this.kabkotGeoJson = kabkotGeo;
 
@@ -161,10 +163,8 @@ Alpine.data("webData", () => ({
                 );
             }
 
-            // Fetch initial data
             await this.fetchData();
 
-            // Set up resize handlers
             window.addEventListener("resize", () => {
                 clearTimeout(window.resizeTimeout);
                 window.resizeTimeout = setTimeout(
@@ -173,7 +173,6 @@ Alpine.data("webData", () => ({
                 );
             });
 
-            // Handle sidebar toggle
             document.addEventListener("alpine:init", () => {
                 Alpine.effect(() => {
                     setTimeout(() => this.resizeCharts(), 200);
@@ -191,7 +190,7 @@ Alpine.data("webData", () => ({
     // Initialize all charts
     initializeCharts() {
         const chartConfigs = [
-            { id: "stackedLineChart", type: "line", height: 384 },
+            { id: "lineChart", type: "line", height: 384 },
             { id: "horizontalBarChart", type: "bar", height: 384 },
             { id: "heatmapChart", type: "heatmap", height: 550 },
             { id: "stackedBarChart", type: "bar", height: 384 },
@@ -207,7 +206,7 @@ Alpine.data("webData", () => ({
                 const chart = charts.get(chartId);
                 if (chart) {
                     chart.resize();
-                    console.log(`Resized ${chartId}`); // Debug
+                    console.log(`Resized ${chartId}`);
                 } else {
                     console.warn(`Chart ${chartId} not found in charts Map`);
                 }
@@ -226,7 +225,7 @@ Alpine.data("webData", () => ({
                     maskColor: "rgba(255, 255, 255, 0.8)",
                 });
                 resizeObserver.observe(chartDiv);
-                console.log(`Initialized and observing ${config.id}`); // Debug
+                console.log(`Initialized and observing ${config.id}`);
             } else {
                 console.warn(`Chart element #${config.id} not found in DOM`);
             }
@@ -235,7 +234,7 @@ Alpine.data("webData", () => ({
 
     // Resize all charts
     resizeCharts() {
-        const paddingX = 32; // 16px left + 16px right from p-4
+        const paddingX = 32;
         charts.forEach((chart, chartId) => {
             const chartDiv = document.getElementById(chartId);
             if (chart && chartDiv && !chart.isDisposed()) {
@@ -244,7 +243,7 @@ Alpine.data("webData", () => ({
                 const height = chartDiv.clientHeight;
                 if (width > 0 && height > 0) {
                     chart.resize({ width, height });
-                    console.log(`Resized ${chartId}: ${width}x${height}`); // Debug
+                    console.log(`Resized ${chartId}: ${width}x${height}`);
                 }
             }
         });
@@ -257,7 +256,7 @@ Alpine.data("webData", () => ({
             this.tahun &&
             this.selectedKomoditas &&
             (this.wilayahLevel === "1" ||
-                (this.wilayahLevel === "2" && this.selectedProvince))
+                (this.wilayahLevel === "2" && this.kd_wilayah !== "0"))
         );
     },
 
@@ -286,20 +285,19 @@ Alpine.data("webData", () => ({
     updateWilayahOptions() {
         this.selectedProvince = "";
         this.updateKdWilayah();
-        this.fetchData();
     },
 
     // Update kd_wilayah based on wilayah level
     updateKdWilayah() {
         this.kd_wilayah =
-            this.wilayahLevel === "1"
-                ? "0"
-                : this.selectedProvince?.kd_wilayah || "";
+            this.pendingWilayahLevel === "1"
+                ? "2"
+                : this.selectedProvince || "";
+        console.log("kd_wilayah:", this.kd_wilayah);
     },
 
     // Fetch data from API
     async fetchData() {
-        this.loading = true;
         this.errorMessage = "";
         this.errors = [];
         charts.forEach((chart) => chart.showLoading());
@@ -308,7 +306,7 @@ Alpine.data("webData", () => ({
             const params = new URLSearchParams({
                 bulan: this.bulan,
                 tahun: this.tahun,
-                level_wilayah: this.wilayahLevel,
+                level_wilayah: this.pendingWilayahLevel,
                 kd_wilayah: this.kd_wilayah,
                 kd_komoditas: this.selectedKomoditas,
             });
@@ -322,21 +320,19 @@ Alpine.data("webData", () => ({
                     result.message || "Beberapa data tidak tersedia.";
                 this.errors = result.errors || result.data?.errors || [];
             }
+            this.selectedKdLevel = this.pendingKdLevel;
 
             this.data = result.data;
             this.updateCharts(result.data);
         } catch (error) {
             console.error("Fetch data failed:", error);
-            this.errorMessage = "Gagal memperbarui data";
-            this.errors = [error.message];
-            this.$dispatch("open-modal", "error-modal");
+            // this.$dispatch("open-modal", "error-modal");
         } finally {
-            this.loading = false;
             charts.forEach((chart) => chart.hideLoading());
         }
     },
 
-    // Toggle Andil display for stacked line chart
+    // Toggle between inflasi and andil display
     toggleAndil() {
         this.showAndil = !this.showAndil;
         const toggleAndilBtn = document.getElementById("toggleAndilBtn");
@@ -345,58 +341,8 @@ Alpine.data("webData", () => ({
                 ? "Lihat Inflasi"
                 : "Lihat Andil";
         }
-        const chart = charts.get("stackedLineChart");
-        if (this.data && chart) {
-            const seriesData = this.showAndil
-                ? this.data.chart_data.stackedLine.series.map((s) => ({
-                      ...s,
-                      data: s.andil || s.data,
-                      name: s.name + (this.showAndil ? " (Andil)" : ""),
-                  }))
-                : this.data.chart_data.stackedLine.series;
-            chart.setOption({
-                tooltip: { trigger: "axis" },
-                legend: { bottom: 0, data: seriesData.map((s) => s.name) },
-                grid: {
-                    left: "3%",
-                    right: "4%",
-                    bottom: "20%",
-                    containLabel: true,
-                },
-                toolbox: {
-                    feature: {
-                        saveAsImage: { title: "Save as PNG" },
-                        restore: {},
-                    },
-                },
-                xAxis: {
-                    type: "category",
-                    data: this.data.chart_data.stackedLine.xAxis,
-                },
-                yAxis: {
-                    type: "value",
-                    name: this.showAndil ? "Andil (%)" : "Inflasi (%)",
-                },
-                series: seriesData.map((s, i) => ({
-                    ...s,
-                    type: "line",
-                    itemStyle: {
-                        color: [
-                            this.colorPalette.HK,
-                            this.colorPalette.HK_Desa,
-                            this.colorPalette.HPB,
-                            this.colorPalette.HP_Desa,
-                            this.colorPalette.HP,
-                        ][i % 5],
-                    },
-                })),
-            });
-            chart.hideLoading();
-        } else if (chart) {
-            chart.showLoading({
-                text: "No data available",
-                color: "#FD665F",
-            });
+        if (this.data) {
+            this.updateCharts(this.data); // Re-render charts with toggled data
         }
     },
 
@@ -408,7 +354,7 @@ Alpine.data("webData", () => ({
         if (this.data) {
             this.updateCharts(this.data);
         }
-        this.resizeCharts(); // Immediate resize after level change
+        this.resizeCharts();
     },
 
     // Dismiss errors
@@ -418,21 +364,51 @@ Alpine.data("webData", () => ({
     },
 
     // Update all charts with new data
+    // Inside the Alpine.data("webData", () => ({ ... })) block
+    // Inside the Alpine.data("webData", () => ({ ... })) block
     updateCharts(data) {
         this.data = data;
         const isNational = this.kd_wilayah === "0";
+        const chartKey = isNational ? "line" : "provinsiLine";
 
-        // Stacked Line Chart
-        const stackedLineChart = charts.get("stackedLineChart");
-        if (stackedLineChart && data.chart_data.stackedLine) {
-            const seriesData = this.showAndil
-                ? data.chart_data.stackedLine.series.map((s) => ({
-                      ...s,
-                      data: s.andil || s.data,
-                      name: s.name + (this.showAndil ? " (Andil)" : ""),
-                  }))
-                : data.chart_data.stackedLine.series;
-            stackedLineChart.setOption({
+        // Define color mapping for stackedBarChart
+        const stackedBarColors = {
+            "Turun (<0)": "#EE6666", // red
+            "Stabil (=0)": "#FFCE34", // yellow
+            "Naik (>0)": "#91CC75", // green
+            "Data tidak tersedia": "#DCDDE2", // gray
+        };
+
+        // Helper function to get chart title with fallback
+        const getChartTitle = (key) => {
+            const title = data.chart_status?.[key]?.title || `Chart ${key}`;
+            console.log(`Chart ${key} Title: ${title}`);
+            return title;
+        };
+
+        // Line Chart
+        const lineChart = charts.get("lineChart");
+        if (lineChart && data.chart_data[chartKey]) {
+            const seriesData = data.chart_data[chartKey].series.map((s) => ({
+                name: `${s.name} (${this.showAndil ? "Andil" : "Inflasi"})`,
+                type: "line",
+                data: this.showAndil ? s.andil : s.inflasi,
+                itemStyle: {
+                    color: this.colors[s.name] || this.colorPalette.HK,
+                },
+            }));
+            lineChart.setOption({
+                title: {
+                    text: getChartTitle(chartKey),
+                    left: "left",
+                    top: 10,
+                    textStyle: {
+                        fontSize: 16,
+                        color: "#333",
+                        fontWeight: "bold",
+                    },
+                    padding: [0, 0, 50, 0],
+                },
                 tooltip: { trigger: "axis" },
                 legend: { bottom: 0, data: seriesData.map((s) => s.name) },
                 grid: {
@@ -449,33 +425,32 @@ Alpine.data("webData", () => ({
                 },
                 xAxis: {
                     type: "category",
-                    data: data.chart_data.stackedLine.xAxis,
+                    data: data.chart_data[chartKey].xAxis,
                 },
                 yAxis: {
                     type: "value",
                     name: this.showAndil ? "Andil (%)" : "Inflasi (%)",
                 },
-                series: seriesData.map((s, i) => ({
-                    ...s,
-                    type: "line",
-                    itemStyle: {
-                        color: [
-                            this.colorPalette.HK,
-                            this.colorPalette.HK_Desa,
-                            this.colorPalette.HPB,
-                            this.colorPalette.HP_Desa,
-                            this.colorPalette.HP,
-                        ][i % 5],
-                    },
-                })),
+                series: seriesData,
             });
-            stackedLineChart.hideLoading();
+            lineChart.hideLoading();
+        } else if (lineChart) {
+            lineChart.showLoading({
+                text: "No data available",
+                color: "#FD665F",
+            });
         }
 
         // Horizontal Bar Chart
         const horizontalBarChart = charts.get("horizontalBarChart");
         if (horizontalBarChart && data.chart_data.horizontalBar) {
             horizontalBarChart.setOption({
+                title: {
+                    text: getChartTitle("horizontalBar"),
+                    left: "left",
+                    top: 10,
+                    textStyle: { fontSize: 16, fontWeight: "bold" },
+                },
                 tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
                 toolbox: {
                     feature: {
@@ -518,6 +493,17 @@ Alpine.data("webData", () => ({
         const heatmapChart = charts.get("heatmapChart");
         if (isNational && heatmapChart && data.chart_data.heatmap) {
             heatmapChart.setOption({
+                title: {
+                    text: getChartTitle("heatmap"),
+                    left: "left",
+                    top: 10,
+                    textStyle: {
+                        fontSize: 16,
+                        color: "#333",
+                        fontWeight: "bold",
+                    },
+                    padding: [0, 0, 50, 0],
+                },
                 tooltip: { position: "top" },
                 toolbox: {
                     feature: {
@@ -541,7 +527,7 @@ Alpine.data("webData", () => ({
                     max: data.chart_data.heatmap.max ?? 5,
                     calculable: true,
                     orient: "horizontal",
-                    left: "center",
+                    left: "left",
                     bottom: 0,
                     inRange: { color: this.colorPalette.VisualMap },
                 },
@@ -573,7 +559,39 @@ Alpine.data("webData", () => ({
         // Stacked Bar Chart
         const stackedBarChart = charts.get("stackedBarChart");
         if (isNational && stackedBarChart && data.chart_data.stackedBar) {
+            console.log("Stacked Bar Chart Data:", data.chart_data.stackedBar);
+            const series = data.chart_data.stackedBar.datasets.map((d) => {
+                const color = stackedBarColors[d.label] || this.colorPalette.HK;
+                console.log(`Label: ${d.label}, Assigned Color: ${color}`);
+                if (!/^#[0-9A-F]{6}$/i.test(color)) {
+                    console.warn(
+                        `Invalid color for ${d.label}: ${color}, falling back to ${this.colorPalette.HK}`
+                    );
+                }
+                return {
+                    name: d.label,
+                    type: "bar",
+                    stack: "total",
+                    data: d.data,
+                    itemStyle: {
+                        color: /^#[0-9A-F]{6}$/i.test(color)
+                            ? color
+                            : this.colorPalette.HK,
+                    },
+                };
+            });
             stackedBarChart.setOption({
+                title: {
+                    text: getChartTitle("stackedBar"),
+                    left: "left",
+                    top: 10,
+                    textStyle: {
+                        fontSize: 16,
+                        color: "#333",
+                        fontWeight: "bold",
+                    },
+                    padding: [0, 0, 50, 0],
+                },
                 tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
                 toolbox: {
                     feature: {
@@ -588,56 +606,114 @@ Alpine.data("webData", () => ({
                     data: data.chart_data.stackedBar.labels,
                 },
                 yAxis: { type: "value", name: "Jumlah Provinsi" },
-                series: data.chart_data.stackedBar.datasets.map((d) => ({
-                    name: d.label,
-                    type: "bar",
-                    stack: "total",
-                    data: d.data,
-                    itemStyle: { color: d.backgroundColor },
-                })),
+                series: series,
             });
             stackedBarChart.hideLoading();
+        } else if (stackedBarChart) {
+            console.log("No stacked bar data available or not national level");
+            stackedBarChart.showLoading({
+                text: "No stacked bar data available",
+                color: "#FD665F",
+            });
         }
 
         // Province Horizontal Bar Chart
         const provHorizontalBarChart = charts.get("provHorizontalBarChart");
-        if (provHorizontalBarChart && data.chart_data.provHorizontalBar) {
+        if (provHorizontalBarChart && data.chart_data?.provHorizontalBar) {
+            console.log(
+                "provHorizontalBarChart Data:",
+                data.chart_data.provHorizontalBar
+            );
             const provData = data.chart_data.provHorizontalBar.find(
                 (d) => d.kd_level === this.selectedKdLevel
             );
             if (provData) {
-                provHorizontalBarChart.setOption({
-                    tooltip: {
-                        trigger: "axis",
-                        axisPointer: { type: "shadow" },
-                    },
-                    toolbox: {
-                        feature: {
-                            saveAsImage: { title: "Save as PNG" },
-                            restore: {},
+                console.log("provHorizontalBarChart Selected Data:", provData);
+                console.log(
+                    "provHorizontalBarChart Color:",
+                    this.colorPalette.HK
+                );
+                if (!/^#[0-9A-F]{6}$/i.test(this.colorPalette.HK)) {
+                    console.warn(
+                        `Invalid color for provHorizontalBarChart: ${this.colorPalette.HK}, using fallback #5470C6`
+                    );
+                }
+                try {
+                    provHorizontalBarChart.setOption({
+                        title: {
+                            text: getChartTitle("provHorizontalBar"),
+                            left: "left",
+                            top: 10,
+                            textStyle: {
+                                fontSize: 16,
+                                color: "#333",
+                                fontWeight: "bold",
+                            },
+                            padding: [0, 0, 50, 0],
                         },
-                    },
-                    grid: {
-                        left: "5%",
-                        right: "20%",
-                        bottom: "10%",
-                        top: "10%",
-                        containLabel: true,
-                    },
-                    dataZoom: [{ type: "slider", orient: "vertical" }],
-                    xAxis: { type: "value", name: "Inflasi (%)" },
-                    yAxis: { type: "category", data: provData.names },
-                    series: [
-                        {
-                            name: "Inflasi",
-                            type: "bar",
-                            data: provData.inflasi,
-                            itemStyle: { color: this.colorPalette.HK },
+                        tooltip: {
+                            trigger: "axis",
+                            axisPointer: { type: "shadow" },
                         },
-                    ],
+                        toolbox: {
+                            feature: {
+                                saveAsImage: { title: "Save as PNG" },
+                                restore: {},
+                            },
+                        },
+                        grid: {
+                            left: "5%",
+                            right: "20%",
+                            bottom: "10%",
+                            top: "10%",
+                            containLabel: true,
+                        },
+                        dataZoom: [{ type: "slider", orient: "vertical" }],
+                        xAxis: { type: "value", name: "Inflasi (%)" },
+                        yAxis: { type: "category", data: provData.names || [] },
+                        series: [
+                            {
+                                name: "Inflasi",
+                                type: "bar",
+                                data: provData.inflasi || [],
+                                itemStyle: {
+                                    color: /^#[0-9A-F]{6}$/i.test(
+                                        this.colorPalette.HK
+                                    )
+                                        ? this.colorPalette.HK
+                                        : "#5470C6",
+                                },
+                            },
+                        ],
+                    });
+                    console.log("provHorizontalBarChart updated successfully");
+                    provHorizontalBarChart.hideLoading();
+                } catch (error) {
+                    console.error(
+                        "Error updating provHorizontalBarChart:",
+                        error
+                    );
+                    provHorizontalBarChart.showLoading({
+                        text: "Error rendering chart",
+                        color: "#FD665F",
+                    });
+                }
+            } else {
+                console.warn(
+                    "No provHorizontalBar data for selectedKdLevel:",
+                    this.selectedKdLevel
+                );
+                provHorizontalBarChart.showLoading({
+                    text: "No data available",
+                    color: "#FD665F",
                 });
-                provHorizontalBarChart.hideLoading();
             }
+        } else if (provHorizontalBarChart) {
+            console.log("No provHorizontalBar data available");
+            provHorizontalBarChart.showLoading({
+                text: "No data available",
+                color: "#FD665F",
+            });
         }
 
         // Kabkot Horizontal Bar Chart
@@ -652,6 +728,17 @@ Alpine.data("webData", () => ({
             );
             if (kabkotData) {
                 kabkotHorizontalBarChart.setOption({
+                    title: {
+                        text: getChartTitle("kabkotHorizontalBar"),
+                        left: "left",
+                        top: 10,
+                        textStyle: {
+                            fontSize: 16,
+                            color: "#333",
+                            fontWeight: "bold",
+                        },
+                        padding: [0, 0, 50, 0],
+                    },
                     tooltip: {
                         trigger: "axis",
                         axisPointer: { type: "shadow" },
@@ -707,6 +794,17 @@ Alpine.data("webData", () => ({
                     }
                 );
                 provinsiChoropleth.setOption({
+                    title: {
+                        text: getChartTitle("provinsiChoropleth"),
+                        left: "left",
+                        top: 10,
+                        textStyle: {
+                            fontSize: 16,
+                            color: "#333",
+                            fontWeight: "bold",
+                        },
+                        padding: [0, 0, 50, 0],
+                    },
                     tooltip: { trigger: "item", formatter: "{b}: {c}%" },
                     visualMap: {
                         min: provData.min ?? -5,
@@ -762,6 +860,21 @@ Alpine.data("webData", () => ({
                     }
                 );
                 kabkotChoropleth.setOption({
+                    title: {
+                        text: getChartTitle(
+                            isNational
+                                ? "kabkotChoropleth"
+                                : "provinsiKabkotChoropleth"
+                        ),
+                        left: "left",
+                        top: 10,
+                        textStyle: {
+                            fontSize: 16,
+                            color: "#333",
+                            fontWeight: "bold",
+                        },
+                        padding: [0, 0, 50, 0],
+                    },
                     tooltip: { trigger: "item", formatter: "{b}: {c}%" },
                     visualMap: {
                         min: kabkotData.min ?? -5,
