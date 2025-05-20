@@ -35,7 +35,8 @@ Alpine.data("webData", () => ({
     selectedProvince: "",
     selectedKabkot: "",
     selectedKomoditas: "",
-    selectedKdLevel: "",
+    selectedKdLevel: "1",
+    pendingKdLevel: "1",
     wilayahLevel: "",
     kd_wilayah: "",
     status_rekon: "00",
@@ -84,6 +85,7 @@ Alpine.data("webData", () => ({
                 (aktifData ? [aktifData.tahun] : []);
 
             this.selectedKdLevel = "01";
+            this.pendingKdLevel = "01";
             this.wilayahLevel = "semua-provinsi";
             this.kd_wilayah = "0";
             this.selectedKomoditas = "";
@@ -140,6 +142,9 @@ Alpine.data("webData", () => ({
         this.errorMessage = this.kd_wilayah
             ? ""
             : "Harap pilih wilayah yang valid.";
+
+        // console.log("kd_level:", this.selectedKdLevel);
+        // console.log("kd_level pending:", this.pendingKdLevel);
     },
 
     checkFormValidity() {
@@ -175,12 +180,11 @@ Alpine.data("webData", () => ({
     async fetchData() {
         if (!this.checkFormValidity()) return;
         this.errorMessage = "";
-        this.loading = true;
         try {
             const params = new URLSearchParams({
                 bulan: this.bulan,
                 tahun: this.tahun,
-                kd_level: this.selectedKdLevel,
+                kd_level: this.pendingKdLevel,
                 level_wilayah: this.wilayahLevel,
                 kd_wilayah: this.kd_wilayah,
                 kd_komoditas: this.selectedKomoditas,
@@ -202,21 +206,22 @@ Alpine.data("webData", () => ({
                 this.status = result.status;
                 return;
             }
+            this.selectedKdLevel = this.pendingKdLevel;
             this.data.rekonsiliasi = result.data.rekonsiliasi || [];
             this.data.title = result.data.title || "Pembahasan Rekonsiliasi";
             this.status = result.status;
             this.message = result.message;
+
+            // console.log("kd_level:", this.selectedKdLevel);
+            // console.log("kd_level pending:", this.pendingKdLevel);
         } catch (error) {
             console.error("Fetch error:", error);
             this.errorMessage = "Gagal memuat data.";
             this.status = "error";
-        } finally {
-            this.loading = false;
         }
     },
 
     async togglePembahasan(rekonsiliasiId, checked) {
-        this.loading = true;
         try {
             const response = await fetch(
                 `/api/rekonsiliasi/${rekonsiliasiId}/pembahasan`,
@@ -241,10 +246,10 @@ Alpine.data("webData", () => ({
                 );
             }
 
-            const result = await response.json();
-            this.modalMessage =
-                result.message || "Status pembahasan berhasil diperbarui.";
-            this.$dispatch("open-modal", "success-modal");
+            // const result = await response.json();
+            // this.modalMessage =
+            //     result.message || "Status pembahasan berhasil diperbarui.";
+            // this.$dispatch("open-modal", "success-modal");
 
             this.data.rekonsiliasi = this.data.rekonsiliasi.map((item) => {
                 if (item.rekonsiliasi_id === rekonsiliasiId) {
@@ -260,8 +265,6 @@ Alpine.data("webData", () => ({
                 "Gagal memperbarui status pembahasan. Silakan coba lagi.";
             this.$dispatch("open-modal", "error-modal");
             return false;
-        } finally {
-            this.loading = false;
         }
     },
 }));

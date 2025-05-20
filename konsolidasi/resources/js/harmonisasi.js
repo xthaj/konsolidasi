@@ -365,13 +365,12 @@ Alpine.data("webData", () => ({
 
     // Update all charts with new data
     // Inside the Alpine.data("webData", () => ({ ... })) block
-    // Inside the Alpine.data("webData", () => ({ ... })) block
     updateCharts(data) {
         this.data = data;
         const isNational = this.kd_wilayah === "0";
         const chartKey = isNational ? "line" : "provinsiLine";
 
-        // Define color mapping for stackedBarChart
+        // Define color mapping for stackedBarChart in JS
         const stackedBarColors = {
             "Turun (<0)": "#EE6666", // red
             "Stabil (=0)": "#FFCE34", // yellow
@@ -379,14 +378,7 @@ Alpine.data("webData", () => ({
             "Data tidak tersedia": "#DCDDE2", // gray
         };
 
-        // Helper function to get chart title with fallback
-        const getChartTitle = (key) => {
-            const title = data.chart_status?.[key]?.title || `Chart ${key}`;
-            console.log(`Chart ${key} Title: ${title}`);
-            return title;
-        };
-
-        // Line Chart
+        // Line Chart (unchanged)
         const lineChart = charts.get("lineChart");
         if (lineChart && data.chart_data[chartKey]) {
             const seriesData = data.chart_data[chartKey].series.map((s) => ({
@@ -398,17 +390,6 @@ Alpine.data("webData", () => ({
                 },
             }));
             lineChart.setOption({
-                title: {
-                    text: getChartTitle(chartKey),
-                    left: "left",
-                    top: 10,
-                    textStyle: {
-                        fontSize: 16,
-                        color: "#333",
-                        fontWeight: "bold",
-                    },
-                    padding: [0, 0, 50, 0],
-                },
                 tooltip: { trigger: "axis" },
                 legend: { bottom: 0, data: seriesData.map((s) => s.name) },
                 grid: {
@@ -441,16 +422,10 @@ Alpine.data("webData", () => ({
             });
         }
 
-        // Horizontal Bar Chart
+        // Horizontal Bar Chart (unchanged)
         const horizontalBarChart = charts.get("horizontalBarChart");
         if (horizontalBarChart && data.chart_data.horizontalBar) {
             horizontalBarChart.setOption({
-                title: {
-                    text: getChartTitle("horizontalBar"),
-                    left: "left",
-                    top: 10,
-                    textStyle: { fontSize: 16, fontWeight: "bold" },
-                },
                 tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
                 toolbox: {
                     feature: {
@@ -489,21 +464,10 @@ Alpine.data("webData", () => ({
             horizontalBarChart.hideLoading();
         }
 
-        // Heatmap Chart
+        // Heatmap Chart (unchanged)
         const heatmapChart = charts.get("heatmapChart");
         if (isNational && heatmapChart && data.chart_data.heatmap) {
             heatmapChart.setOption({
-                title: {
-                    text: getChartTitle("heatmap"),
-                    left: "left",
-                    top: 10,
-                    textStyle: {
-                        fontSize: 16,
-                        color: "#333",
-                        fontWeight: "bold",
-                    },
-                    padding: [0, 0, 50, 0],
-                },
                 tooltip: { position: "top" },
                 toolbox: {
                     feature: {
@@ -527,7 +491,7 @@ Alpine.data("webData", () => ({
                     max: data.chart_data.heatmap.max ?? 5,
                     calculable: true,
                     orient: "horizontal",
-                    left: "left",
+                    left: "center",
                     bottom: 0,
                     inRange: { color: this.colorPalette.VisualMap },
                 },
@@ -556,7 +520,7 @@ Alpine.data("webData", () => ({
             heatmapChart.hideLoading();
         }
 
-        // Stacked Bar Chart
+        // Stacked Bar Chart (modified with logging and JS-based colors)
         const stackedBarChart = charts.get("stackedBarChart");
         if (isNational && stackedBarChart && data.chart_data.stackedBar) {
             console.log("Stacked Bar Chart Data:", data.chart_data.stackedBar);
@@ -581,17 +545,6 @@ Alpine.data("webData", () => ({
                 };
             });
             stackedBarChart.setOption({
-                title: {
-                    text: getChartTitle("stackedBar"),
-                    left: "left",
-                    top: 10,
-                    textStyle: {
-                        fontSize: 16,
-                        color: "#333",
-                        fontWeight: "bold",
-                    },
-                    padding: [0, 0, 50, 0],
-                },
                 tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
                 toolbox: {
                     feature: {
@@ -617,6 +570,7 @@ Alpine.data("webData", () => ({
             });
         }
 
+        // Province Horizontal Bar Chart (unchanged)
         // Province Horizontal Bar Chart
         const provHorizontalBarChart = charts.get("provHorizontalBarChart");
         if (provHorizontalBarChart && data.chart_data?.provHorizontalBar) {
@@ -640,17 +594,6 @@ Alpine.data("webData", () => ({
                 }
                 try {
                     provHorizontalBarChart.setOption({
-                        title: {
-                            text: getChartTitle("provHorizontalBar"),
-                            left: "left",
-                            top: 10,
-                            textStyle: {
-                                fontSize: 16,
-                                color: "#333",
-                                fontWeight: "bold",
-                            },
-                            padding: [0, 0, 50, 0],
-                        },
                         tooltip: {
                             trigger: "axis",
                             axisPointer: { type: "shadow" },
@@ -716,7 +659,7 @@ Alpine.data("webData", () => ({
             });
         }
 
-        // Kabkot Horizontal Bar Chart
+        // Kabkot Horizontal Bar Chart (unchanged)
         const kabkotHorizontalBarChart = charts.get("kabkotHorizontalBarChart");
         if (
             this.selectedLevel === "HK" &&
@@ -728,17 +671,6 @@ Alpine.data("webData", () => ({
             );
             if (kabkotData) {
                 kabkotHorizontalBarChart.setOption({
-                    title: {
-                        text: getChartTitle("kabkotHorizontalBar"),
-                        left: "left",
-                        top: 10,
-                        textStyle: {
-                            fontSize: 16,
-                            color: "#333",
-                            fontWeight: "bold",
-                        },
-                        padding: [0, 0, 50, 0],
-                    },
                     tooltip: {
                         trigger: "axis",
                         axisPointer: { type: "shadow" },
@@ -766,7 +698,7 @@ Alpine.data("webData", () => ({
             }
         }
 
-        // Province Choropleth
+        // Province Choropleth (unchanged)
         const provinsiChoropleth = charts.get("provinsiChoropleth");
         if (
             provinsiChoropleth &&
@@ -794,17 +726,6 @@ Alpine.data("webData", () => ({
                     }
                 );
                 provinsiChoropleth.setOption({
-                    title: {
-                        text: getChartTitle("provinsiChoropleth"),
-                        left: "left",
-                        top: 10,
-                        textStyle: {
-                            fontSize: 16,
-                            color: "#333",
-                            fontWeight: "bold",
-                        },
-                        padding: [0, 0, 50, 0],
-                    },
                     tooltip: { trigger: "item", formatter: "{b}: {c}%" },
                     visualMap: {
                         min: provData.min ?? -5,
@@ -828,7 +749,7 @@ Alpine.data("webData", () => ({
             }
         }
 
-        // Kabkot Choropleth
+        // Kabkot Choropleth (unchanged)
         const kabkotChoropleth = charts.get("kabkotChoropleth");
         if (
             this.selectedLevel === "HK" &&
@@ -860,21 +781,6 @@ Alpine.data("webData", () => ({
                     }
                 );
                 kabkotChoropleth.setOption({
-                    title: {
-                        text: getChartTitle(
-                            isNational
-                                ? "kabkotChoropleth"
-                                : "provinsiKabkotChoropleth"
-                        ),
-                        left: "left",
-                        top: 10,
-                        textStyle: {
-                            fontSize: 16,
-                            color: "#333",
-                            fontWeight: "bold",
-                        },
-                        padding: [0, 0, 50, 0],
-                    },
                     tooltip: { trigger: "item", formatter: "{b}: {c}%" },
                     visualMap: {
                         min: kabkotData.min ?? -5,
