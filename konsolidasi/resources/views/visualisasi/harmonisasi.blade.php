@@ -127,42 +127,66 @@
             </div>
 
             <!-- Line Chart -->
-            <div x-show="data?.chart_data?.line || data?.chart_data?.provinsiLine" class="bg-white p-4 rounded-lg shadow-md dark:bg-gray-800 col-span-10">
-                <h3 class="text-lg font-semibold mb-4" x-text="data?.chart_status?.[wilayahLevel === '1' ? 'line' : 'provinsiLine']?.title || 'Tren Inflasi dan Andil'"></h3>
+            <div class="bg-white p-4 rounded-lg shadow-md dark:bg-gray-800 col-span-10">
+                <h3 class="text-lg font-semibold mb-4" x-text="data?.chart_status?.['line']?.title || 'Tren Inflasi dan Andil'"></h3>
                 <div id="lineChart" class="chart-container w-full h-96"></div>
-                <button id="toggleAndilBtn" x-on:click="toggleAndil" class="block mx-auto mt-4 font-semibold underline">
+                <button x-show="wilayahLevel === '1'" id="toggleAndilBtn" x-on:click="toggleAndil" class="block mx-auto mt-4 font-semibold underline">
                     <span x-text="showAndil ? 'Lihat Inflasi' : 'Lihat Andil'"></span>
                 </button>
             </div>
 
             <!-- Summary Boxes -->
-            <template x-for="priceLevel in priceLevels" :key="priceLevel">
-                <div class="bg-white p-4 rounded-lg shadow-md dark:bg-gray-800 col-span-10 md:col-span-2 border-l-8"
-                    :style="`border-left-color: ${colors[priceLevel] || '#5470C6'}`">
-                    <h4 class="text-md font-semibold text-gray-800 dark:text-white" x-text="priceLevel"></h4>
+            <template x-if="wilayahLevel === '1'">
+                <template x-for="priceLevel in priceLevels" :key="priceLevel">
+                    <div
+                        class="bg-white p-4 rounded-lg shadow-md dark:bg-gray-800 col-span-10 md:col-span-2 border-l-8"
+                        :style="`border-left-color: ${colors[priceLevel] || '#5470C6'}`">
+                        <h4 class="text-md font-semibold text-gray-800 dark:text-white" x-text="priceLevel"></h4>
+                        <p class="text-gray-600 dark:text-gray-300">
+                            Inflasi:
+                            <span
+                                class="font-bold text-gray-900 dark:text-white"
+                                x-text="formatPercentage(summaryData?.[priceLevel]?.inflasi)"></span>
+                        </p>
+                        <p class="text-gray-600 dark:text-gray-300">
+                            Andil:
+                            <span
+                                class="font-bold text-gray-900 dark:text-white"
+                                x-text="formatPercentage(summaryData?.[priceLevel]?.andil)"></span>
+                        </p>
+                    </div>
+                </template>
+            </template>
+
+            <!-- For wilayahLevel === '2': show only the first one -->
+            <template x-if="wilayahLevel === '2'">
+                <div
+                    class="bg-white p-4 rounded-lg shadow-md dark:bg-gray-800 col-span-10 border-l-8"
+                    :style="`border-left-color: ${colors[priceLevels[0]] || '#5470C6'}`">
+                    <h4 class="text-md font-semibold text-gray-800 dark:text-white" x-text="priceLevels[0]"></h4>
                     <p class="text-gray-600 dark:text-gray-300">
-                        Inflasi: <span class="font-bold text-gray-900 dark:text-white" x-text="formatPercentage(summaryData?.[priceLevel]?.inflasi)"></span>
-                    </p>
-                    <p class="text-gray-600 dark:text-gray-300">
-                        Andil: <span class="font-bold text-gray-900 dark:text-white" x-text="formatPercentage(summaryData?.[priceLevel]?.andil)"></span>
+                        Inflasi:
+                        <span
+                            class="font-bold text-gray-900 dark:text-white"
+                            x-text="formatPercentage(summaryData?.[priceLevels[0]]?.inflasi)"></span>
                     </p>
                 </div>
             </template>
 
             <!-- Horizontal Bar Chart -->
-            <div x-show="data?.chart_data?.horizontalBar" class="bg-white p-4 rounded-lg shadow-md dark:bg-gray-800 col-span-10">
+            <div x-show="wilayahLevel === '1'" class="bg-white p-4 rounded-lg shadow-md dark:bg-gray-800 col-span-10">
                 <h3 class="text-lg font-semibold mb-4" x-text="data?.chart_status?.horizontalBar?.title || 'Perbandingan Inflasi dan Andil Antartingkat Harga'"></h3>
                 <div id="horizontalBarChart" class="chart-container w-full h-96"></div>
             </div>
 
             <!-- Heatmap Chart -->
-            <div x-show="data?.chart_data?.heatmap && wilayahLevel === '1'" class="bg-white p-4 rounded-lg shadow-md dark:bg-gray-800 col-span-10">
+            <div x-show="wilayahLevel === '1'" class="bg-white p-4 rounded-lg shadow-md dark:bg-gray-800 col-span-10">
                 <h3 class="text-lg font-semibold mb-4" x-text="data?.chart_status?.heatmap?.title || 'Inflasi per Provinsi Antartingkat Harga'"></h3>
                 <div id="heatmapChart" class="chart-container w-full h-[550px]"></div>
             </div>
 
             <!-- Stacked Bar Chart -->
-            <div x-show="data?.chart_data?.stackedBar && wilayahLevel === '1'" class="bg-white p-4 rounded-lg shadow-md dark:bg-gray-800 col-span-10">
+            <div x-show="wilayahLevel === '1'" class="bg-white p-4 rounded-lg shadow-md dark:bg-gray-800 col-span-10">
                 <h3 class="text-lg font-semibold mb-4" x-text="data?.chart_status?.stackedBar?.title || 'Distribusi Inflasi per Tingkat Harga'"></h3>
                 <div id="stackedBarChart" class="chart-container w-full h-96"></div>
             </div>
@@ -171,21 +195,27 @@
             <div class="flex flex-col md:flex-row gap-4 items-center bg-primary-700 p-4 rounded-lg shadow-md dark:bg-gray-800 col-span-10">
                 <h3 class="flex-1 text-white text-lg font-bold text-center md:text-left">Harga Konsumen Kota</h3>
             </div>
-            <div class="bg-white p-4 rounded-lg shadow-md dark:bg-gray-800 col-span-10" :class="wilayahLevel === '1' ? 'md:col-span-5' : 'md:col-span-10'">
-                <h3 class="text-lg font-semibold mb-4" x-text="data?.chart_status?.provHorizontalBar?.title || 'Inflasi per Provinsi'"></h3>
+            <div x-show="wilayahLevel === '1'" class="bg-white p-4 rounded-lg shadow-md dark:bg-gray-800 col-span-10"" :class=" wilayahLevel==='1' ? 'md:col-span-5' : 'md:col-span-10'">
+                <h3 class=" text-lg font-semibold mb-4" x-text="data?.chart_status?.provHorizontalBar?.title || 'Inflasi per Provinsi'">
+                </h3>
                 <div id="provHorizontalBarChart_01" class="chart-container w-full h-[550px]"></div>
             </div>
-            <div class="bg-white p-4 rounded-lg shadow-md dark:bg-gray-800 col-span-10 md:col-span-5">
-                <h3 class="text-lg font-semibold mb-4" x-text="data?.chart_status?.kabkotHorizontalBar?.title || 'Inflasi per Kabupaten/Kota'"></h3>
+            <div
+                class="bg-white p-4 rounded-lg shadow-md dark:bg-gray-800 col-span-10"
+                :class="wilayahLevel === '1' ? 'md:col-span-5' : 'md:col-span-10'">
+                <h3
+                    class="text-lg font-semibold mb-4"
+                    x-text="data?.chart_status?.kabkotHorizontalBar?.title || 'Inflasi per Kabupaten/Kota'"></h3>
                 <div id="kabkotHorizontalBarChart_01" class="chart-container w-full h-[550px]"></div>
             </div>
-            <div class="bg-white p-4 rounded-lg shadow-md dark:bg-gray-800 col-span-10">
+
+            <div x-show="wilayahLevel === '1'" class="bg-white p-4 rounded-lg shadow-md dark:bg-gray-800 col-span-10">
                 <h3 class="text-lg font-semibold mb-4" x-text="data?.chart_status?.provinsiChoropleth?.title || 'Peta Inflasi Provinsi'"></h3>
-                <div id="provinsiChoropleth_01" class="chart-container w-full h-[550px]"></div>
+                <div id="provinsiChoropleth_01" class="chart-container w-full h-[400px]"></div>
             </div>
             <div class="bg-white p-4 rounded-lg shadow-md dark:bg-gray-800 col-span-10">
                 <h3 class="text-lg font-semibold mb-4" x-text="data?.chart_status?.[wilayahLevel === '1' ? 'kabkotChoropleth' : 'provinsiKabkotChoropleth']?.title || 'Peta Inflasi Kabupaten/Kota'"></h3>
-                <div id="kabkotChoropleth_01" class="chart-container w-full h-[550px]"></div>
+                <div id="kabkotChoropleth_01" class="chart-container w-full h-[400px]"></div>
             </div>
         </div>
 
@@ -202,7 +232,7 @@
                 </div>
                 <div class="bg-white p-4 rounded-lg shadow-md dark:bg-gray-800 col-span-10">
                     <h3 class="text-lg font-semibold mb-4" x-text="data?.chart_status?.provinsiChoropleth?.title || 'Peta Inflasi Provinsi'"></h3>
-                    <div id="provinsiChoropleth_02" class="chart-container w-full h-[550px]"></div>
+                    <div id="provinsiChoropleth_02" class="chart-container w-full h-[400px]"></div>
                 </div>
 
                 <!-- Harga Perdagangan Besar -->
@@ -215,7 +245,7 @@
                 </div>
                 <div class="bg-white p-4 rounded-lg shadow-md dark:bg-gray-800 col-span-10">
                     <h3 class="text-lg font-semibold mb-4" x-text="data?.chart_status?.provinsiChoropleth?.title || 'Peta Inflasi Provinsi'"></h3>
-                    <div id="provinsiChoropleth_03" class="chart-container w-full h-[550px]"></div>
+                    <div id="provinsiChoropleth_03" class="chart-container w-full h-[400px]"></div>
                 </div>
 
                 <!-- Harga Produsen Desa -->
@@ -228,7 +258,7 @@
                 </div>
                 <div class="bg-white p-4 rounded-lg shadow-md dark:bg-gray-800 col-span-10">
                     <h3 class="text-lg font-semibold mb-4" x-text="data?.chart_status?.provinsiChoropleth?.title || 'Peta Inflasi Provinsi'"></h3>
-                    <div id="provinsiChoropleth_04" class="chart-container w-full h-[550px]"></div>
+                    <div id="provinsiChoropleth_04" class="chart-container w-full h-[400px]"></div>
                 </div>
 
                 <!-- Harga Produsen -->
@@ -241,7 +271,7 @@
                 </div>
                 <div class="bg-white p-4 rounded-lg shadow-md dark:bg-gray-800 col-span-10">
                     <h3 class="text-lg font-semibold mb-4" x-text="data?.chart_status?.provinsiChoropleth?.title || 'Peta Inflasi Provinsi'"></h3>
-                    <div id="provinsiChoropleth_05" class="chart-container w-full h-[550px]"></div>
+                    <div id="provinsiChoropleth_05" class="chart-container w-full h-[400px]"></div>
                 </div>
             </div>
         </div>
