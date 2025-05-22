@@ -200,7 +200,7 @@ Alpine.data("webData", () => ({
             });
         } catch (error) {
             console.error("Initialization failed:", error);
-            this.errorMessage = "Gagal menginisialisasi aplikasi";
+            this.modalMessage = "Gagal menginisialisasi aplikasi";
             this.$dispatch("open-modal", "error-modal");
         } finally {
             this.loading = false;
@@ -352,13 +352,32 @@ Alpine.data("webData", () => ({
 
     // Check form validity
     checkFormValidity() {
-        return (
-            this.bulan &&
-            this.tahun &&
-            this.selectedKomoditas &&
-            (this.pendingWilayahLevel === "1" ||
-                (this.pendingWilayahLevel === "2" && this.kd_wilayah !== "0"))
-        );
+        // Check if required fields are filled
+        if (!this.bulan || !this.tahun || !this.pendingWilayahLevel) {
+            this.errorMessage = "Harap isi bulan, tahun, dan level wilayah.";
+            // this.$dispatch("open-modal", "error-modal");
+            return false;
+        }
+
+        // If level is Provinsi (2), ensure kd_wilayah is not "0" and a province is selected
+        if (this.pendingWilayahLevel === "2") {
+            if (!this.selectedProvince || this.kd_wilayah === "0") {
+                this.errorMessage = "Harap pilih provinsi yang valid.";
+                // this.$dispatch("open-modal", "error-modal");
+
+                return false;
+            }
+        }
+
+        // If level is Nasional (1), kd_wilayah should be "0"
+        if (this.pendingWilayahLevel === "1") {
+            this.kd_wilayah = "0";
+
+            return true;
+        }
+
+        // If all validations pass
+        return true;
     },
 
     // Handle komoditas selection
@@ -392,6 +411,11 @@ Alpine.data("webData", () => ({
 
     // Fetch data from API
     async fetchData() {
+        if (!this.checkFormValidity()) {
+            // this.$dispatch("open-modal", "error-modal"); // Show error modal if validation fails
+            return;
+        }
+
         this.errorMessage = "";
         this.errors = [];
         charts.forEach((chart) => chart.showLoading());
@@ -410,8 +434,8 @@ Alpine.data("webData", () => ({
             const result = await response.json();
 
             if (result.status === "partial" || result.errors?.length > 0) {
-                this.errorMessage =
-                    result.message || "Beberapa data tidak tersedia.";
+                // this.errorMessage =
+                //     result.message || "Beberapa data tidak tersedia.";
                 this.errors = result.errors || result.data?.errors || [];
             }
             this.wilayahLevel = this.pendingWilayahLevel;

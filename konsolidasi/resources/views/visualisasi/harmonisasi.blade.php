@@ -18,7 +18,7 @@
 
     <x-modal name="error-modal" title="Kesalahan" maxWidth="md">
         <div class="text-gray-900 dark:text-white">
-            <p x-text="errorMessage"></p>
+            <p x-text="modalMessage"></p>
             <div class="mt-4 flex justify-end">
                 <x-primary-button type="button" x-on:click="$dispatch('close')">Tutup</x-primary-button>
             </div>
@@ -93,9 +93,8 @@
                 <!-- Error Message Below Form -->
                 <div x-show="errorMessage" class="my-2 text-sm text-red-600" x-text="errorMessage"></div>
 
-                <x-primary-button type="submit" x-bind:disabled="!checkFormValidity()" class="w-full">
-                    <span x-show="!loading">Filter</span>
-                    <span x-show="loading">Loading...</span>
+                <x-primary-button type="submit" class="w-full">
+                    Filter
                 </x-primary-button>
             </div>
         </form>
@@ -123,7 +122,7 @@
 
             <!-- Title -->
             <div class="bg-white p-4 rounded-lg shadow-md dark:bg-gray-800 col-span-10">
-                <h2 x-text="`Inflasi Komoditas ${selectedKomoditas ? komoditas.find(k => k.kd_komoditas === selectedKomoditas)?.nama_komoditas || '' : ''} ${wilayahLevel == 1 ? 'Nasional' : provinces.find(p => p.kd_wilayah === selectedProvince)?.nama_wilayah || ''} ${bulanOptions.find(b => b[1] == bulan)?.[0] || ''} ${tahun}`"></h2>
+                <h2 x-text="data?.title || 'Loading...'" class="text-gray-900 "></h2>
             </div>
 
             <!-- Line Chart -->
