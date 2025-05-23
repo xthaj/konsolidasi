@@ -618,15 +618,42 @@ Alpine.data("webData", () => ({
                     inverse: true, //  flip the yAxis order
                 },
                 visualMap: {
-                    min: data.chart_data.heatmap.min ?? -5,
-                    max: data.chart_data.heatmap.max ?? 5,
+                    type: "piecewise",
                     calculable: true,
                     orient: "horizontal",
                     left: "center",
                     bottom: 0,
-                    inRange: { color: this.colorPalette.VisualMap },
+                    pieces: [
+                        { max: -1, label: "< -1", color: "#65B581" }, // Green for < -1
+                        {
+                            min: -1,
+                            max: -0.5,
+                            label: "-1 - -0.5",
+                            color: "#90C76A",
+                        }, // Greenish
+                        {
+                            min: -0.5,
+                            max: -0.001,
+                            label: "-0.5 - <0",
+                            color: "#B8DB51",
+                        }, // Greenish-yellow
+                        { value: 0, label: "0", color: "#ffffbf" }, // White for 0
+                        {
+                            min: 0.001,
+                            max: 0.5,
+                            label: ">0 - 0.5",
+                            color: "#fee08b",
+                        }, // Yellowish
+                        {
+                            min: 0.5,
+                            max: 1,
+                            label: "0.5 - 1",
+                            color: "#FFAA4A",
+                        }, // Yellow-red
+                        { min: 1, label: "> 1", color: "#FD665F" }, // Red for > 1
+                    ],
                     formatter: function (value) {
-                        return value.toFixed(2);
+                        return value != null ? value.toFixed(2) : "N/A";
                     },
                 },
                 dataZoom: [
@@ -743,7 +770,13 @@ Alpine.data("webData", () => ({
                             top: "10%",
                             containLabel: true,
                         },
-                        dataZoom: [{ type: "slider", orient: "vertical" }],
+                        dataZoom: [
+                            {
+                                type: "slider",
+                                orient: "vertical",
+                                handleIcon: "roundRect",
+                            },
+                        ],
                         xAxis: { type: "value", name: "Inflasi (%)" },
                         yAxis: { type: "category", data: provData.names || [] },
                         series: [
@@ -804,7 +837,13 @@ Alpine.data("webData", () => ({
                         top: "10%",
                         containLabel: true,
                     },
-                    dataZoom: [{ type: "slider", orient: "vertical" }],
+                    dataZoom: [
+                        {
+                            type: "slider",
+                            orient: "vertical",
+                            handleIcon: "roundRect",
+                        },
+                    ],
                     xAxis: { type: "value", name: "Inflasi (%)" },
                     yAxis: { type: "category", data: kabkotData.names },
                     series: [
@@ -923,17 +962,43 @@ Alpine.data("webData", () => ({
                     },
                 },
                 visualMap: {
-                    min,
-                    max,
+                    type: "piecewise",
                     calculable: true,
-                    inRange: { color: this.colorPalette.VisualMap },
+                    orient: "horizontal",
+                    left: "center",
+                    bottom: 0,
                     pieces: [
-                        { value: null, label: "N/A", color: "#d3d3d3" },
-                        { min, max },
+                        { max: -1, label: "< -1", color: "#65B581" }, // Green for < -1
+                        {
+                            min: -1,
+                            max: -0.5,
+                            label: "-1 - -0.5",
+                            color: "#90C76A",
+                        }, // Greenish
+                        {
+                            min: -0.5,
+                            max: -0.001,
+                            label: "-0.5 - <0",
+                            color: "#B8DB51",
+                        }, // Greenish-yellow
+                        { value: 0, label: "0", color: "#ffffbf" }, // White for 0
+                        {
+                            min: 0.001,
+                            max: 0.5,
+                            label: ">0 - 0.5",
+                            color: "#fee08b",
+                        }, // Yellowish
+                        {
+                            min: 0.5,
+                            max: 1,
+                            label: "0.5 - 1",
+                            color: "#FFAA4A",
+                        }, // Yellow-red
+                        { min: 1, label: "> 1", color: "#FD665F" }, // Red for > 1
                     ],
-                    left: "right",
-                    bottom: 10,
-                    formatter: (value) => value.toFixed(2),
+                    formatter: function (value) {
+                        return value != null ? value.toFixed(2) : "N/A";
+                    },
                 },
                 series: [
                     {
@@ -1015,17 +1080,6 @@ Alpine.data("webData", () => ({
                     })
                     .filter((item) => item !== null);
 
-                // Calculate min/max for visualMap
-                const validInflasi = kabkotData.inflasi
-                    .map((val) =>
-                        val !== null && !isNaN(val) ? Number(val) : null
-                    )
-                    .filter((val) => val !== null);
-                const min =
-                    validInflasi.length > 0 ? Math.min(...validInflasi) : -5;
-                const max =
-                    validInflasi.length > 0 ? Math.max(...validInflasi) : 5;
-
                 kabkotChoropleth.setOption({
                     toolbox: {
                         feature: {
@@ -1047,16 +1101,43 @@ Alpine.data("webData", () => ({
                         },
                     },
                     visualMap: {
-                        min: min,
-                        max: max,
+                        type: "piecewise",
                         calculable: true,
-                        inRange: { color: this.colorPalette.VisualMap },
+                        orient: "horizontal",
+                        left: "center",
+                        bottom: 0,
                         pieces: [
-                            { value: null, label: "N/A", color: "#d3d3d3" },
-                            { min, max },
+                            { max: -1, label: "< -1", color: "#65B581" }, // Green for < -1
+                            {
+                                min: -1,
+                                max: -0.5,
+                                label: "-1 - -0.5",
+                                color: "#90C76A",
+                            }, // Greenish
+                            {
+                                min: -0.5,
+                                max: -0.001,
+                                label: "-0.5 - <0",
+                                color: "#B8DB51",
+                            }, // Greenish-yellow
+                            { value: 0, label: "0", color: "#ffffbf" }, // White for 0
+                            {
+                                min: 0.001,
+                                max: 0.5,
+                                label: ">0 - 0.5",
+                                color: "#fee08b",
+                            }, // Yellowish
+                            {
+                                min: 0.5,
+                                max: 1,
+                                label: "0.5 - 1",
+                                color: "#FFAA4A",
+                            }, // Yellow-red
+                            { min: 1, label: "> 1", color: "#FD665F" }, // Red for > 1
                         ],
-                        left: "right",
-                        bottom: 10,
+                        formatter: function (value) {
+                            return value != null ? value.toFixed(2) : "N/A";
+                        },
                     },
                     series: [
                         {
