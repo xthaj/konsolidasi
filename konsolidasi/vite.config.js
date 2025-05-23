@@ -6,6 +6,7 @@ export default defineConfig({
         laravel({
             input: [
                 "resources/css/app.css",
+                "resources/js/auth/login.js",
                 "resources/js/data/edit.js",
                 "resources/js/data/finalisasi.js",
                 "resources/js/data/upload.js",
@@ -14,6 +15,7 @@ export default defineConfig({
                 "resources/js/master/wilayah.js",
                 "resources/js/rekonsiliasi/pembahasan.js",
                 "resources/js/rekonsiliasi/progres.js",
+                "resources/js/rekonsiliasi/progres_skl.js",
                 "resources/js/alpine.js",
                 "resources/js/app.js",
                 "resources/js/bootstrap.js",

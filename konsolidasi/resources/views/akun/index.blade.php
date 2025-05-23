@@ -99,6 +99,7 @@
                         <label for="add-is-admin" class="ms-2 text-sm font-medium text-gray-900">Admin</label>
                     </div>
                 </div>
+
                 <!-- Wilayah Selection -->
                 <div class="mb-4">
                     <label class="block mb-2 text-sm font-medium text-gray-900">Level Wilayah</label>
@@ -141,6 +142,8 @@
                 <template x-if="newUser.errors.kd_wilayah">
                     <p class="mt-2 text-sm text-red-600" x-text="newUser.errors.kd_wilayah"></p>
                 </template>
+
+
                 <!-- Buttons -->
                 <div class="mt-6 flex justify-end gap-3">
                     <x-secondary-button x-on:click="$dispatch('close')">Batal</x-secondary-button>
@@ -198,8 +201,14 @@
                     <span x-text="editUser.is_admin"></span>
                 </div> -->
                 <!-- Wilayah Selection -->
+
                 <div class="mb-4">
-                    <label class="block mb-2 text-sm font-medium text-gray-900">Level Wilayah</label>
+                    <label class="block mb-2 text-sm font-medium text-gray-900">Wilayah Saat Ini</label>
+                    <p class="text-sm text-gray-900" x-text="editUser.wilayah_nama || 'Pusat'"></p>
+                </div>
+
+                <div class="mb-4">
+                    <label class="block mb-2 text-sm font-medium text-gray-900">Ganti Level Wilayah</label>
                     <select x-model="editUser.wilayah_level" @change="updateEditWilayah()" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                         <option value="pusat">Pusat</option>
                         <option value="provinsi">Provinsi</option>
@@ -250,47 +259,52 @@
     </x-modal>
 
     <!-- Filter and Search Form -->
-    <form method="GET" action="{{ route('akun.index') }}" class="mb-4">
+    <form id="user-form" @submit.prevent="getWilayahUsers"" class=" mb-4">
         <div class="flex gap-4">
             <div class="w-full">
                 <div class="mb-4">
                     <label class="block mb-2 text-sm font-medium text-gray-900">Cari Pengguna</label>
                     <div class="relative">
                         <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
-                            <svg class="w-4 h-4 text-gray-500 " aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                            <svg class="w-4 h-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
                                 <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z" />
                             </svg>
                         </div>
-                        <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari berdasarkan username atau nama lengkap" class="block ps-10 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
+                        <input type="text" name="search" x-model="search" placeholder="Cari berdasarkan username atau nama lengkap" class="block ps-10 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                     </div>
                 </div>
-                <div class="mb-4">
-                    <label class="block mb-2 text-sm font-medium text-gray-900">Level Wilayah</label>
-                    <select name="wilayah_level" x-model="wilayah_level" @change="selected_province = ''; selected_kabkot = ''" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
-                        <option value="" {{ request('wilayah_level') ? '' : 'selected' }}>Semua Level</option>
-                        <option value="pusat" {{ request('wilayah_level') === 'pusat' ? 'selected' : '' }}>Pusat</option>
-                        <option value="provinsi" {{ request('wilayah_level') === 'provinsi' ? 'selected' : '' }}>Provinsi</option>
-                        <option value="kabkot" {{ request('wilayah_level') === 'kabkot' ? 'selected' : '' }}>Kabupaten/Kota</option>
+
+                <!-- Wilayah Selection -->
+                <div>
+                    <label class="block mb-2 text-sm font-medium text-gray-900">Level Wilayah<span class="text-red-500 ml-1">*</span></label>
+                    <select name="level_wilayah" x-model="wilayahLevel" @change="updateWilayahOptions" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
+                        <option value="semua">Semua Provinsi dan Kab/Kota</option>
+                        <option value="semua-provinsi">Semua Provinsi</option>
+                        <option value="semua-kabkot">Semua Kabupaten/Kota</option>
+                        <option value="provinsi">Provinsi</option>
+                        <option value="kabkot">Kabupaten/Kota</option>
                     </select>
                 </div>
-                <div class="mb-4" x-show="wilayah_level === 'provinsi' || wilayah_level === 'kabkot'">
+                <div x-show="wilayahLevel === 'provinsi' || wilayahLevel === 'kabkot'" class="mt-4">
                     <label class="block mb-2 text-sm font-medium text-gray-900">Provinsi</label>
-                    <select name="kd_wilayah_provinsi" x-model="selected_province" @change="selected_kabkot = ''" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
-                        <option value="" {{ request('kd_wilayah_provinsi') ? '' : 'selected' }}>Semua Provinsi</option>
+                    <select x-model="selectedProvince" @change="selectedKabkot = ''; updateKdWilayah()" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
+                        <option value="" selected>Pilih Provinsi</option>
                         <template x-for="province in provinces" :key="province.kd_wilayah">
-                            <option :value="province.kd_wilayah" :selected="province.kd_wilayah === '{{ request('kd_wilayah_provinsi') }}'" x-text="province.nama_wilayah"></option>
+                            <option :value="province.kd_wilayah" x-text="province.nama_wilayah" :selected="province.kd_wilayah == selectedProvince"></option>
                         </template>
                     </select>
                 </div>
-                <div class="mb-4" x-show="wilayah_level === 'kabkot'">
+                <div x-show="wilayahLevel === 'kabkot' " class="mt-4">
                     <label class="block mb-2 text-sm font-medium text-gray-900">Kabupaten/Kota</label>
-                    <select name="kd_wilayah" x-model="selected_kabkot" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
-                        <option value="" {{ request('kd_wilayah') ? '' : 'selected' }}>Semua Kabupaten/Kota</option>
+                    <select x-model="selectedKabkot" @change="updateKdWilayah()" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
+                        <option value="" selected>Pilih Kabupaten/Kota</option>
                         <template x-for="kabkot in filteredKabkots" :key="kabkot.kd_wilayah">
-                            <option :value="kabkot.kd_wilayah" :selected="kabkot.kd_wilayah === '{{ request('kd_wilayah') }}'" x-text="kabkot.nama_wilayah"></option>
+                            <option :value="kabkot.kd_wilayah" x-text="kabkot.nama_wilayah" :selected="kabkot.kd_wilayah == selectedKabkot"></option>
                         </template>
                     </select>
                 </div>
+                <input type="hidden" name="kd_wilayah" x-model="kd_wilayah" required>
+
             </div>
         </div>
         <div class="flex justify-end">
@@ -312,51 +326,48 @@
         </x-primary-button>
     </div>
 
-    <div class="relative overflow-x-auto shadow-md sm:rounded-lg">
-        <table class="w-full text-sm text-left text-gray-500 ">
-            <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+
+    <!-- Display Users -->
+    <div x-show="usersData.length">
+        <table class="w-full text-sm text-left text-gray-500">
+            <thead>
                 <tr>
-                    <th scope="col" class="px-6 py-3">No</th>
-                    <th scope="col" class="px-6 py-3">Wilayah</th>
-                    <th scope="col" class="px-6 py-3">Username</th>
-                    <th scope="col" class="px-6 py-3">Nama Lengkap</th>
-                    <th scope="col" class="px-6 py-3">Level</th>
-                    <th scope="col" class="px-6 py-3">Aksi</th>
+                    <th>Username</th>
+                    <th>Nama Lengkap</th>
+                    <th>Wilayah</th>
+                    <th>Level</th>
+                    <th>Aksi</th>
                 </tr>
             </thead>
             <tbody>
-                @forelse ($users->items() as $index => $user)
-                <tr class="bg-white border-b border-gray-200">
-                    <td class="px-6 py-4">{{ $users->firstItem() + $index }}</td>
-                    <td class="px-6 py-4">
-                        {{ optional($user->wilayah)->nama_wilayah == 'NASIONAL' ? 'PUSAT' : ($user->wilayah->nama_wilayah ?? 'PUSAT') }}
-                    </td>
-
-                    <td class="px-6 py-4">{{ $user->username }}</td>
-                    <td class="px-6 py-4">{{ $user->nama_lengkap }}</td>
-                    <td class="px-6 py-4">{{ $user->is_admin ? 'Admin' : 'Operator' }}</td>
-                    <td class="px-6 py-4 text-right">
-                        <button @click="openEditUserModal({{$user}})" class="font-medium text-blue-600  hover:underline mr-3">Edit</button>
-                        <button @click="deleteUser('{{ $user->user_id }}', '{{ $user->username }}')" class="font-medium text-red-600  hover:underline">Hapus</button>
-                    </td>
-                </tr>
-                @empty
-                <tr>
-                    <td colspan="6" class="px-6 py-4 text-center">Tidak ada pengguna ditemukan.</td>
-                </tr>
-                @endforelse
+                <template x-for="user in usersData" :key="user.user_id">
+                    <tr>
+                        <td x-text="user.username"></td>
+                        <td x-text="user.nama_lengkap"></td>
+                        <td x-text="user.wilayah ? user.wilayah.nama_wilayah : 'Pusat'"></td>
+                        <td x-text="user.level"></td>
+                        <td class="px-6 py-4 text-left">
+                            <button
+                                @click="openEditUserModal(user)"
+                                class="font-medium text-indigo-600 dark:text-indigo-500 hover:underline">
+                                Edit
+                            </button>
+                            <button
+                                @click="deleteUser(user.user_id, user.username)"
+                                class="font-medium text-red-600 hover:underline">
+                                Delete
+                            </button>
+                        </td>
+                    </tr>
+                </template>
             </tbody>
         </table>
-
-
+        <!-- Pagination Controls -->
+        <div class="mt-4" x-show="usersData.length > 0">
+            <button x-bind:disabled="currentPage === 1" @click="currentPage--; getWilayahUsers()">Previous</button>
+            <span x-text="`Page ${currentPage} of ${lastPage}`"></span>
+            <button x-bind:disabled="currentPage === lastPage" @click="currentPage++; getWilayahUsers()">Next</button>
+        </div>
     </div>
-
-    <!-- Pagination -->
-    @if ($users && $users->hasPages())
-    <div class="mt-4 ">
-        {{ $users->appends(request()->query())->links() }}
-    </div>
-    @endif
-
 
 </x-one-panel-layout>

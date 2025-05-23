@@ -13,7 +13,7 @@ class PembahasanDataResource extends JsonResource
 
         $toStatus = function ($value) {
             if ($value === null) return '-';
-            return $value > 0 ? 'naik' : ($value == 0 ? 'Stabil' : 'Turun');
+            return $value > 0 ? 'Naik' : ($value == 0 ? 'Stabil' : 'Turun');
         };
 
         return [
@@ -25,7 +25,7 @@ class PembahasanDataResource extends JsonResource
             'kd_level' => $inflasi->kd_level,
             'inflasi_kota' => in_array($kdLevel, ['01', '02']) ? ($this->inflasi_kota ?? '-') : null,
             'inflasi_desa' => in_array($kdLevel, ['01', '02']) ? ($this->inflasi_desa !== null ? $toStatus($this->inflasi_desa) : '-') : null,
-            'nilai_inflasi' => $inflasi->inflasi,
+            'nilai_inflasi' => $inflasi->nilai_inflasi,
             'alasan' => $this->alasan,
             'detail' => $this->detail ?? '-',
             'sumber' => $this->media,

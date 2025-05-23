@@ -96,7 +96,7 @@
     </x-slot>
 
     <x-modal name="success-modal" title="Berhasil" maxWidth="md">
-        <div class="text-gray-900 dark:text-white">
+        <div class="text-gray-900 ">
             <p x-text="modalMessage"></p>
             <div class="mt-4 flex justify-end">
                 <x-primary-button type="button" x-on:click="$dispatch('close')">Tutup</x-primary-button>
@@ -105,7 +105,7 @@
     </x-modal>
 
     <x-modal name="error-modal" title="Kesalahan" maxWidth="md">
-        <div class="text-gray-900 dark:text-white">
+        <div class="text-gray-900 ">
             <p x-text="modalMessage"></p>
             <div class="mt-4 flex justify-end">
                 <x-primary-button type="button" x-on:click="$dispatch('close')">Tutup</x-primary-button>
@@ -138,27 +138,44 @@
         <div class="bg-white md:overflow-hidden shadow-sm sm:rounded-lg">
             <div class="relative overflow-x-auto shadow-md sm:rounded-lg md:max-h-[90vh] overflow-y-auto">
                 <table class="w-full text-sm text-left rtl:text-right text-gray-500">
-                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400 sticky top-0 z-10">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50  sticky top-0 z-10">
                         <tr>
-                            <th scope="col" class="px-6 py-3">No</th>
-                            <th scope="col" class="px-6 py-3">Wilayah</th>
-                            <th scope="col" class="px-6 py-3">Komoditas</th>
-                            <th scope="col" class="px-6 py-3" x-text="selectedKdLevel === '01' || selectedKdLevel === '02' ? 'Inflasi Kota' : 'Inflasi'"></th>
-                            <th scope="col" class="px-6 py-3" x-show="selectedKdLevel === '01' || selectedKdLevel === '02'">Inflasi Desa</th>
-                            <th scope="col" class="px-6 py-3 min-w-[175px]">Alasan</th>
-                            <th scope="col" class="px-6 py-3">Detail</th>
-                            <th scope="col" class="px-6 py-3">Sumber</th>
-                            <th scope="col" class="px-6 py-3">Pembahasan</th>
+                            <th class="px-6 py-3">No</th>
+                            <th class="px-6 py-3">Wilayah</th>
+                            <th class="px-6 py-3">Komoditas</th>
+                            <th class="px-6 py-3" x-show="['03', '04', '05'].includes(selectedKdLevel)">Inflasi</th>
+                            <th class="px-6 py-3" x-show="selectedKdLevel === '01' || selectedKdLevel === '02'">Inflasi Kota</th>
+                            <th class="px-6 py-3" x-show="selectedKdLevel === '01' || selectedKdLevel === '02'">Inflasi Desa</th>
+                            <th class="px-6 py-3 min-w-[175px]">Alasan</th>
+                            <th class="px-6 py-3">Detail</th>
+                            <th class="px-6 py-3">Sumber</th>
+                            <th class="px-6 py-3">Pembahasan</th>
                         </tr>
                     </thead>
                     <tbody>
                         <template x-for="(item, index) in data.rekonsiliasi" :key="item.rekonsiliasi_id">
-                            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600">
+                            <tr class="bg-white border-b border-gray-200  hover:bg-gray-50 ">
                                 <td class="px-6 py-4" x-text="index + 1"></td>
                                 <td class="px-6 py-4" x-text="item.nama_wilayah || 'Tidak Dikenal'"></td>
                                 <td class="px-6 py-4" x-text="item.nama_komoditas || 'N/A'"></td>
-                                <td class="px-6 py-4 text-right" :class="item.inflasi_kota === null ? 'text-red-500' : ''" x-text="item.inflasi_kota !== null ? item.inflasi_kota : '-'"></td>
-                                <td class="px-6 py-4 text-right" x-show="selectedKdLevel === '01' || selectedKdLevel === '02'" :class="item.inflasi_desa === null && selectedKdLevel === '01' ? 'text-red-500' : ''" x-text="item.inflasi_desa !== null ? item.inflasi_desa : '-'"></td>
+
+                                <td class="px-6 py-4"
+                                    x-show="['03', '04', '05'].includes(selectedKdLevel)"
+                                    x-text="item.nilai_inflasi">
+                                </td>
+
+                                <td class="px-6 py-4 text-right"
+                                    x-show="selectedKdLevel === '01' || selectedKdLevel === '02'"
+                                    :class="item.inflasi_kota === null && selectedKdLevel === '01' ? 'text-red-500' : ''"
+                                    x-text="item.inflasi_kota !== null ? item.inflasi_kota : '-'">
+                                </td>
+
+                                <td class="px-6 py-4 text-right"
+                                    x-show="selectedKdLevel === '01' || selectedKdLevel === '02'"
+                                    :class="item.inflasi_desa === null && selectedKdLevel === '01' ? 'text-red-500' : ''"
+                                    x-text="item.inflasi_desa !== null ? item.inflasi_desa : '-'">
+                                </td>
+
                                 <td class="px-6 py-4">
                                     <ul x-show="item.alasan" class="list-disc list-inside">
                                         <template x-for="alasan in (item.alasan ? item.alasan.split(', ') : [])">
@@ -167,28 +184,50 @@
                                     </ul>
                                     <span x-show="!item.alasan">-</span>
                                 </td>
+
                                 <td class="px-6 py-4" x-data="{ showFull: false }">
-                                    <span x-text="showFull || (item.detail || '').length <= 50 ? (item.detail || '-') : (item.detail || '').slice(0, 50) + '...'"></span>
+                                    <span x-text="showFull || (item.detail || '').length <= 50
+                        ? (item.detail || '-')
+                        : (item.detail || '').slice(0, 50) + '...'">
+                                    </span>
                                     <template x-if="item.detail && item.detail !== '-' && item.detail.length > 50">
                                         <button @click="showFull = !showFull" class="text-blue-500 underline ml-2">
                                             <span x-text="showFull ? 'Sembunyikan' : 'Selengkapnya'"></span>
                                         </button>
                                     </template>
                                 </td>
+
                                 <td class="px-6 py-4">
-                                    <a x-show="item.sumber" :href="item.sumber" class="text-blue-600 hover:underline" target="_blank" x-text="item.sumber ? (() => { try { return new URL(item.sumber).host } catch { return item.sumber } })() : ''"></a>
+                                    <a x-show="item.sumber"
+                                        :href="item.sumber"
+                                        class="text-blue-600 hover:underline"
+                                        target="_blank"
+                                        x-text="(() => {
+                           try {
+                               return new URL(item.sumber).host;
+                           } catch {
+                               return item.sumber;
+                           }
+                       })()">
+                                    </a>
                                     <span x-show="!item.sumber">-</span>
                                 </td>
+
                                 <td class="px-6 py-4">
-                                    <input type="checkbox" class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500" :checked="!!item.pembahasan" @change="togglePembahasan(item.rekonsiliasi_id, $event.target.checked)">
+                                    <input type="checkbox"
+                                        class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500"
+                                        :checked="!!item.pembahasan"
+                                        @change="togglePembahasan(item.rekonsiliasi_id, $event.target.checked)">
                                 </td>
                             </tr>
                         </template>
-                        <tr x-show="!data.rekonsiliasi?.length && status === 'success'" class="bg-white dark:bg-gray-800">
-                            <td colspan="9" class="px-6 py-4 text-center">Tidak ada data untuk ditampilkan.</td>
+
+                        <tr x-show="!data.rekonsiliasi?.length && status === 'success'" class="bg-white ">
+                            <td colspan="10" class="px-6 py-4 text-center">Tidak ada data untuk ditampilkan.</td>
                         </tr>
                     </tbody>
                 </table>
+
             </div>
         </div>
     </div>

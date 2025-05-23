@@ -14,6 +14,8 @@ Alpine.data("webData", () => ({
     tahun: "",
     activeBulan: "",
     activeTahun: "",
+    edit_nilai_inflasi: "",
+    edit_andil: "",
     tahunOptions: [],
 
     provinces: [],
@@ -22,6 +24,7 @@ Alpine.data("webData", () => ({
     wilayahLevel: "pusat",
     selectedProvince: "",
     selectedKabkot: "",
+
     selectedKomoditas: "",
     selectedKdLevel: "01", // Default to Harga Konsumen Kota
     isPusat: true,
@@ -30,6 +33,11 @@ Alpine.data("webData", () => ({
     direction: "asc",
     deleteRekonsiliasi: false,
     modalData: { id: "", komoditas: "" },
+    editModal: {
+        inflasi_id: null,
+        nilai_inflasi: null,
+        andil: null,
+    },
     data: {
         inflasi: {
             data: [],
@@ -161,6 +169,164 @@ Alpine.data("webData", () => ({
             this.kd_wilayah = this.selectedProvince;
         } else {
             this.kd_wilayah = "";
+        }
+    },
+
+    openEditModal(inflasi_id, nilai_inflasi, andil) {
+        this.editModal.inflasi_id = inflasi_id;
+        this.edit_nilai_inflasi = nilai_inflasi; // Changed from editModal.nilai_inflasi
+        this.edit_andil = andil; // Changed from editModal.andil
+        this.$dispatch("open-modal", "edit-modal");
+    },
+
+    checkEditFormValidity() {
+        // Validate that nilai_inflasi is not null or empty
+        // This ensures the user has provided a value for the required 'nilai_inflasi' field
+        if (
+            this.edit_nilai_inflasi === null ||
+            this.edit_nilai_inflasi === ""
+        ) {
+            // Set an error message to inform the user that the inflation value cannot be empty
+            this.modalMessage = "Data inflasi baru tidak boleh kosong.";
+            // Display the error in the error modal to alert the user
+            this.$dispatch("open-modal", "error-modal");
+            // Return false to indicate validation failure and prevent form submission
+            return false;
+        }
+
+        // Find the original inflation record in the data.inflasi array by matching inflasi_id
+        // This is used to compare the new input values with the existing database values
+        const originalItem = this.data.inflasi?.find(
+            (item) => item.inflasi_id === this.editModal.inflasi_id
+        );
+
+        // Validate that the original item exists
+        // If no matching record is found (e.g., due to data refresh or invalid ID), return false
+        if (!originalItem) {
+            // Set an error message for debugging and display it in the error modal
+            this.modalMessage = "Data asli tidak ditemukan.";
+            this.$dispatch("open-modal", "error-modal");
+            return false;
+        }
+
+        // Check if the new nilai_inflasi differs from the original value
+        // Convert both to floats to ensure accurate numerical comparison, handling non-numeric inputs
+        const nilaiInflasiChanged =
+            parseFloat(this.edit_nilai_inflasi) !==
+            parseFloat(originalItem.nilai_inflasi);
+
+        // For national level (kd_wilayah === "0"), validate the 'andil' field
+        if (this.kd_wilayah === "0") {
+            // Validate that andil is not null or empty
+            // This ensures the user provides a value for 'andil' at the national level
+            if (this.edit_andil === null || this.edit_andil === "") {
+                // Set an error message to inform the user that the andil value cannot be empty
+                this.modalMessage = "Data andil baru tidak boleh kosong.";
+                // Display the error in the error modal to alert the user
+                this.$dispatch("open-modal", "error-modal");
+                // Return false to indicate validation failure
+                return false;
+            }
+
+            // Check if the new andil value differs from the original value
+            // Convert andil to float and compare with the original (default to 0 if original is null)
+            const andilChanged =
+                this.edit_andil !== null &&
+                parseFloat(this.edit_andil) !==
+                    parseFloat(originalItem.andil || 0);
+
+            // Check if no changes were made to either nilai_inflasi or andil
+            if (!nilaiInflasiChanged && !andilChanged) {
+                // Set an error message to inform the user that no values were changed
+                this.modalMessage = "Tidak ada nilai yang diganti.";
+                // Display the error in the error modal
+                this.$dispatch("open-modal", "error-modal");
+                // Return false to prevent submission when no changes are made
+                return false;
+            }
+
+            // Return true if either nilai_inflasi or andil has changed
+            // This ensures the form is valid only if there are meaningful changes to submit
+            return nilaiInflasiChanged || andilChanged;
+        }
+
+        // For non-national levels (kd_wilayah !== "0"), check if nilai_inflasi has changed
+        if (!nilaiInflasiChanged) {
+            // Set an error message to inform the user that no values were changed
+            this.modalMessage = "Tidak ada nilai yang diganti.";
+            // Display the error in the error modal
+            this.$dispatch("open-modal", "error-modal");
+            // Return false to prevent submission when no changes are made
+            return false;
+        }
+
+        // Return true if nilai_inflasi has changed, indicating a valid update
+        // No validation for andil is needed as it’s not sent for non-national levels
+        return nilaiInflasiChanged;
+    },
+
+    async editData() {
+        if (!this.checkEditFormValidity()) {
+            return;
+        }
+
+        this.loading = true;
+
+        try {
+            const csrfToken = document
+                .querySelector('meta[name="csrf-token"]')
+                .getAttribute("content");
+
+            // Prepare the payload, conditionally including andil
+            const payload = {
+                nilai_inflasi: parseFloat(this.edit_nilai_inflasi),
+            };
+
+            // Only include andil if kd_wilayah is "0" and edit_andil is not null or empty
+            if (
+                this.kd_wilayah === "0" &&
+                this.edit_andil !== null &&
+                this.edit_andil !== ""
+            ) {
+                payload.andil = parseFloat(this.edit_andil);
+            }
+
+            const response = await fetch(
+                `/api/data/inflasi/${this.editModal.inflasi_id}`,
+                {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Accept: "application/json",
+                        "X-CSRF-TOKEN": csrfToken,
+                    },
+                    body: JSON.stringify(payload),
+                }
+            );
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                this.status = "error";
+                this.modalMessage = result.message || "Gagal memperbarui data";
+                this.$dispatch("open-modal", "error-modal");
+                return;
+            }
+
+            this.status = "success";
+            this.modalMessage = "Data inflasi berhasil diperbarui";
+            this.$dispatch("open-modal", "success-modal");
+            this.$dispatch("close-modal", "edit-modal");
+
+            // Refresh data
+            await this.fetchData(this.data.inflasi.current_page || 1);
+        } catch (error) {
+            console.error("Failed to update data:", error);
+            this.status = "error";
+            this.modalMessage = "Gagal memperbarui data";
+            this.$dispatch("open-modal", "error-modal");
+        } finally {
+            this.loading = false;
         }
     },
 

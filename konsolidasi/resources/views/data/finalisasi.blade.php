@@ -127,7 +127,7 @@
             <div class="flex flex-col sm:flex-row sm:justify-between items-center gap-3">
                 <!-- Download Template Button -->
                 <a
-                    href="{{ asset('template/template.xlsx') }}"
+                    href="{{ asset('template/template_final.xlsx') }}"
                     download
                     class="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-primary-700 bg-white border border-primary-700 rounded-lg transition-colors duration-200 hover:bg-gray-100 focus:outline-none focus:ring-4 focus:ring-primary-300 w-full sm:w-auto" aria-label="Download Excel template">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">

@@ -49,7 +49,7 @@ class UserService
 
         // Create user
         $user = User::create([
-            'username' => $request->username,
+            'username' => strtolower($request->username),
             'password' => Hash::make($request->password),
             'nama_lengkap' => $request->nama_lengkap,
             'level' => $request->level,

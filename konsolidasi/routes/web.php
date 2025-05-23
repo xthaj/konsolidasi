@@ -21,6 +21,8 @@ use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\KomoditasExport;
 use App\Exports\WilayahExport;
 use App\Http\Controllers\AkunController;
+use App\Http\Controllers\InflasiController;
+use App\Http\Controllers\UserController;
 use App\Http\Resources\AlasanResource;
 use App\Http\Resources\WilayahResource;
 use App\Http\Resources\BulanTahunResource;
@@ -35,8 +37,11 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
 Route::middleware(['auth'])->group(function () {
 
     Route::get('/akun', [AkunController::class, 'index'])->name('akun.index');
-    Route::get('/akun', [AkunController::class, 'index'])->name('akun.index');
-    Route::get('/api/users', [AkunController::class, 'getUsers']);
+    Route::get('/akun/{user_id}/edit', [AkunController::class, 'edit'])->name('akun.edit');
+    Route::delete('/akun/{user_id}', [AkunController::class, 'destroy'])->name('akun.destroy');
+
+    Route::get('/api/users', [AkunController::class, 'apiUsers']);
+
     Route::post('/api/users', [AkunController::class, 'store']);
     Route::put('/api/users/{user_id}', [AkunController::class, 'update']);
     Route::delete('/api/users/{user_id}', [AkunController::class, 'destroy']);
@@ -74,9 +79,11 @@ Route::get('/rekonsiliasi/pemilihan', [RekonsiliasiController::class, 'pemilihan
 
 Route::get('/rekonsiliasi/pembahasan', [RekonsiliasiController::class, 'pembahasan'])->name('rekon.pembahasan');
 Route::get('/api/rekonsiliasi/pembahasan', [RekonsiliasiController::class, 'apiPembahasan']);
-Route::patch('/rekonsiliasi/{id}/pembahasan', [RekonsiliasiController::class, 'updatePembahasan']);
+Route::patch('/api/rekonsiliasi/{id}/pembahasan', [RekonsiliasiController::class, 'updatePembahasan']);
 
 Route::get('/rekonsiliasi/progres', [RekonsiliasiController::class, 'progres'])->name('rekon.progres');
+Route::get('/rekonsiliasi/progres-skl', [RekonsiliasiController::class, 'progres_skl'])->name('rekon.progres-skl');
+
 Route::get('/api/rekonsiliasi/progres', [RekonsiliasiController::class, 'apiProgres'])->name('api.rekon.progres');
 
 Route::post('/rekonsiliasi/confirm', [DataController::class, 'confirmRekonsiliasi'])->name('rekonsiliasi.confirm');
@@ -175,8 +182,10 @@ Route::get('/wilayah/export', function () {
 Route::post('/update-bulan-tahun', [DataController::class, 'updateBulanTahun']);
 
 Route::get('/api/check-username', [RegisteredUserController::class, 'checkUsername']);
+Route::get('/rekonsiliasi/user-provinsi', [UserController::class, 'getProvinsi'])->name('rekon.get_provinsi')->middleware('auth');
 
 Route::post('/api/inflasi-id', [DataController::class, 'findInflasiId']);
+Route::put('/api/data/inflasi/{id}', [InflasiController::class, 'update'])->name('inflasi.update');
 
 Route::post('/alasan', [AlasanController::class, 'store']);
 Route::delete('/alasan/{id}', [AlasanController::class, 'destroy']);

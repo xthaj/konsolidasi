@@ -7,10 +7,15 @@ Alpine.data("webData", () => ({
     kabkots: [],
     selectedProvince: "",
     selectedKabkot: "",
+
+    search: "",
     kd_wilayah: "",
+    wilayahLevel: "semua",
     loading: true,
     usersData: [],
-    wilayah_level: "{{ request('wilayah_level') }}",
+    currentPage: 1,
+    lastPage: 1,
+    wilayah_level: "",
     selected_province: "{{ request('kd_wilayah_provinsi') }}",
     selected_kabkot: "{{ request('kd_wilayah') }}",
     newUser: {
@@ -71,12 +76,46 @@ Alpine.data("webData", () => ({
             const wilayahData = await wilayahResponse.json();
             this.provinces = wilayahData.data.provinces || [];
             this.kabkots = wilayahData.data.kabkots || [];
-            await this.getWilayahUsers();
         } catch (error) {
             console.error("Failed to load data:", error);
         } finally {
             this.loading = false;
         }
+    },
+
+    updateEditWilayah() {
+        if (this.editUser.wilayah_level === "pusat") {
+            this.editUser.kd_wilayah = "0";
+            this.editUser.selected_province = "";
+            this.editUser.selected_kabkot = "";
+            this.editUser.errors.kd_wilayah = false;
+        } else if (this.editUser.wilayah_level === "provinsi") {
+            if (this.editUser.selected_province) {
+                this.editUser.kd_wilayah = this.editUser.selected_province;
+                this.editUser.errors.kd_wilayah = false;
+            } else {
+                this.editUser.kd_wilayah = "";
+                this.editUser.errors.kd_wilayah = "Satuan kerja belum dipilih.";
+            }
+            this.editUser.selected_kabkot = "";
+        } else if (this.editUser.wilayah_level === "kabkot") {
+            if (
+                this.editUser.selected_province &&
+                this.editUser.selected_kabkot
+            ) {
+                this.editUser.kd_wilayah = this.editUser.selected_kabkot;
+                this.editUser.errors.kd_wilayah = false;
+            } else {
+                this.editUser.kd_wilayah = "";
+                this.editUser.errors.kd_wilayah = "Satuan kerja belum dipilih.";
+            }
+        }
+    },
+
+    updateWilayahOptions() {
+        this.selectedProvince = "";
+        this.selectedKabkot = "";
+        this.updateKdWilayah();
     },
 
     async checkEditUserUsername() {
@@ -92,21 +131,78 @@ Alpine.data("webData", () => ({
         }
     },
 
-    async getWilayahUsers() {
-        try {
-            const url = new URL("/api/users", window.location.origin);
-            if (this.selectedKabkot)
-                url.searchParams.append("kd_wilayah", this.selectedKabkot);
-            else if (this.selectedProvince)
-                url.searchParams.append("kd_wilayah", this.selectedProvince);
+    checkFormValidity() {
+        // if (
 
-            const response = await fetch(url);
-            const data = await response.json();
-            this.usersData = data.data || [];
+        //     !this.wilayahLevel
+        // ) {
+        //     this.errorMessage =
+        //         "Harap isi bulan, tahun, level harga, status, dan level wilayah.";
+        //     return false;
+        // }
+        // if (
+        //     this.wilayahLevel === "semua" ||
+        //     this.wilayahLevel === "semua-provinsi" ||
+        //     this.wilayahLevel === "semua-kabkot"
+        // ) {
+        //     if (!this.isPusat) {
+        //         this.errorMessage =
+        //             "Hanya pengguna pusat yang dapat mengakses semua provinsi atau kabupaten/kota.";
+        //         return false;
+        //     }
+        //     return true;
+        // }
+        // if (this.wilayahLevel === "provinsi" && this.selectedProvince) {
+        //     return true;
+        // }
+        // if (
+        //     this.wilayahLevel === "kabkot" &&
+        //     this.selectedProvince &&
+        //     this.selectedKabkot &&
+        // ) {
+        return true;
+        // }
+
+        // return false;
+    },
+
+    async getWilayahUsers() {
+        if (!this.checkFormValidity()) return;
+        this.errorMessage = "";
+
+        try {
+            const params = new URLSearchParams();
+
+            if (this.search) {
+                params.append("search", this.search);
+            }
+            if (this.wilayahLevel) {
+                params.append("level_wilayah", this.wilayahLevel);
+            }
+            if (this.kd_wilayah) {
+                params.append("kd_wilayah", this.kd_wilayah);
+            }
+
+            // Pagination
+            params.append("page", this.currentPage);
+
+            const response = await fetch(`/api/users?${params.toString()}`);
+            const result = await response.json();
+
+            if (!response.ok || result.status !== "success") {
+                this.errorMessage =
+                    result.message || "Gagal mengambil data pengguna.";
+                this.usersData = [];
+                return;
+            }
+
+            this.usersData = result.data.users;
+            this.currentPage = result.data.current_page;
+            this.lastPage = result.data.last_page;
         } catch (error) {
-            this.failMessage = "Failed to fetch users";
-            this.failDetails = { error: error.message };
-            this.$dispatch("open-modal", "fail-update-bulan-tahun");
+            console.error("Fetch error:", error);
+            this.errorMessage =
+                "Terjadi kesalahan saat mengambil data pengguna.";
         }
     },
 
@@ -334,7 +430,7 @@ Alpine.data("webData", () => ({
             nama_lengkap: user.nama_lengkap,
             password: "",
             confirmPassword: "",
-            kd_wilayah: user.kd_wilayah || "",
+            kd_wilayah: user.kd_wilayah || "0",
             wilayah_level:
                 user.kd_wilayah === "0"
                     ? "pusat"
@@ -352,6 +448,7 @@ Alpine.data("webData", () => ({
             )
                 ? user.kd_wilayah
                 : "",
+            is_admin: [0, 2, 4].includes(user.level), // Set is_admin based on level (0, 2, 4 are admin levels)
             errors: {
                 usernameLength: false,
                 usernameUnique: false,

@@ -11,24 +11,25 @@ use Illuminate\View\View;
 use App\Models\Wilayah;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class ProfileController extends Controller
 {
     /**
      * Display the user's profile form.
      */
-    public function edit(Request $request): View
+    public function edit(): View
     {
-        $user = $request->user();
-        $nama_wilayah = $user->wilayah_level === 'pusat' ? 'Pusat' : null;
+        $user = Auth::user();
+        $username = $user->username;
+        $nama_lengkap = $user->nama_lengkap;
+        $nama_wilayah = $user->Wilayah::getWilayahName($user->kd_wilayah);
 
-        if ($user->wilayah_level !== 'pusat') {
-            $wilayah = Wilayah::where('kd_wilayah', $user->kd_wilayah)->first();
-            $nama_wilayah = $wilayah ? $wilayah->nama_wilayah : 'Tidak Diketahui';
-        }
 
         return view('profile.edit', [
-            'user' => $user,
+            'username' => $username,
+            'nama_lengkap' => $nama_lengkap,
             'nama_wilayah' => $nama_wilayah,
         ]);
     }
@@ -72,14 +73,28 @@ class ProfileController extends Controller
 
     public function updatePassword(Request $request): JsonResponse
     {
-        $request->validate([
-            'password' => ['required', 'min:6', 'confirmed'],
-        ]);
+        try {
+            $request->validate([
+                'password' => ['required', 'min:6', 'confirmed'],
+            ]);
 
-        $user = $request->user();
-        $user->password = Hash::make($request->password);
-        $user->save();
+            $user = $request->user();
+            $user->password = Hash::make($request->password);
+            $user->save();
 
-        return response()->json(['message' => 'Password updated successfully'], 200);
+            return response()->json([
+                'message' => 'Kata sandi berhasil diperbarui.',
+            ], 200);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => 'Validasi gagal.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Password update failed: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Terjadi kesalahan saat memperbarui kata sandi.',
+            ], 500);
+        }
     }
 }

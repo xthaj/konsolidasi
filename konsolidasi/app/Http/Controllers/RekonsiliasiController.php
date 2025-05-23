@@ -48,6 +48,24 @@ class RekonsiliasiController extends Controller
         ]));
     }
 
+    public function progres_skl(Request $request): View
+    {
+        Log::info('RekonsiliasiController@progres_skl called', ['request' => $request->all()]);
+
+        // $user = Auth::user();
+
+        return view('rekonsiliasi.progres_skl', [
+            // 'user' => [
+            //     'id' => $user->id,
+            //     'kd_wilayah' => $user->kd_wilayah,
+            //     'is_provinsi' => $user->isProvinsi(),
+            // ],
+            'status' => 'no_filters',
+            'message' => 'Silakan pilih filter untuk menampilkan data.',
+            'data' => ['rekonsiliasi' => [], 'title' => 'Rekonsiliasi'],
+        ]);
+    }
+
     /**
      * API endpoint to fetch reconciliation progress data.
      *
@@ -593,11 +611,11 @@ class RekonsiliasiController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Pembahasan updated successfully',
+                'message' => 'Pembahasan berhasil diperbarui.',
                 'data' => $rekonsiliasi,
             ], 200);
         } catch (\Exception $e) {
-            Log::error('Error updating pembahasan', [
+            Log::error('Terjadi error saat memperbarui pembahasan', [
                 'rekonsiliasi_id' => $id,
                 'error' => $e->getMessage(),
             ]);

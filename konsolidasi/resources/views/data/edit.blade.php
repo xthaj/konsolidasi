@@ -30,7 +30,7 @@
 
     <!-- Success Modal -->
     <x-modal name="success-modal" title="Berhasil" maxWidth="md">
-        <div class="text-gray-900 dark:text-white">
+        <div class="text-gray-900">
             <p x-text="modalMessage"></p>
             <div class="mt-4 flex justify-end">
                 <x-primary-button
@@ -42,9 +42,42 @@
         </div>
     </x-modal>
 
+    <!-- Edit Modal -->
+    <x-modal name="edit-modal" title="Edit Inflasi" maxWidth="md">
+        <div class="text-gray-900">
+            <form id="edit-form" x-ref="editForm" @submit.prevent="editData()">
+                <div class="px-6 py-4 space-y-4">
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-900">Nilai Inflasi<span class="text-red-500 ml-1">*</span></label>
+                        <input
+                            type="number"
+                            step="0.01"
+                            x-model="edit_nilai_inflasi"
+                            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5"
+                            required>
+                    </div>
+                    <div x-show="kd_wilayah == '0'">
+                        <label class="block mb-2 text-sm font-medium text-gray-900">Andil</label>
+                        <input
+                            type="number"
+                            step="0.0001"
+                            x-model="edit_andil"
+                            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
+                    </div>
+                </div>
+                <div class="mt-4 flex justify-end gap-3 px-6">
+                    <x-secondary-button x-on:click="$dispatch('close-modal', 'edit-modal')">Batal</x-secondary-button>
+                    <x-primary-button type="submit">
+                        Simpan
+                    </x-primary-button>
+                </div>
+            </form>
+        </div>
+    </x-modal>
+
     <!-- Error Modal -->
     <x-modal name="error-modal" title="Gagal" maxWidth="md">
-        <div class="text-gray-900 dark:text-white">
+        <div class="text-gray-900">
             <p x-text="modalMessage"></p>
             <div class="mt-4 flex justify-end">
                 <x-primary-button
@@ -293,6 +326,13 @@
                                     <td class="px-6 py-4 text-right" x-text="item.nilai_inflasi"></td>
                                     <td class="px-6 py-4 text-right" x-show="kd_wilayah == '0'" x-text="item.andil"></td>
                                     <td class="px-6 py-4 text-right">
+                                        <button
+                                            x-show="item.inflasi_id"
+                                            @click="openEditModal(item.inflasi_id, item.nilai_inflasi, item.andil)"
+                                            class="font-medium text-blue-600 hover:underline mr-3">
+                                            Edit
+                                        </button>
+
                                         <button
                                             x-show="item.inflasi_id"
                                             @click="openDeleteModal(item.inflasi_id, item.nama_komoditas)"

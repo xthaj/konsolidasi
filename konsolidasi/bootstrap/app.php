@@ -1,6 +1,10 @@
 <?php
 
+use App\Http\Middleware\isAdmin;
+use App\Http\Middleware\isKabkot;
 use App\Http\Middleware\isPusat;
+use App\Http\Middleware\isProvinsi;
+use App\Http\Middleware\isOperator;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -21,6 +25,26 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->appendToGroup('pusat', [
             'auth',
             isPusat::class,
+        ]);
+
+        $middleware->appendToGroup('provinsi', [
+            'auth',
+            isProvinsi::class,
+        ]);
+
+        $middleware->appendToGroup('kabkot', [
+            'auth',
+            isKabkot::class,
+        ]);
+
+        $middleware->appendToGroup('admin', [
+            'auth',
+            isAdmin::class,
+        ]);
+
+        $middleware->appendToGroup('operator', [
+            'auth',
+            isOperator::class,
         ]);
 
         // Exclude /rekonsiliasi/update/* from CSRF protection

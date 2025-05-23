@@ -123,10 +123,15 @@
                             <li>
                                 <a href="{{ route('rekon.pemilihan') }}" class="block px-4 py-2 hover:bg-gray-100">Pemilihan</a>
                             </li>
-                            @endif
+
                             <li>
                                 <a href="{{ route('rekon.progres') }}" class="block px-4 py-2 hover:bg-gray-100">Pengisian</a>
                             </li>
+                            @else
+                            <li>
+                                <a href="{{ route('rekon.progres-skl') }}" class="block px-4 py-2 hover:bg-gray-100">Pengisian</a>
+                            </li>
+                            @endif
                             @if (auth()->user()->isPusat())
                             <li>
                                 <a href="{{ route('rekon.pembahasan') }}" class="block px-4 py-2 hover:bg-gray-100">Pembahasan</a>
