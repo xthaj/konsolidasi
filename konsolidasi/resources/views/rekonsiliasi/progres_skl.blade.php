@@ -102,10 +102,10 @@
     <x-modal name="edit-rekonsiliasi" focusable title="Edit Rekonsiliasi" x-cloak>
         <div class="px-6 py-4">
             <form class="space-y-4" @submit.prevent="submitEditRekon">
-                <div class="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+                <div class="space-y-2 text-sm text-gray-700 ">
                     <div>
                         <span class="font-medium">Level Harga:</span>
-                        <span class="font-semibold text-gray-900 dark:text-white" x-text="
+                        <span class="font-semibold text-gray-900 " x-text="
                             modalData.kd_level === '01' ? 'Harga Konsumen Kota' :
                             modalData.kd_level === '02' ? 'Harga Konsumen Desa' :
                             modalData.kd_level === '03' ? 'Harga Perdagangan Besar' :
@@ -115,16 +115,16 @@
                     </div>
                     <div>
                         <span class="font-medium">Komoditas:</span>
-                        <span class="font-semibold text-gray-900 dark:text-white" x-text="modalData.nama_komoditas"></span>
+                        <span class="font-semibold text-gray-900 " x-text="modalData.nama_komoditas"></span>
                     </div>
                     <div>
                         <span class="font-medium">Wilayah:</span>
-                        <span class="font-semibold text-gray-900 dark:text-white" x-text="modalData.nama_wilayah"></span>
+                        <span class="font-semibold text-gray-900 " x-text="modalData.nama_wilayah"></span>
                     </div>
                 </div>
 
                 <div class="flex justify-between items-center mb-2 mt-6">
-                    <label class="text-sm font-medium text-gray-900 dark:text-white">Alasan</label>
+                    <label class="text-sm font-medium text-gray-900 ">Alasan</label>
                 </div>
                 <div class="bg-white rounded-lg shadow-sm border border-gray-300 dark:bg-gray-700 dark:border-gray-600">
                     <div class="p-3">
@@ -148,7 +148,7 @@
                                         @change="selectedAlasan.includes(alasan.keterangan) ? selectedAlasan = selectedAlasan.filter(a => a !== alasan.keterangan) : selectedAlasan.push(alasan.keterangan)"
                                         :checked="selectedAlasan.includes(alasan.keterangan)"
                                         class="w-4 h-4 bg-gray-100 border-gray-300 rounded-sm">
-                                    <label :for="'alasan-' + alasan.alasan_id" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300" x-text="alasan.keterangan"></label>
+                                    <label :for="'alasan-' + alasan.alasan_id" class="ms-2 text-sm font-medium text-gray-900 " x-text="alasan.keterangan"></label>
                                 </div>
                             </li>
                         </template>
@@ -156,13 +156,13 @@
                 </div>
 
                 <div>
-                    <label for="detail" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Detail</label>
+                    <label for="detail" class="block mb-2 text-sm font-medium text-gray-900 ">Detail</label>
                     <textarea
                         id="detail"
                         rows="6"
                         x-model="detail"
                         @input="detail.length > 500 ? detail = detail.slice(0, 500) : null"
-                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400  dark:focus:ring-blue-500 dark:focus:border-blue-500"
                         placeholder="Kenaikan harga karena permintaan yang mulai meningkat menjelang akhir tahun. Sebelumnya ..."
                         required
                         maxlength="500"></textarea>
@@ -172,12 +172,12 @@
                     </div>
                 </div>
                 <div>
-                    <label for="link_terkait" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Link media</label>
+                    <label for="link_terkait" class="block mb-2 text-sm font-medium text-gray-900 ">Link media</label>
                     <input
                         type="text"
                         id="link_terkait"
                         x-model="linkTerkait"
-                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" />
+                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400  dark:focus:ring-blue-500 dark:focus:border-blue-500" />
                 </div>
                 <div class="mt-6 flex justify-end gap-3">
                     <x-secondary-button x-on:click="$dispatch('close-modal', 'edit-rekonsiliasi')">Batal</x-secondary-button>
@@ -189,7 +189,7 @@
 
     <!-- Success Modal -->
     <x-modal name="success-modal" title="Berhasil" maxWidth="md">
-        <div class="text-gray-900 dark:text-white">
+        <div class="text-gray-900 ">
             <p x-text="modalMessage"></p>
             <div class="mt-4 flex justify-end">
                 <x-primary-button type="button" x-on:click="$dispatch('close')">Tutup</x-primary-button>
@@ -199,7 +199,7 @@
 
     <!-- Error Modal -->
     <x-modal name="error-modal" title="Kesalahan" maxWidth="md">
-        <div class="text-gray-900 dark:text-white">
+        <div class="text-gray-900 ">
             <p x-text="modalMessage"></p>
             <div class="mt-4 flex justify-end">
                 <x-primary-button type="button" x-on:click="$dispatch('close')">Tutup</x-primary-button>

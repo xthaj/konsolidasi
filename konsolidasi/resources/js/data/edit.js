@@ -125,7 +125,6 @@ Alpine.data("webData", () => ({
             this.updateKdWilayah();
 
             // Fetch initial data
-            // Improve:
             await this.fetchData();
         } catch (error) {
             console.error("Failed to load data:", error);
@@ -181,87 +180,58 @@ Alpine.data("webData", () => ({
 
     checkEditFormValidity() {
         // Validate that nilai_inflasi is not null or empty
-        // This ensures the user has provided a value for the required 'nilai_inflasi' field
         if (
             this.edit_nilai_inflasi === null ||
             this.edit_nilai_inflasi === ""
         ) {
-            // Set an error message to inform the user that the inflation value cannot be empty
             this.modalMessage = "Data inflasi baru tidak boleh kosong.";
-            // Display the error in the error modal to alert the user
             this.$dispatch("open-modal", "error-modal");
-            // Return false to indicate validation failure and prevent form submission
             return false;
         }
 
-        // Find the original inflation record in the data.inflasi array by matching inflasi_id
-        // This is used to compare the new input values with the existing database values
+        // Find the original inflation record
         const originalItem = this.data.inflasi?.find(
             (item) => item.inflasi_id === this.editModal.inflasi_id
         );
 
-        // Validate that the original item exists
-        // If no matching record is found (e.g., due to data refresh or invalid ID), return false
         if (!originalItem) {
-            // Set an error message for debugging and display it in the error modal
             this.modalMessage = "Data asli tidak ditemukan.";
             this.$dispatch("open-modal", "error-modal");
             return false;
         }
 
-        // Check if the new nilai_inflasi differs from the original value
-        // Convert both to floats to ensure accurate numerical comparison, handling non-numeric inputs
         const nilaiInflasiChanged =
             parseFloat(this.edit_nilai_inflasi) !==
             parseFloat(originalItem.nilai_inflasi);
 
-        // For national level (kd_wilayah === "0"), validate the 'andil' field
-        if (this.kd_wilayah === "0") {
-            // Validate that andil is not null or empty
-            // This ensures the user provides a value for 'andil' at the national level
+        // Use data.kd_wilayah for validation
+        if (this.data.kd_wilayah === "0") {
             if (this.edit_andil === null || this.edit_andil === "") {
-                // Set an error message to inform the user that the andil value cannot be empty
                 this.modalMessage = "Data andil baru tidak boleh kosong.";
-                // Display the error in the error modal to alert the user
                 this.$dispatch("open-modal", "error-modal");
-                // Return false to indicate validation failure
                 return false;
             }
 
-            // Check if the new andil value differs from the original value
-            // Convert andil to float and compare with the original (default to 0 if original is null)
             const andilChanged =
                 this.edit_andil !== null &&
                 parseFloat(this.edit_andil) !==
                     parseFloat(originalItem.andil || 0);
 
-            // Check if no changes were made to either nilai_inflasi or andil
             if (!nilaiInflasiChanged && !andilChanged) {
-                // Set an error message to inform the user that no values were changed
                 this.modalMessage = "Tidak ada nilai yang diganti.";
-                // Display the error in the error modal
                 this.$dispatch("open-modal", "error-modal");
-                // Return false to prevent submission when no changes are made
                 return false;
             }
 
-            // Return true if either nilai_inflasi or andil has changed
-            // This ensures the form is valid only if there are meaningful changes to submit
             return nilaiInflasiChanged || andilChanged;
         }
 
-        // For non-national levels (kd_wilayah !== "0"), check if nilai_inflasi has changed
         if (!nilaiInflasiChanged) {
-            // Set an error message to inform the user that no values were changed
             this.modalMessage = "Tidak ada nilai yang diganti.";
-            // Display the error in the error modal
             this.$dispatch("open-modal", "error-modal");
-            // Return false to prevent submission when no changes are made
             return false;
         }
 
-        // Return true if nilai_inflasi has changed, indicating a valid update
-        // No validation for andil is needed as it’s not sent for non-national levels
         return nilaiInflasiChanged;
     },
 
@@ -383,8 +353,6 @@ Alpine.data("webData", () => ({
             return;
         }
 
-        // this.loading = true;
-
         try {
             const params = new URLSearchParams({
                 bulan: this.bulan,
@@ -399,23 +367,26 @@ Alpine.data("webData", () => ({
 
             const response = await fetch(`/api/data/edit?${params.toString()}`);
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                const result = await response.json();
+                throw new Error(
+                    result.message || `HTTP error! status: ${response.status}`
+                );
             }
 
             const result = await response.json();
-            this.status = result.status;
+            this.status = result.data.inflasi.length ? "success" : "no_data";
             this.message = result.message;
             this.data = {
                 inflasi: result.data.inflasi,
                 title: result.data.title,
                 kd_level: this.selectedKdLevel,
-                kd_wilayah: this.kd_wilayah,
+                kd_wilayah: result.data.kd_wilayah || this.kd_wilayah, // Use API-provided kd_wilayah if available
             };
         } catch (error) {
             console.error("Failed to fetch data:", error);
             this.status = "error";
-            this.message = "Gagal memuat data.";
-            this.data.inflasi = null;
+            this.message = error.message || "Gagal memuat data.";
+            this.data.inflasi = [];
         }
     },
 

@@ -154,4 +154,21 @@ class User extends Authenticatable
     {
         $this->attributes['username'] = Str::lower(trim($value));
     }
+
+    /**
+     * Get the display name of the user's wilayah.
+     * If wilayah name is "NASIONAL", return "PUSAT" instead.
+     *
+     * @return string
+     */
+    public function getWilayahNamaDisplayAttribute(): string
+    {
+        if (!$this->wilayah) {
+            return '-'; // or return null if you prefer
+        }
+
+        return Str::lower($this->wilayah->nama_wilayah) === 'nasional'
+            ? 'Pusat'
+            : $this->wilayah->nama_wilayah;
+    }
 }

@@ -24,6 +24,12 @@ Alpine.data("webData", () => ({
         ["Desember", 12],
     ],
     modalMessage: "",
+    pageTitle: "Bulan dan Tahun Aktif",
+
+    setPageTitle(title) {
+        this.pageTitle = title;
+        document.title = title;
+    },
 
     get isActivePeriod() {
         return (
@@ -34,6 +40,7 @@ Alpine.data("webData", () => ({
 
     async init() {
         this.loading = true;
+        this.setPageTitle("Bulan dan Tahun Aktif");
         try {
             const res = await fetch("/api/bulan_tahun");
             if (!res.ok)

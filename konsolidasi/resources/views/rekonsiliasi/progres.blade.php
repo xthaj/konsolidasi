@@ -155,7 +155,7 @@
                     <ul class="max-h-48 px-3 pb-3 overflow-y-auto text-sm text-gray-700 dark:text-gray-200">
                         <template x-for="alasan in filteredAlasan" :key="alasan.alasan_id">
                             <li>
-                                <div class="flex items-center p-2 rounded-sm hover:bg-gray-100 dark:hover:bg-gray-600">
+                                <div class="flex items-center p-2 rounded-sm hover:bg-gray-100 ">
                                     <input
                                         type="checkbox"
                                         :id="'alasan-' + alasan.alasan_id"
@@ -299,7 +299,7 @@
                     </thead>
                     <tbody>
                         <template x-for="(item, index) in data.rekonsiliasi" :key="item.rekonsiliasi_id">
-                            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600">
+                            <tr class="bg-white border-b  border-gray-200 hover:bg-gray-50 ">
                                 <td class="px-6 py-4" x-text="index + 1"></td>
                                 <!-- <td class="px-6 py-4" x-text="item.kd_wilayah"></td> -->
                                 <td class="px-6 py-4" x-text="item.nama_wilayah ? item.nama_wilayah.toUpperCase() : 'Tidak Dikenal'"></td>
@@ -337,7 +337,7 @@
                                 <td class="px-6 py-4 text-left" x-show="isActivePeriod">
                                     <button
                                         @click="openEditRekonModal(item.rekonsiliasi_id, item.nama_komoditas, item.kd_level, item.alasan || '', item.detail || '', item.sumber || '', item.nama_wilayah)"
-                                        class="font-medium text-indigo-600 dark:text-indigo-500 hover:underline">
+                                        class="font-medium text-indigo-600  hover:underline">
                                         Edit
                                     </button>
                                     <button

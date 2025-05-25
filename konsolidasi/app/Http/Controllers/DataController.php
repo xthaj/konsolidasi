@@ -12,6 +12,7 @@ use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\DataImport;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 
 // Add this import if the FinalImport class exists at App\Imports\FinalImport
 use App\Imports\FinalImport;
@@ -177,12 +178,9 @@ class DataController extends Controller
 
     public function apiEdit(Request $request)
     {
-        // Check if 'bulan' or 'tahun' is missing in the request; if so, use the active BulanTahun record
-        // This ensures a fallback to the active period if the user doesn't provide these parameters
+        // Fallback to active BulanTahun if bulan or tahun is missing
         if (!$request->filled('bulan') || !$request->filled('tahun')) {
-            // Retrieve the active BulanTahun record (where 'aktif' = 1)
             $aktifBulanTahun = BulanTahun::where('aktif', 1)->first();
-            // If an active record exists, merge its 'bulan' and 'tahun' into the request
             if ($aktifBulanTahun) {
                 $request->merge([
                     'bulan' => $aktifBulanTahun->bulan,
@@ -191,68 +189,79 @@ class DataController extends Controller
             }
         }
 
-        // Extract request parameters, providing defaults where applicable
-        // 'bulan' and 'tahun' are required (set above if missing)
+        // Extract request parameters with defaults
         $bulan = $request->input('bulan');
         $tahun = $request->input('tahun');
-        // Default 'kd_level' to '01' (Harga Konsumen Kota) if not provided
         $kd_level = $request->input('kd_level', '01');
-        // Default 'kd_wilayah' to '0' (national level) if not provided
-        $kd_wilayah = $request->input('kd_wilayah', 0);
-        // 'kd_komoditas' is optional; defaults to empty string
+        $kd_wilayah = $request->input('kd_wilayah', '0');
         $kd_komoditas = $request->input('kd_komoditas', '');
-        // Default sorting column to 'kd_komoditas' if not specified
         $sortColumn = $request->input('sort', 'kd_komoditas');
-        // Default sorting direction to 'asc' if not specified
         $sortDirection = $request->input('direction', 'asc');
-        // Merge default values back into the request for consistency
+
+        // Validate request
+        $validator = Validator::make($request->all(), [
+            'bulan' => 'required|integer|min:1|max:12',
+            'tahun' => 'required|integer',
+            'kd_level' => 'required|in:00,01,02,03,04,05',
+            'kd_wilayah' => 'required|string',
+            'kd_komoditas' => 'nullable|string',
+            'sort' => 'in:kd_komoditas,nilai_inflasi',
+            'direction' => 'in:asc,desc',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => $validator->errors()->first(),
+            ], 422);
+        }
+
+        // Merge defaults back into request
         $request->merge([
             'kd_level' => $kd_level,
             'kd_wilayah' => $kd_wilayah,
         ]);
 
-        // Initialize the response structure with default values
-        // Includes status, message, data (inflasi and title), and metadata
+        // Initialize response
         $response = [
-            'status' => 'success',
             'message' => 'Data ditemukan.',
             'data' => [
-                'inflasi' => [], // Initially empty; populated based on query results
-                'title' => $this->generateTableTitle($request), // Generate a title based on request parameters
+                'inflasi' => [],
+                'title' => $this->generateTableTitle($request),
+                'kd_wilayah' => $kd_wilayah, // Include kd_wilayah in response
             ],
             'meta' => [
-                'timestamp' => now()->toIso8601String(), // Current timestamp in ISO 8601 format
-                'api_version' => '1.0', // API version for reference
+                'timestamp' => now()->toIso8601String(),
             ],
         ];
 
-        // Fetch the BulanTahun record matching the provided 'bulan' and 'tahun'
+        // Fetch BulanTahun record
         $bulanTahun = BulanTahun::where('bulan', $bulan)
             ->where('tahun', $tahun)
             ->first();
 
-        // Case: No BulanTahun record found for the given bulan and tahun
-        // Return a 'no_data' response with an empty inflasi array
         if (!$bulanTahun) {
-            $response['status'] = 'no_data';
-            $response['message'] = 'Tidak ada data tersedia untuk bulan dan tahun yang dipilih.';
-            $response['data']['inflasi'] = [];
-            return response()->json($response);
+            return response()->json([
+                'message' => 'Tidak ada data tersedia untuk bulan dan tahun yang dipilih.',
+                'data' => [
+                    'inflasi' => [],
+                    'title' => $this->generateTableTitle($request),
+                    'kd_wilayah' => $kd_wilayah,
+                ],
+                'meta' => [
+                    'timestamp' => now()->toIso8601String(),
+                ],
+            ], 404);
         }
 
-        // Case: kd_level is '00' (retrieve data for all price levels)
+        // Case: kd_level is '00' (all price levels)
         if ($kd_level === '00') {
-            // Build a query to join Komoditas and Inflasi tables
             $query = Komoditas::query()
                 ->leftJoin('inflasi', function ($join) use ($bulanTahun, $kd_wilayah) {
-                    // Join conditions: match komoditas, bulan_tahun_id, and kd_wilayah
                     $join->on('komoditas.kd_komoditas', '=', 'inflasi.kd_komoditas')
                         ->where('inflasi.bulan_tahun_id', $bulanTahun->bulan_tahun_id)
                         ->where('inflasi.kd_wilayah', $kd_wilayah);
                 })
-                // Select komoditas fields
                 ->select('komoditas.kd_komoditas', 'komoditas.nama_komoditas')
-                // Use MAX and CASE to pivot inflasi data for each kd_level (01 to 05)
                 ->selectRaw("
                 MAX(CASE WHEN inflasi.kd_level = '01' THEN inflasi.nilai_inflasi END) as inflasi_01,
                 MAX(CASE WHEN inflasi.kd_level = '01' THEN inflasi.andil END) as andil_01,
@@ -265,30 +274,31 @@ class DataController extends Controller
                 MAX(CASE WHEN inflasi.kd_level = '05' THEN inflasi.nilai_inflasi END) as inflasi_05,
                 MAX(CASE WHEN inflasi.kd_level = '05' THEN inflasi.andil END) as andil_05
             ")
-                // Group by komoditas to aggregate data
                 ->groupBy('komoditas.kd_komoditas', 'komoditas.nama_komoditas');
 
-            // If a specific komoditas is provided, filter by it
             if ($kd_komoditas) {
                 $query->where('komoditas.kd_komoditas', $kd_komoditas);
             }
 
-            // Apply sorting based on request parameters
-            $query->orderBy($sortColumn, $sortDirection);
-            // Execute the query
+            // Handle sorting
+            if ($sortColumn === 'nilai_inflasi') {
+                // Sort by a specific aggregated column, e.g., inflasi_01 (Harga Konsumen Kota)
+                $query->orderByRaw('MAX(CASE WHEN inflasi.kd_level = "01" THEN inflasi.nilai_inflasi END) ' . $sortDirection);
+            } else {
+                // Sort by kd_komoditas
+                $query->orderBy('komoditas.kd_komoditas', $sortDirection);
+            }
+
             $inflasi = $query->get();
         } else {
-            // Case: Specific kd_level (e.g., '01', '02', etc.)
-            // Build a query for a specific price level
+            // Case: Specific kd_level
             $query = Komoditas::query()
                 ->leftJoin('inflasi', function ($join) use ($bulanTahun, $kd_level, $kd_wilayah) {
-                    // Join conditions: match komoditas, bulan_tahun_id, kd_level, and kd_wilayah
                     $join->on('komoditas.kd_komoditas', '=', 'inflasi.kd_komoditas')
                         ->where('inflasi.bulan_tahun_id', $bulanTahun->bulan_tahun_id)
                         ->where('inflasi.kd_level', $kd_level)
                         ->where('inflasi.kd_wilayah', $kd_wilayah);
                 })
-                // Select specific fields from both tables
                 ->select(
                     'komoditas.kd_komoditas',
                     'komoditas.nama_komoditas',
@@ -298,40 +308,34 @@ class DataController extends Controller
                     'inflasi.kd_wilayah'
                 );
 
-            // If a specific komoditas is provided, filter by it
             if ($kd_komoditas) {
                 $query->where('komoditas.kd_komoditas', $kd_komoditas);
             }
 
-            // Apply sorting based on request parameters
             $query->orderBy($sortColumn, $sortDirection);
-            // Execute the query
             $inflasi = $query->get();
         }
 
-        // Case: No data found
         if ($inflasi->isEmpty()) {
-            $response['status'] = 'no_data';
-            $response['message'] = 'Tidak ada data inflasi tersedia untuk filter tersebut.';
-            $response['data']['inflasi'] = [];
-        }
-        // Case: Data found for kd_level '00' (all price levels)
-        elseif ($kd_level === '00') {
-            $response['status'] = 'success';
-            $response['message'] = 'Data ditemukan.';
-            // Transform data using InflasiAllLevelResource for all price levels
-            $response['data']['inflasi'] = InflasiAllLevelResource::collection($inflasi);
-        }
-        // Case: Data found for a specific kd_level
-        else {
-            $response['status'] = 'success';
-            $response['message'] = 'Data ditemukan.';
-            // Transform data using InflasiResource for a specific price level
-            $response['data']['inflasi'] = InflasiResource::collection($inflasi);
+            return response()->json([
+                'message' => 'Tidak ada data inflasi tersedia untuk filter tersebut.',
+                'data' => [
+                    'inflasi' => [],
+                    'title' => $this->generateTableTitle($request),
+                    'kd_wilayah' => $kd_wilayah,
+                ],
+                'meta' => [
+                    'timestamp' => now()->toIso8601String(),
+                ],
+            ], 404);
         }
 
-        // Return the JSON response
-        return response()->json($response);
+        // Transform data based on kd_level
+        $response['data']['inflasi'] = $kd_level === '00'
+            ? InflasiAllLevelResource::collection($inflasi)
+            : InflasiResource::collection($inflasi);
+
+        return response()->json($response, 200);
     }
 
     /**
@@ -1219,10 +1223,7 @@ class DataController extends Controller
         return view('master.komoditas');
     }
 
-    public function master_wilayah()
-    {
-        return view('master.wilayah');
-    }
+
 
     public function master_alasan()
     {

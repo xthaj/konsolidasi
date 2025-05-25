@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class RekonsiliasiController extends Controller
@@ -186,7 +187,7 @@ class RekonsiliasiController extends Controller
             'tahun' => 'required|integer|between:2000,2100',
             'kd_level' => 'required|in:00,01,02,03,04,05',
             'level_wilayah' => 'required|in:semua,semua-provinsi,semua-kabkot,provinsi,kabkot',
-            'kd_wilayah' => 'required|string|max:4',
+            'kd_wilayah' => 'required|max:4',
             'status_rekon' => 'required|in:00,01,02',
             'kd_komoditas' => 'nullable|string|max:10',
         ]);
@@ -364,9 +365,8 @@ class RekonsiliasiController extends Controller
     private function fetchPembahasanData(Request $request, bool $isApi = false)
     {
         // Helper: Return error response as JSON
-        $errorResponse = fn(string $message, string $status, int $code) => response()->json([
+        $errorResponse = fn(string $message, int $code) => response()->json([
             'message' => $message,
-            'status' => $status,
             'data' => [
                 'rekonsiliasi' => null,
                 'title' => 'Rekonsiliasi',
@@ -376,18 +376,18 @@ class RekonsiliasiController extends Controller
         // Step 1: Verify authenticated user
         $user = Auth::user();
         if (!$user) {
-            return $errorResponse('User tidak ditemukan atau belum login.', 'unauthenticated', 401);
+            return $errorResponse('User tidak ditemukan atau belum login.', 401);
         }
 
         // Step 2: Verify pusat-level user
         if ($user->kd_wilayah !== '0') {
-            return $errorResponse('Akses hanya untuk pengguna pusat.', 'unauthorized', 403);
+            return $errorResponse('Akses hanya untuk pengguna pusat.', 403);
         }
 
         // Step 3: Fetch active period
         $activeBulanTahun = BulanTahun::where('aktif', 1)->first();
         if (!$activeBulanTahun) {
-            return $errorResponse('Tidak ada periode aktif.', 'no_period', 400);
+            return $errorResponse('Tidak ada periode aktif.', 400);
         }
 
         // Step 4: Set defaults for pusat user
@@ -398,6 +398,7 @@ class RekonsiliasiController extends Controller
             'kd_wilayah' => '0',
             'status_rekon' => '00',
             'kd_komoditas' => '',
+            'level_wilayah' => 'semua',
         ];
 
         // Step 5: Merge inputs
@@ -405,59 +406,92 @@ class RekonsiliasiController extends Controller
 
         // Step 6: Validate inputs
         $validator = Validator::make($input, [
-            'bulan' => 'required|integer|between:1,12',
-            'tahun' => 'required|integer|between:2000,2100',
+            'bulan' => [
+                'required',
+                'integer',
+                'between:1,12',
+                Rule::exists('bulan_tahun', 'bulan')->where(function ($query) use ($input) {
+                    $query->where('tahun', $input['tahun']);
+                }),
+            ],
+            'tahun' => [
+                'required',
+                'integer',
+                'between:2000,2100',
+                Rule::exists('bulan_tahun', 'tahun')->where(function ($query) use ($input) {
+                    $query->where('bulan', $input['bulan']);
+                }),
+            ],
             'kd_level' => 'required|in:01,02,03,04,05',
-            'kd_wilayah' => 'required|string|max:4',
+            'kd_wilayah' => [
+                'sometimes',
+                'max:4',
+                Rule::exists('wilayah', 'kd_wilayah'),
+            ],
             'status_rekon' => 'required|in:00,01,02',
             'kd_komoditas' => 'nullable|string|max:10',
+            'level_wilayah' => 'required|in:semua,semua-provinsi,semua-kabkot,provinsi,kabkot',
         ]);
 
         if ($validator->fails()) {
-            return $errorResponse($validator->errors()->first(), 'validation_error', 400);
+            return $errorResponse($validator->errors()->first(), 400);
         }
 
         extract($validator->validated());
 
-        // Step 7: Verify kd_wilayah exists if not '0'
-        if ($kd_wilayah !== '0' && !Wilayah::where('kd_wilayah', $kd_wilayah)->exists()) {
-            return $errorResponse('Harap pilih wilayah yang valid.', 'invalid_wilayah', 400);
-        }
-
-        // Step 8: Verify period exists
+        // Step 7: Fetch period
         $bulanTahun = BulanTahun::where('bulan', $bulan)->where('tahun', $tahun)->first();
-        if (!$bulanTahun) {
-            return $errorResponse('Periode tidak ditemukan.', 'no_period', 400);
-        }
 
-        // Step 9: Build query
-        $rekonQuery = Rekonsiliasi::with(['inflasi.komoditas', 'inflasi.wilayah', 'user'])
-            ->where('bulan_tahun_id', $bulanTahun->bulan_tahun_id)
-            ->whereHas('inflasi', function ($query) use ($kd_level, $kd_wilayah) {
-                $query->where('kd_level', $kd_level); // Exact match for kd_level
-                if ($kd_wilayah !== '0') {
-                    $query->where('kd_wilayah', $kd_wilayah);
-                }
-            });
+        // Step 8: Build query
+        $rekonQuery = Rekonsiliasi::query()
+            ->select('rekonsiliasi.*')
+            ->join('inflasi', 'rekonsiliasi.inflasi_id', '=', 'inflasi.inflasi_id')
+            ->join('wilayah', 'inflasi.kd_wilayah', '=', 'wilayah.kd_wilayah')
+            ->where('rekonsiliasi.bulan_tahun_id', $bulanTahun->bulan_tahun_id)
+            ->where('inflasi.kd_level', $kd_level);
+
+        // Step 9: Apply kd_wilayah filter
+        if ($kd_wilayah !== '0') {
+            $rekonQuery->where('inflasi.kd_wilayah', $kd_wilayah);
+        } elseif ($level_wilayah === 'semua-provinsi') {
+            $rekonQuery->where('wilayah.flag', 2);
+        } elseif ($level_wilayah === 'semua-kabkot') {
+            $rekonQuery->where('wilayah.flag', 3);
+        }
 
         // Step 10: Apply commodity filter
         if ($kd_komoditas) {
-            $rekonQuery->whereHas('inflasi', function ($query) use ($kd_komoditas) {
-                $query->where('kd_komoditas', $kd_komoditas);
-            });
+            $rekonQuery->where('inflasi.kd_komoditas', $kd_komoditas);
         }
 
         // Step 11: Apply status_rekon filter
         if ($status_rekon !== '00') {
-            $rekonQuery->where($status_rekon === '01' ? 'user_id' : 'user_id', $status_rekon === '01' ? null : '!=', null);
+            $rekonQuery->where('rekonsiliasi.user_id', $status_rekon === '01' ? null : '!=', null);
         }
 
-        // Step 12: Execute query
+        // Step 12: Apply sorting based on level_wilayah
+        if ($level_wilayah === 'semua') {
+            $rekonQuery->orderByRaw("
+            CASE
+                WHEN wilayah.flag = 2 THEN wilayah.kd_wilayah
+                WHEN wilayah.flag = 3 THEN wilayah.parent_kd
+                ELSE NULL
+            END ASC,
+            wilayah.flag ASC,
+            wilayah.kd_wilayah ASC
+        ");
+        } else {
+            $rekonQuery->orderBy('wilayah.kd_wilayah', 'ASC');
+        }
+
+        // Step 13: Eager load relationships
+        $rekonQuery->with(['inflasi.komoditas', 'inflasi.wilayah', 'user']);
+
+        // Step 14: Execute query
         $rekonsiliasi = $rekonQuery->get();
 
-        // Step 13: Enrich data based on kd_level
+        // Step 15: Enrich data based on kd_level
         if ($kd_level === '01') {
-            // For kd_level = '01', fetch inflasi_kota and check for corresponding inflasi_desa
             $inflasiDataKota = Inflasi::where('bulan_tahun_id', $bulanTahun->bulan_tahun_id)
                 ->where('kd_level', '01')
                 ->whereIn('kd_wilayah', $rekonsiliasi->pluck('inflasi.kd_wilayah')->unique())
@@ -476,7 +510,6 @@ class RekonsiliasiController extends Controller
                 $wilayah = $rekon->inflasi->kd_wilayah;
                 $komoditas = $rekon->inflasi->kd_komoditas;
 
-                // Assign inflasi_kota
                 $rekon->inflasi_kota = isset($inflasiDataKota[$wilayah][$komoditas]['01'])
                     ? $inflasiDataKota[$wilayah][$komoditas]['01'][0]->nilai_inflasi
                     : null;
@@ -491,13 +524,11 @@ class RekonsiliasiController extends Controller
                     ]);
                 }
 
-                // Assign inflasi_desa from kd_level = '02'
                 $rekon->inflasi_desa = isset($inflasiDataDesa[$wilayah][$komoditas]['02'])
                     ? $inflasiDataDesa[$wilayah][$komoditas]['02'][0]->nilai_inflasi
                     : null;
             });
         } elseif ($kd_level === '02') {
-            // For kd_level = '02', fetch inflasi_desa and check for corresponding inflasi_kota
             $inflasiDataDesa = Inflasi::where('bulan_tahun_id', $bulanTahun->bulan_tahun_id)
                 ->where('kd_level', '02')
                 ->whereIn('kd_wilayah', $rekonsiliasi->pluck('inflasi.kd_wilayah')->unique())
@@ -516,7 +547,6 @@ class RekonsiliasiController extends Controller
                 $wilayah = $rekon->inflasi->kd_wilayah;
                 $komoditas = $rekon->inflasi->kd_komoditas;
 
-                // Assign inflasi_desa
                 $rekon->inflasi_desa = isset($inflasiDataDesa[$wilayah][$komoditas]['02'])
                     ? $inflasiDataDesa[$wilayah][$komoditas]['02'][0]->nilai_inflasi
                     : null;
@@ -531,13 +561,11 @@ class RekonsiliasiController extends Controller
                     ]);
                 }
 
-                // Assign inflasi_kota from kd_level = '01'
                 $rekon->inflasi_kota = isset($inflasiDataKota[$wilayah][$komoditas]['01'])
                     ? $inflasiDataKota[$wilayah][$komoditas]['01'][0]->nilai_inflasi
                     : null;
             });
         } else {
-            // For kd_level = '03', '04', '05', use nilai_inflasi as inflasi_kota
             $rekonsiliasi->each(function ($rekon) {
                 $rekon->inflasi_kota = $rekon->inflasi->nilai_inflasi ?? null;
                 $rekon->inflasi_desa = null;
@@ -554,17 +582,15 @@ class RekonsiliasiController extends Controller
             });
         }
 
-        // Step 14: Return JSON response
+        // Step 16: Return JSON response
         return response()->json([
             'message' => $rekonsiliasi->isEmpty() ? 'Tidak ada data untuk filter ini.' : 'Data berhasil dimuat.',
-            'status' => $rekonsiliasi->isEmpty() ? 'no_data' : ($rekonsiliasi->first()?->user_id ? 'sudah_diisi' : 'belum_diisi'),
             'data' => [
                 'rekonsiliasi' => PembahasanDataResource::collection($rekonsiliasi),
                 'title' => 'Pembahasan ' . $this->generateRekonTableTitle($request),
             ],
         ], 200);
     }
-
 
     public function apiPemilihan(Request $request)
     {

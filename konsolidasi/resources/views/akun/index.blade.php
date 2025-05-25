@@ -326,9 +326,9 @@
                         required
                         class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                         <option value="pusat">Pusat</option>
-                        <option value="semua">Semua Provinsi dan Kab/Kota</option>
-                        <option value="semua-provinsi">Semua Provinsi</option>
-                        <option value="semua-kabkot">Semua Kabupaten/Kota</option>
+                        <!-- <option value="semua">Semua Provinsi dan Kab/Kota</option> -->
+                        <!-- <option value="semua-provinsi">Semua Provinsi</option> -->
+                        <!-- <option value="semua-kabkot">Semua Kabupaten/Kota</option> -->
                         <option value="provinsi">Provinsi</option>
                         <option value="kabkot">Kabupaten/Kota</option>
                     </select>
@@ -385,8 +385,8 @@
         </div>
 
         <div class="relative overflow-x-auto shadow-md sm:rounded-lg">
-            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+            <table class="w-full text-sm text-left text-gray-500 ">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 ">
                     <tr>
                         <th scope="col" class="px-6 py-3">Username</th>
                         <th scope="col" class="px-6 py-3">Nama Lengkap</th>
@@ -405,7 +405,7 @@
                             <td class="px-6 py-4 text-left">
                                 <button
                                     @click="openEditUserModal(user)"
-                                    class="font-medium text-indigo-600 dark:text-indigo-500 hover:underline">
+                                    class="font-medium text-indigo-600  hover:underline">
                                     Edit
                                 </button>
                                 <button

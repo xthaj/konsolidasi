@@ -12,7 +12,7 @@ class InflasiController extends Controller
     public function update(Request $request, $id)
     {
         try {
-            // Validate only inflasi_id and nilai_inflasi as required, andil as optional
+            // Validate request
             $validator = Validator::make($request->all(), [
                 'nilai_inflasi' => 'required|numeric',
                 'andil' => 'nullable|numeric',
@@ -20,23 +20,22 @@ class InflasiController extends Controller
 
             if ($validator->fails()) {
                 return response()->json([
-                    'status' => 'error',
                     'message' => $validator->errors()->first(),
                 ], 422);
             }
 
             DB::beginTransaction();
 
-            // Find the Inflasi record by inflasi_id
+            // Find the Inflasi record
             $inflasi = Inflasi::findOrFail($id);
 
-            // Prepare data to update (only nilai_inflasi and andil if provided)
+            // Prepare data to update
             $updateData = [
                 'nilai_inflasi' => $request->nilai_inflasi,
             ];
 
-            // Only include andil if it exists in the request and kd_wilayah is '0'
-            if ($request->has('andil')) {
+            // Include andil only if provided and kd_wilayah is '0'
+            if ($request->has('andil') && $inflasi->kd_wilayah === '0') {
                 $updateData['andil'] = $request->andil;
             }
 
@@ -46,13 +45,15 @@ class InflasiController extends Controller
             DB::commit();
 
             return response()->json([
-                'status' => 'success',
                 'message' => 'Data inflasi berhasil diperbarui',
-            ]);
+            ], 200);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'message' => 'Data inflasi tidak ditemukan.',
+            ], 404);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
-                'status' => 'error',
                 'message' => 'Gagal memperbarui data: ' . $e->getMessage(),
             ], 500);
         }

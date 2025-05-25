@@ -244,7 +244,7 @@ class VisualisasiController extends Controller
                 ->where('kd_level', '01')
                 ->select('final_inflasi')
                 ->first();
-            $finalInflasiMap[$id] = $record && !is_null($record->final_inflasi) && $record->final_inflasi === true;
+            $finalInflasiMap[$id] = $record && !is_null($record->final_inflasi) && is_numeric($record->final_inflasi);
             // Log::info('Final Inflasi Check', [
             //     'bulan_tahun_id' => $id,
             //     'month' => $monthsData['bulans'][$index],
@@ -556,7 +556,7 @@ class VisualisasiController extends Controller
                 ->where('kd_level', '01')
                 ->select('final_inflasi')
                 ->first();
-            $finalInflasiMap[$id] = $record && !is_null($record->final_inflasi) && $record->final_inflasi === true;
+            $finalInflasiMap[$id] = $record && !is_null($record->final_inflasi) && is_numeric($record->final_inflasi);
             Log::info('Final Inflasi Check', [
                 'bulan_tahun_id' => $id,
                 'month' => $monthsData['bulans'][$index],

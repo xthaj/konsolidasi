@@ -23,6 +23,7 @@ use App\Exports\WilayahExport;
 use App\Http\Controllers\AkunController;
 use App\Http\Controllers\InflasiController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\WilayahController;
 use App\Http\Resources\AlasanResource;
 use App\Http\Resources\WilayahResource;
 use App\Http\Resources\BulanTahunResource;
@@ -101,7 +102,14 @@ Route::middleware('auth')->group(function () {
     Route::post('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
     // master
     Route::get('/master/komoditas', [DataController::class, 'master_komoditas'])->name('master.komoditas');
-    Route::get('/master/wilayah', [DataController::class, 'master_wilayah'])->name('master.wilayah');
+    Route::get('/master/wilayah', [WilayahController::class, 'index'])->name('master.wilayah');
+
+
+    Route::get('/api/master-wilayah', [WilayahController::class, 'getWilayah']);
+    Route::post('/wilayah', [WilayahController::class, 'store']);
+    Route::put('/wilayah/{kd_wilayah}', [WilayahController::class, 'update']);
+    Route::delete('/wilayah/{kd_wilayah}', [WilayahController::class, 'destroy']);
+
     Route::get('/master/alasan', [DataController::class, 'master_alasan'])->name('master.alasan');
 });
 

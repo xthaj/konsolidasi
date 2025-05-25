@@ -218,25 +218,27 @@
         </form>
     </x-slot>
 
-    <div x-show="status === 'no_filters'" class="bg-white px-6 py-4 rounded-lg shadow-sm text-center text-gray-500">
+    <!-- Case: No valid filters applied -->
+    <div x-show="!checkFormValidity()" class="bg-white px-6 py-4 rounded-lg shadow-sm text-center text-gray-500">
         <div class="mb-1">
             <h2 class="text-lg font-semibold mb-2" x-text="data.title || 'Inflasi'"></h2>
         </div>
-
         <span x-text="message"></span>
     </div>
-    <div x-show="status === 'no_data'" class="bg-white px-6 py-4 rounded-lg shadow-sm text-center text-gray-500">
+
+    <!-- Case: Valid filters but no data returned -->
+    <div x-show="checkFormValidity() && !data.inflasi?.length" class="bg-white px-6 py-4 rounded-lg shadow-sm text-center text-gray-500">
         <div class="mb-1">
             <h2 class="text-lg font-semibold mb-2" x-text="data.title || 'Inflasi'"></h2>
         </div>
-
         <span x-text="message"></span>
     </div>
-    <div x-show="status === 'success' || (status === 'no_data' && data.inflasi?.length)">
+
+    <!-- Case: Data returned -->
+    <div x-show="data.inflasi?.length">
         <div class="mb-1">
             <h2 class="text-lg font-semibold mb-2" x-text="data.title || 'Inflasi'"></h2>
         </div>
-
         <div class="bg-white shadow-sm sm:rounded-lg">
             <div class="relative overflow-x-auto sm:rounded-lg md:max-h-[90vh] overflow-y-auto">
                 <!-- Table for kd_level === '00' -->
@@ -313,7 +315,7 @@
                             <th scope="col" class="px-6 py-3">Kode Komoditas</th>
                             <th scope="col" class="px-6 py-3">Komoditas</th>
                             <th scope="col" class="px-6 py-3">Inflasi</th>
-                            <th scope="col" class="px-6 py-3" x-show="data.kd_wilayah == '0'">Andil</th>
+                            <th scope="col" class="px-6 py-3" x-show="data.kd_wilayah === '0'">Andil</th>
                             <th scope="col" class="px-6 py-3"><span class="sr-only">Actions</span></th>
                         </tr>
                     </thead>
@@ -324,7 +326,7 @@
                                     <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap" x-text="item.kd_komoditas"></th>
                                     <td class="px-6 py-4" x-text="item.nama_komoditas"></td>
                                     <td class="px-6 py-4 text-right" x-text="item.nilai_inflasi"></td>
-                                    <td class="px-6 py-4 text-right" x-show="kd_wilayah == '0'" x-text="item.andil"></td>
+                                    <td class="px-6 py-4 text-right" x-show="data.kd_wilayah === '0'" x-text="item.andil"></td>
                                     <td class="px-6 py-4 text-right">
                                         <button
                                             x-show="item.inflasi_id"
@@ -332,7 +334,6 @@
                                             class="font-medium text-blue-600 hover:underline mr-3">
                                             Edit
                                         </button>
-
                                         <button
                                             x-show="item.inflasi_id"
                                             @click="openDeleteModal(item.inflasi_id, item.nama_komoditas)"
