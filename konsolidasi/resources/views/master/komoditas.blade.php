@@ -44,7 +44,7 @@
             </div>
             <div class="mb-4">
                 <label class="block mb-2 text-sm font-medium text-gray-900">Nama Komoditas</label>
-                <input type="text" x-model="editKomoditas.nama_komoditas" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5" read>
+                <input type="text" x-model="editKomoditas.nama_komoditas" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5" required>
             </div>
             <div class="mt-6 flex justify-end gap-3">
                 <x-secondary-button x-on:click="$dispatch('close')">Batal</x-secondary-button>

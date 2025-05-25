@@ -19,7 +19,7 @@ class WilayahController extends Controller
     {
         Log::info('Wilayah data fetched', ['timestamp' => now()]);
 
-        $data = Cache::rememberForever('wilayah_data', function () {
+        $data = Cache::rememberForever('all_wilayah_data', function () {
             Log::info('Wilayah data fetched from database', ['timestamp' => now()]);
             return WilayahResource::collection(Wilayah::all());
         });
