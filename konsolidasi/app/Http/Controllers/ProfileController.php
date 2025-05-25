@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\View\View;
-use App\Models\Wilayah;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -74,11 +74,35 @@ class ProfileController extends Controller
     public function updatePassword(Request $request): JsonResponse
     {
         try {
-            $request->validate([
-                'password' => ['required', 'min:6', 'confirmed'],
-            ]);
+            // Define validation rules
+            $rules = [
+                'password' => ['required', 'string', 'min:6', 'confirmed'],
+                'user_id' => ['sometimes', 'integer', 'exists:user,user_id'],
+            ];
 
-            $user = $request->user();
+            // Custom error messages
+            $messages = [
+                'password.required' => 'Password wajib diisi.',
+                'password.min' => 'Password minimal sepanjang 6 karakter.',
+                'password.confirmed' => 'Password dan konfirmasi password berbeda.',
+                'user_id.exists' => 'Pengguna tidak ditemukan.',
+            ];
+
+            // Validate request
+            $request->validate($rules, $messages);
+
+            // Determine which user to update
+            $user = $request->has('user_id')
+                ? User::findOrFail($request->user_id)
+                : $request->user();
+
+            if (!$user) {
+                return response()->json([
+                    'message' => 'Pengguna tidak ditemukan.',
+                ], 404);
+            }
+
+            // Update password
             $user->password = Hash::make($request->password);
             $user->save();
 
@@ -90,6 +114,10 @@ class ProfileController extends Controller
                 'message' => 'Validasi gagal.',
                 'errors' => $e->errors(),
             ], 422);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'message' => 'Pengguna tidak ditemukan.',
+            ], 404);
         } catch (\Exception $e) {
             Log::error('Password update failed: ' . $e->getMessage());
             return response()->json([

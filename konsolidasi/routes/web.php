@@ -37,7 +37,8 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
 Route::middleware(['auth'])->group(function () {
 
     Route::get('/akun', [AkunController::class, 'index'])->name('akun.index');
-    Route::get('/akun/{user_id}/edit', [AkunController::class, 'edit'])->name('akun.edit');
+    // Route for editing a user
+    Route::put('/api/users/{id}', [AkunController::class, 'edit'])->name('api.users.edit');
     Route::delete('/akun/{user_id}', [AkunController::class, 'destroy'])->name('akun.destroy');
 
     Route::get('/api/users', [AkunController::class, 'apiUsers']);
@@ -97,7 +98,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::get('/pengaturan', [DataController::class, 'pengaturan'])->name('pengaturan');
 
-    Route::patch('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
+    Route::post('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
     // master
     Route::get('/master/komoditas', [DataController::class, 'master_komoditas'])->name('master.komoditas');
     Route::get('/master/wilayah', [DataController::class, 'master_wilayah'])->name('master.wilayah');

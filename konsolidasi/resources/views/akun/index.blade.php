@@ -3,30 +3,6 @@
     @vite(['resources/css/app.css', 'resources/js/master-akun.js'])
     @endsection
 
-    <!-- Success Modal -->
-    <x-modal name="success-update-bulan-tahun" focusable title="Sukses">
-        <div class="px-6 py-4">
-            <p x-text="successMessage" class="text-green-600"></p>
-            <div class="mt-6 flex justify-end">
-                <x-primary-button x-on:click="$dispatch('close')">OK</x-primary-button>
-            </div>
-        </div>
-    </x-modal>
-
-    <!-- Fail Modal -->
-    <x-modal name="fail-update-bulan-tahun" focusable title="Error">
-        <div class="px-6 py-4">
-            <p x-text="failMessage" class="text-red-600"></p>
-            <template x-if="failDetails">
-                <div class="mt-2 text-sm text-gray-600">
-                    <p x-text="failDetails.message"></p>
-                </div>
-            </template>
-            <div class="mt-6 flex justify-end">
-                <x-primary-button x-on:click="$dispatch('close')">OK</x-primary-button>
-            </div>
-        </div>
-    </x-modal>
 
     <!-- Add User Modal -->
     <x-modal name="add-user" focusable title="Tambah Pengguna">
@@ -99,7 +75,6 @@
                         <label for="add-is-admin" class="ms-2 text-sm font-medium text-gray-900">Admin</label>
                     </div>
                 </div>
-
                 <!-- Wilayah Selection -->
                 <div class="mb-4">
                     <label class="block mb-2 text-sm font-medium text-gray-900">Level Wilayah</label>
@@ -142,8 +117,6 @@
                 <template x-if="newUser.errors.kd_wilayah">
                     <p class="mt-2 text-sm text-red-600" x-text="newUser.errors.kd_wilayah"></p>
                 </template>
-
-
                 <!-- Buttons -->
                 <div class="mt-6 flex justify-end gap-3">
                     <x-secondary-button x-on:click="$dispatch('close')">Batal</x-secondary-button>
@@ -156,60 +129,114 @@
         </div>
     </x-modal>
 
-    <!-- Edit User Modal -->
     <x-modal name="edit-user" focusable title="Edit Pengguna">
         <div class="px-6 py-4">
-            <form @submit.prevent="updateUser">
+            <!-- Username Form -->
+            <form @submit.prevent="updateUserAttribute('username')">
                 <div class="mb-4">
                     <label class="block mb-2 text-sm font-medium text-gray-900">Username</label>
-                    <input type="text" x-model="editUser.username" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5" placeholder="hatta45" required>
+                    <input
+                        type="text"
+                        x-model="editUser.username"
+                        x-bind:class="{ 'border-red-600': editUser.errors.usernameLength || editUser.errors.usernameUnique }"
+                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5"
+                        placeholder="hatta45"
+                        required>
                     <template x-if="editUser.errors.usernameLength">
                         <p class="mt-2 text-sm text-red-600">Username harus lebih dari 6 karakter.</p>
                     </template>
                     <template x-if="editUser.errors.usernameUnique">
-                        <p class="mt-2 text-sm text-red-600">Username sudah digunakan.</p>
+                        <p class="mt-2 text-sm text-red-600" x-text="editUser.errors.usernameUnique"></p>
                     </template>
+                    <div class="mt-2 flex justify-end">
+                        <x-primary-button type="submit">Update Username</x-primary-button>
+                    </div>
                 </div>
+            </form>
+
+            <!-- Nama Lengkap Form -->
+            <form @submit.prevent="updateUserAttribute('nama_lengkap')">
                 <div class="mb-4">
                     <label class="block mb-2 text-sm font-medium text-gray-900">Nama Lengkap</label>
-                    <input type="text" x-model="editUser.nama_lengkap" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5" placeholder="Muhammad Hatta" required>
+                    <input
+                        type="text"
+                        x-model="editUser.nama_lengkap"
+                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5"
+                        placeholder="Muhammad Hatta"
+                        required>
+                    <div class="mt-2 flex justify-end">
+                        <x-primary-button type="submit">Update Nama Lengkap</x-primary-button>
+                    </div>
                 </div>
+            </form>
+
+            <!-- Password Form -->
+            <form @submit.prevent="updateUserAttribute('password')">
                 <div class="mb-4">
-                    <label class="block mb-2 text-sm font-medium text-gray-900">Password (kosongkan jika tidak diubah)</label>
-                    <input type="password" x-model="editUser.password" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5" placeholder="••••••••">
+                    <label class="block mb-2 text-sm font-medium text-gray-900">Password</label>
+                    <input
+                        type="password"
+                        x-model="editUser.password"
+                        x-bind:class="{ 'border-red-600': editUser.errors.password }"
+                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5"
+                        placeholder="••••••••">
                     <template x-if="editUser.errors.password">
-                        <p class="mt-2 text-sm text-red-600">Password minimal sepanjang 8 karakter.</p>
+                        <p class="mt-2 text-sm text-red-600">Password minimal sepanjang 6 karakter.</p>
                     </template>
                 </div>
                 <div class="mb-4">
                     <label class="block mb-2 text-sm font-medium text-gray-900">Konfirmasi Password</label>
-                    <input type="password" x-model="editUser.confirmPassword" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5" placeholder="••••••••">
+                    <input
+                        type="password"
+                        x-model="editUser.confirmPassword"
+                        x-bind:class="{ 'border-red-600': editUser.errors.confirmPassword }"
+                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5"
+                        placeholder="••••••••">
                     <template x-if="editUser.errors.confirmPassword">
                         <p class="mt-2 text-sm text-red-600">Password dan konfirmasi password berbeda.</p>
                     </template>
-                </div>
-                <div class="mb-4">
-                    <label class="block mb-2 text-sm font-medium text-gray-900">Level Admin</label>
-                    <input type="checkbox" x-model="editUser.is_admin" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded">
-                </div>
-                <!-- <div class="my-4">
-                    <div class="flex items-center"> -->
-                <!-- problem where value is 1 but it is not checked -->
-                <!-- <input type="checkbox" x-model="editUser.is_admin" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded">
-                        <label class="ms-2 text-sm font-medium text-gray-900">Admin</label>
+                    <div class="mt-2 flex justify-end">
+                        <x-primary-button type="submit">Update Password</x-primary-button>
                     </div>
-                    <span x-text="editUser.is_admin"></span>
-                </div> -->
-                <!-- Wilayah Selection -->
+                </div>
+            </form>
 
+            <!-- Role Form -->
+            <form @submit.prevent="updateUserAttribute('role')">
+                <div class="mb-4">
+                    <div class="mb-4">
+                        <label class="block mb-2 text-sm font-medium text-gray-900">Level Saat Ini</label>
+                        <p class="text-sm text-gray-900" x-text="editUser.level"></p>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block mb-2 text-sm font-medium text-gray-900">
+                            <input
+                                type="checkbox"
+                                x-model="editUser.role_toggle"
+                                id="edit-role-toggle"
+                                class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded">
+                            <span x-text="editUser.initial_role_label" class="ms-2 text-sm font-medium text-gray-900"></span>
+                        </label>
+                    </div>
+                    <div class="mt-2 flex justify-end">
+                        <x-primary-button type="submit">Update Role</x-primary-button>
+                    </div>
+                </div>
+            </form>
+
+            <!-- Wilayah Form -->
+            <form @submit.prevent="updateUserAttribute('wilayah')">
                 <div class="mb-4">
                     <label class="block mb-2 text-sm font-medium text-gray-900">Wilayah Saat Ini</label>
-                    <p class="text-sm text-gray-900" x-text="editUser.wilayah_nama || 'Pusat'"></p>
+                    <p class="text-sm text-gray-900" x-text="editUser.nama_wilayah"></p>
                 </div>
-
                 <div class="mb-4">
                     <label class="block mb-2 text-sm font-medium text-gray-900">Ganti Level Wilayah</label>
-                    <select x-model="editUser.wilayah_level" @change="updateEditWilayah()" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
+                    <select
+                        x-model="editUser.wilayah_level"
+                        @change="editUser.selected_province = ''; editUser.selected_kabkot = ''; updateEditWilayah()"
+                        x-bind:class="{ 'border-red-600': editUser.errors.kd_wilayah }"
+                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                         <option value="pusat">Pusat</option>
                         <option value="provinsi">Provinsi</option>
                         <option value="kabkot">Kabupaten/Kota</option>
@@ -217,7 +244,11 @@
                 </div>
                 <div class="mb-4" x-show="editUser.wilayah_level === 'provinsi' || editUser.wilayah_level === 'kabkot'">
                     <label class="block mb-2 text-sm font-medium text-gray-900">Provinsi</label>
-                    <select x-model="editUser.selected_province" @change="editUser.selected_kabkot = ''; updateEditWilayah()" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
+                    <select
+                        x-model="editUser.selected_province"
+                        @change="editUser.selected_kabkot = ''; updateEditWilayah()"
+                        x-bind:class="{ 'border-red-600': editUser.errors.kd_wilayah && !editUser.selected_province }"
+                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                         <option value="">Pilih Provinsi</option>
                         <template x-for="province in provinces" :key="province.kd_wilayah">
                             <option :value="province.kd_wilayah" x-text="province.nama_wilayah"></option>
@@ -226,7 +257,11 @@
                 </div>
                 <div class="mb-4" x-show="editUser.wilayah_level === 'kabkot'">
                     <label class="block mb-2 text-sm font-medium text-gray-900">Kabupaten/Kota</label>
-                    <select x-model="editUser.selected_kabkot" @change="updateEditWilayah()" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
+                    <select
+                        x-model="editUser.selected_kabkot"
+                        @change="updateEditWilayah()"
+                        x-bind:class="{ 'border-red-600': editUser.errors.kd_wilayah && !editUser.selected_kabkot }"
+                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                         <option value="">Pilih Kabupaten/Kota</option>
                         <template x-for="kabkot in editFilteredKabkots" :key="kabkot.kd_wilayah">
                             <option :value="kabkot.kd_wilayah" x-text="kabkot.nama_wilayah"></option>
@@ -236,11 +271,15 @@
                 <template x-if="editUser.errors.kd_wilayah">
                     <p class="mt-2 text-sm text-red-600">Satuan kerja belum dipilih.</p>
                 </template>
-                <div class="mt-6 flex justify-end gap-3">
-                    <x-secondary-button x-on:click="$dispatch('close')">Batal</x-secondary-button>
-                    <x-primary-button type="submit">Simpan</x-primary-button>
+                <div class="mt-2 flex justify-end">
+                    <x-primary-button type="submit">Update Wilayah</x-primary-button>
                 </div>
             </form>
+
+            <!-- Close Button -->
+            <div class="mt-6 flex justify-end">
+                <x-secondary-button x-on:click="$dispatch('close')">Tutup</x-secondary-button>
+            </div>
         </div>
     </x-modal>
 
@@ -259,7 +298,7 @@
     </x-modal>
 
     <!-- Filter and Search Form -->
-    <form id="user-form" @submit.prevent="getWilayahUsers"" class=" mb-4">
+    <form id="user-form" @submit.prevent="getWilayahUsers(true)" class="mb-4">
         <div class="flex gap-4">
             <div class="w-full">
                 <div class="mb-4">
@@ -270,14 +309,23 @@
                                 <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z" />
                             </svg>
                         </div>
-                        <input type="text" name="search" x-model="search" placeholder="Cari berdasarkan username atau nama lengkap" class="block ps-10 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
+                        <input
+                            type="text"
+                            name="search"
+                            x-model="search"
+                            placeholder="Cari berdasarkan username atau nama lengkap"
+                            class="block ps-10 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                     </div>
                 </div>
-
-                <!-- Wilayah Selection -->
                 <div>
                     <label class="block mb-2 text-sm font-medium text-gray-900">Level Wilayah<span class="text-red-500 ml-1">*</span></label>
-                    <select name="level_wilayah" x-model="wilayahLevel" @change="updateWilayahOptions" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
+                    <select
+                        name="level_wilayah"
+                        x-model="wilayahLevel"
+                        @change="updateWilayahOptions"
+                        required
+                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
+                        <option value="pusat">Pusat</option>
                         <option value="semua">Semua Provinsi dan Kab/Kota</option>
                         <option value="semua-provinsi">Semua Provinsi</option>
                         <option value="semua-kabkot">Semua Kabupaten/Kota</option>
@@ -287,87 +335,124 @@
                 </div>
                 <div x-show="wilayahLevel === 'provinsi' || wilayahLevel === 'kabkot'" class="mt-4">
                     <label class="block mb-2 text-sm font-medium text-gray-900">Provinsi</label>
-                    <select x-model="selectedProvince" @change="selectedKabkot = ''; updateKdWilayah()" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
-                        <option value="" selected>Pilih Provinsi</option>
+                    <select
+                        x-model="selectedProvince"
+                        @change="selectedKabkot = ''; updateKdWilayah()"
+                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
+                        <option value="">Pilih Provinsi</option>
                         <template x-for="province in provinces" :key="province.kd_wilayah">
                             <option :value="province.kd_wilayah" x-text="province.nama_wilayah" :selected="province.kd_wilayah == selectedProvince"></option>
                         </template>
                     </select>
                 </div>
-                <div x-show="wilayahLevel === 'kabkot' " class="mt-4">
+                <div x-show="wilayahLevel === 'kabkot'" class="mt-4">
                     <label class="block mb-2 text-sm font-medium text-gray-900">Kabupaten/Kota</label>
-                    <select x-model="selectedKabkot" @change="updateKdWilayah()" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
-                        <option value="" selected>Pilih Kabupaten/Kota</option>
+                    <select
+                        x-model="selectedKabkot"
+                        @change="updateKdWilayah()"
+                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
+                        <option value="">Pilih Kabupaten/Kota</option>
                         <template x-for="kabkot in filteredKabkots" :key="kabkot.kd_wilayah">
                             <option :value="kabkot.kd_wilayah" x-text="kabkot.nama_wilayah" :selected="kabkot.kd_wilayah == selectedKabkot"></option>
                         </template>
                     </select>
                 </div>
-                <input type="hidden" name="kd_wilayah" x-model="kd_wilayah" required>
-
+                <input type="hidden" name="kd_wilayah" x-model="kd_wilayah">
             </div>
         </div>
-        <div class="flex justify-end">
-            <x-primary-button
-                type="submit">
-                Filter
-            </x-primary-button>
+        <div class="flex justify-end mt-4">
+            <x-primary-button type="submit">Filter</x-primary-button>
         </div>
     </form>
 
-    <hr class="h-px my-8 bg-gray-200 border-0 ">
+    <hr class="h-px my-8 bg-gray-200 border-0">
 
     <div class="flex justify-between items-center mb-4">
         <h1 class="text-lg font-semibold">Daftar Pengguna</h1>
-        <x-primary-button
-            type="button"
-            @click="openAddUserModal">
-            Tambah Pengguna
-        </x-primary-button>
+        <x-primary-button type="button" @click="openAddUserModal">Tambah Pengguna</x-primary-button>
     </div>
-
 
     <!-- Display Users -->
-    <div x-show="usersData.length">
-        <table class="w-full text-sm text-left text-gray-500">
-            <thead>
-                <tr>
-                    <th>Username</th>
-                    <th>Nama Lengkap</th>
-                    <th>Wilayah</th>
-                    <th>Level</th>
-                    <th>Aksi</th>
-                </tr>
-            </thead>
-            <tbody>
-                <template x-for="user in usersData" :key="user.user_id">
+    <div x-show="usersData.length === 0" class="bg-white px-6 py-4 rounded-lg shadow-sm text-center text-gray-500">
+        <div class="mb-1">
+            <h2 class="text-lg font-semibold mb-2">Isi filter untuk menampilkan data</h2>
+        </div>
+        <span x-text="message"></span>
+    </div>
+    <div x-show="usersData.length > 0">
+        <div class="mb-4 text-sm text-gray-700">
+            <span x-text="`Pengguna ditemukan: ${totalData}`"></span>
+        </div>
+
+        <div class="relative overflow-x-auto shadow-md sm:rounded-lg">
+            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                     <tr>
-                        <td x-text="user.username"></td>
-                        <td x-text="user.nama_lengkap"></td>
-                        <td x-text="user.wilayah ? user.wilayah.nama_wilayah : 'Pusat'"></td>
-                        <td x-text="user.level"></td>
-                        <td class="px-6 py-4 text-left">
-                            <button
-                                @click="openEditUserModal(user)"
-                                class="font-medium text-indigo-600 dark:text-indigo-500 hover:underline">
-                                Edit
-                            </button>
-                            <button
-                                @click="deleteUser(user.user_id, user.username)"
-                                class="font-medium text-red-600 hover:underline">
-                                Delete
-                            </button>
-                        </td>
+                        <th scope="col" class="px-6 py-3">Username</th>
+                        <th scope="col" class="px-6 py-3">Nama Lengkap</th>
+                        <th scope="col" class="px-6 py-3">Wilayah</th>
+                        <th scope="col" class="px-6 py-3">Level</th>
+                        <th scope="col" class="px-6 py-3">Aksi</th>
                     </tr>
-                </template>
-            </tbody>
-        </table>
-        <!-- Pagination Controls -->
-        <div class="mt-4" x-show="usersData.length > 0">
-            <button x-bind:disabled="currentPage === 1" @click="currentPage--; getWilayahUsers()">Previous</button>
-            <span x-text="`Page ${currentPage} of ${lastPage}`"></span>
-            <button x-bind:disabled="currentPage === lastPage" @click="currentPage++; getWilayahUsers()">Next</button>
+                </thead>
+                <tbody>
+                    <template x-for="user in usersData" :key="user.user_id">
+                        <tr class="bg-white border-b border-gray-200">
+                            <td class="px-6 py-4" x-text="user.username"></td>
+                            <td class="px-6 py-4" x-text="user.nama_lengkap"></td>
+                            <td class="px-6 py-4" x-text="user.nama_wilayah"></td>
+                            <td class="px-6 py-4" x-text="user.level"></td>
+                            <td class="px-6 py-4 text-left">
+                                <button
+                                    @click="openEditUserModal(user)"
+                                    class="font-medium text-indigo-600 dark:text-indigo-500 hover:underline">
+                                    Edit
+                                </button>
+                                <button
+                                    @click="deleteUser(user.user_id, user.username)"
+                                    class="font-medium text-red-600 hover:underline">
+                                    Delete
+                                </button>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
         </div>
     </div>
+    <!-- Pagination Controls -->
+    <div class="mt-4 flex justify-between items-center" x-show="usersData.length > 0">
+        <button
+            x-bind:disabled="currentPage === 1"
+            @click="currentPage--; getWilayahUsers()"
+            class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg disabled:opacity-50">
+            Sebelumnya
+        </button>
+        <span x-text="`Halaman ${currentPage} dari ${lastPage}`"></span>
+        <button
+            x-bind:disabled="currentPage === lastPage"
+            @click="currentPage++; getWilayahUsers()"
+            class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg disabled:opacity-50">
+            Selanjutnya
+        </button>
+    </div>
+
+    <x-modal name="success-modal" title="Berhasil" maxWidth="md">
+        <div class="text-gray-900 ">
+            <p x-text="modalMessage"></p>
+            <div class="mt-4 flex justify-end">
+                <x-primary-button type="button" x-on:click="$dispatch('close')">Tutup</x-primary-button>
+            </div>
+        </div>
+    </x-modal>
+
+    <x-modal name="error-modal" title="Kesalahan" maxWidth="md">
+        <div class="text-gray-900 ">
+            <p x-text="modalMessage"></p>
+            <div class="mt-4 flex justify-end">
+                <x-primary-button type="button" x-on:click="$dispatch('close')">Tutup</x-primary-button>
+            </div>
+        </div>
+    </x-modal>
 
 </x-one-panel-layout>
