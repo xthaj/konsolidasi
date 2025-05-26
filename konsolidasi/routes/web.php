@@ -20,7 +20,6 @@ use Illuminate\Support\Facades\Cache;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\KomoditasExport;
 use App\Exports\WilayahExport;
-use App\Http\Controllers\AkunController;
 use App\Http\Controllers\InflasiController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WilayahController;
@@ -37,16 +36,14 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
 // Data routes, protected by both auth and ispusat middleware
 Route::middleware(['auth'])->group(function () {
 
-    Route::get('/akun', [AkunController::class, 'index'])->name('akun.index');
-    // Route for editing a user
-    Route::put('/api/users/{id}', [AkunController::class, 'edit'])->name('api.users.edit');
-    Route::delete('/akun/{user_id}', [AkunController::class, 'destroy'])->name('akun.destroy');
+    // User management routes
+    Route::get('/users', [UserController::class, 'index'])->name('user.index');
 
-    Route::get('/api/users', [AkunController::class, 'apiUsers']);
-
-    Route::post('/api/users', [AkunController::class, 'store']);
-    Route::put('/api/users/{user_id}', [AkunController::class, 'update']);
-    Route::delete('/api/users/{user_id}', [AkunController::class, 'destroy']);
+    // Returns json
+    Route::get('/user', [UserController::class, 'getUsers']);
+    Route::post('/user', [UserController::class, 'store']);
+    Route::put('/user/{user_id}', [UserController::class, 'update']);
+    Route::delete('/user/{user_id}', [UserController::class, 'destroy']);
 
 
     Route::get('/data/upload', [DataController::class, 'create'])->name('data.create');

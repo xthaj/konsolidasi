@@ -18,7 +18,7 @@
             request()->routeIs('rekon.pemilihan') => 'Pemilihan Komoditas',
             request()->routeIs('rekon.progres') => 'Pengisian Rekonsiliasi',
             request()->routeIs('rekon.pembahasan') => 'Pembahasan Rekonsiliasi',
-            request()->routeIs('profile.edit', 'akun.index') => 'Akun',
+            request()->routeIs('profile.edit', 'user.index') => 'User',
             request()->routeIs('pengaturan') => 'Pengaturan',
             default => 'Dashboard',
             };
@@ -44,12 +44,12 @@
                 <!-- Administrasi -->
                 @if (auth()->user()->isPusat())
                 <li>
-                    <button id="dropdownNavbarLink4" data-dropdown-toggle="dropdownAkun" class="flex items-center justify-between w-full py-2 px-3 rounded-sm md:p-0 md:w-auto {{ request()->routeIs('akun.index', 'profile.edit') ? 'text-primary-700' : 'text-gray-900 hover:bg-gray-100 md:hover:bg-transparent md:hover:text-primary-700' }}">Administrasi
+                    <button id="dropdownNavbarLink4" data-dropdown-toggle="dropdownAkun" class="flex items-center justify-between w-full py-2 px-3 rounded-sm md:p-0 md:w-auto {{ request()->routeIs('user.index', 'profile.edit') ? 'text-primary-700' : 'text-gray-900 hover:bg-gray-100 md:hover:bg-transparent md:hover:text-primary-700' }}">Administrasi
                         <span class="material-symbols-rounded">keyboard_arrow_down</span>
                     </button>
                     <div id="dropdownAkun" class="z-15 hidden font-normal bg-white divide-y divide-gray-100 rounded-lg shadow-sm w-44">
                         <ul class="py-2 text-sm text-gray-700">
-                            <li><a href="{{ route('akun.index') }}" class="block px-4 py-2 hover:bg-gray-100">Kelola Akun</a></li>
+                            <li><a href="{{ route('user.index') }}" class="block px-4 py-2 hover:bg-gray-100">Kelola Akun</a></li>
                         </ul>
                     </div>
                 </li>
@@ -117,7 +117,6 @@
                     <div id="dropdownPengaturan" class="z-15 hidden font-normal bg-white divide-y divide-gray-100 rounded-lg shadow-sm w-44">
                         <ul class="py-2 text-sm text-gray-700">
                             <li><a href="{{ route('pengaturan') }}" class="block px-4 py-2 hover:bg-gray-100">Periode Aktif</a></li>
-                            <!-- <li><a href="{{ route('profile.edit') }}" class="block px-4 py-2 hover:bg-gray-100">Akun</a></li> -->
                         </ul>
                     </div>
                 </li>

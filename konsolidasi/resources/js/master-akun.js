@@ -175,7 +175,7 @@ Alpine.data("webData", () => ({
             }
             params.append("page", this.currentPage);
 
-            const response = await fetch(`/api/users?${params.toString()}`);
+            const response = await fetch(`/user?${params.toString()}`);
             const result = await response.json();
 
             if (response.status === 200) {
@@ -387,7 +387,7 @@ Alpine.data("webData", () => ({
         };
 
         try {
-            const response = await fetch("/api/users", {
+            const response = await fetch("/user", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -549,7 +549,7 @@ Alpine.data("webData", () => ({
             const url =
                 attribute === "password"
                     ? "/profile/password"
-                    : `/api/users/${this.editUser.user_id}`;
+                    : `/user/${this.editUser.user_id}`;
             const method = attribute === "password" ? "POST" : "PUT";
 
             const response = await fetch(url, {
@@ -646,7 +646,7 @@ Alpine.data("webData", () => ({
         this.confirmDetails = "Tindakan ini tidak dapat dibatalkan.";
         this.confirmAction = async () => {
             try {
-                const response = await fetch(`/api/users/${user_id}`, {
+                const response = await fetch(`/user/${user_id}`, {
                     method: "DELETE",
                     headers: {
                         Accept: "application/json",
