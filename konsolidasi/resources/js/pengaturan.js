@@ -26,11 +26,6 @@ Alpine.data("webData", () => ({
     modalMessage: "",
     pageTitle: "Bulan dan Tahun Aktif",
 
-    setPageTitle(title) {
-        this.pageTitle = title;
-        document.title = title;
-    },
-
     get isActivePeriod() {
         return (
             +this.bulan === +this.activeBulan &&
@@ -40,9 +35,8 @@ Alpine.data("webData", () => ({
 
     async init() {
         this.loading = true;
-        this.setPageTitle("Bulan dan Tahun Aktif");
         try {
-            const res = await fetch("/api/bulan_tahun");
+            const res = await fetch("/bulan-tahun");
             if (!res.ok)
                 throw new Error(`BulanTahun API error! status: ${res.status}`);
 
@@ -69,7 +63,7 @@ Alpine.data("webData", () => ({
         }
 
         try {
-            const response = await fetch("/update-bulan-tahun", {
+            const response = await fetch("/bulan-tahun", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -83,17 +77,17 @@ Alpine.data("webData", () => ({
 
             const result = await response.json();
 
-            if (result.status === "success") {
+            if (!response.ok) {
+                this.modalMessage =
+                    result.message || "Gagal memperbarui periode aktif.";
+                this.$dispatch("open-modal", "error-modal");
+            } else {
                 this.modalMessage = result.message;
                 this.$dispatch("close");
                 this.$dispatch("open-modal", "success-modal");
 
                 // Reload the latest data
                 await this.init();
-            } else {
-                this.modalMessage =
-                    result.message || "Gagal memperbarui periode aktif.";
-                this.$dispatch("open-modal", "error-modal");
             }
         } catch (error) {
             console.error("Update failed:", error);

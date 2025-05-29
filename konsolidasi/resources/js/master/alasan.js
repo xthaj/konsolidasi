@@ -12,7 +12,7 @@ Alpine.data("webData", () => ({
     confirmAction: null,
 
     async fetchAlasan() {
-        const alasanResponse = await fetch("/api/alasan");
+        const alasanResponse = await fetch("/all-alasan");
         const result = await alasanResponse.json();
         this.alasanData = result.data || [];
     },
@@ -49,15 +49,16 @@ Alpine.data("webData", () => ({
                 body: JSON.stringify(this.newAlasan),
             });
 
-            const data = await response.json();
+            const result = await response.json();
 
-            if (data.status !== "success") {
-                this.modalMessage = data.message || "Gagal menambah alasan.";
+            if (!response.ok) {
+                this.modalMessage = result.message || "Gagal menambah alasan.";
                 this.$dispatch("open-modal", "error-modal");
                 return;
             }
 
-            this.modalMessage = data.message || "Alasan berhasil ditambahkan!";
+            this.modalMessage =
+                result.message || "Alasan berhasil ditambahkan!";
             this.$dispatch("open-modal", "success-modal");
             this.$dispatch("close");
             await this.fetchAlasan();
@@ -85,16 +86,17 @@ Alpine.data("webData", () => ({
                     },
                 });
 
-                const data = await response.json();
+                const result = await response.json();
 
-                if (data.status !== "success") {
+                if (!response.ok) {
                     this.modalMessage =
-                        data.message || "Gagal menghapus alasan.";
+                        result.message || "Gagal menghapus alasan.";
                     this.$dispatch("open-modal", "error-modal");
                     return;
                 }
 
-                this.modalMessage = data.message || "Alasan berhasil dihapus!";
+                this.modalMessage =
+                    result.message || "Alasan berhasil dihapus!";
                 this.$dispatch("open-modal", "success-modal");
                 await this.fetchAlasan();
             } catch (error) {

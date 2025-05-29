@@ -68,28 +68,28 @@ Alpine.data("webData", () => ({
                         );
                     return res.json();
                 }),
-                fetch("/api/wilayah").then((res) => {
+                fetch("/segmented-wilayah").then((res) => {
                     if (!res.ok)
                         throw new Error(
                             `Wilayah API error! status: ${res.status}`
                         );
                     return res.json();
                 }),
-                fetch("/api/komoditas").then((res) => {
+                fetch("/all-komoditas").then((res) => {
                     if (!res.ok)
                         throw new Error(
                             `Komoditas API error! status: ${res.status}`
                         );
                     return res.json();
                 }),
-                fetch("/api/bulan_tahun").then((res) => {
+                fetch("/bulan-tahun").then((res) => {
                     if (!res.ok)
                         throw new Error(
                             `BulanTahun API error! status: ${res.status}`
                         );
                     return res.json();
                 }),
-                fetch("/api/alasan").then((res) => {
+                fetch("/all-alasan").then((res) => {
                     if (!res.ok)
                         throw new Error(
                             `Alasan API error! status: ${res.status}`

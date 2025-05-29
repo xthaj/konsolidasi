@@ -22,7 +22,7 @@
         <div class="px-6 py-4">
             <div class="mb-4">
                 <label class="block mb-2 text-sm font-medium text-gray-900">Alasan</label>
-                <input type="text" x-model="newAlasan.nama" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5" required>
+                <input maxlength="200" type="text" x-model="newAlasan.nama" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5" required>
             </div>
             <div class="mt-6 flex justify-end gap-3">
                 <x-secondary-button x-on:click="$dispatch('close')">Batal</x-secondary-button>
@@ -69,15 +69,15 @@
         <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
             <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                 <tr>
-                    <th scope="col" class="px-6 py-3">ID</th>
+                    <th scope="col" class="px-6 py-3">No</th>
                     <th scope="col" class="px-6 py-3">Alasan</th>
                     <th scope="col" class="px-6 py-3 text-right">Aksi</th>
                 </tr>
             </thead>
             <tbody>
-                <template x-for="alasan in alasanData" :key="alasan.alasan_id">
+                <template x-for="(alasan, index) in alasanData" :key="alasan.alasan_id">
                     <tr class="bg-white border-b border-gray-200">
-                        <td class="px-6 py-4" x-text="alasan.alasan_id"></td>
+                        <td class="px-6 py-4" x-text="index + 1"></td>
                         <td class="px-6 py-4" x-text="alasan.keterangan"></td>
                         <td class="px-6 py-4 text-right">
                             <button @click="deleteAlasan(alasan.alasan_id)" class="font-medium text-red-600 dark:text-red-500 hover:underline">Hapus</button>

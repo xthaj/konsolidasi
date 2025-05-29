@@ -2,102 +2,150 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Cache;
+use App\Http\Resources\AlasanResource;
 use App\Models\Alasan;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+
 
 class AlasanController extends Controller
 {
+    /**
+     * Store a new alasan.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function store(Request $request)
     {
         Log::info('Starting storeAlasan', [
             'request_data' => $request->all(),
-            'timestamp' => now()
+            'timestamp' => now(),
         ]);
 
         try {
-            $request->validate([
+            $validated = $request->validate([
                 'nama' => 'required|string|max:255',
             ], [
                 'nama.max' => 'Alasan tidak boleh melebihi 255 karakter.',
             ]);
-            Log::info('Request validated successfully', $request->all());
-        } catch (ValidationException $e) {
-            Log::error('Validation failed', [
-                'errors' => $e->errors(),
-                'request_data' => $request->all()
-            ]);
-            return response()->json([
-                'status' => 'error',
-                'message' => $e->errors()['nama'][0] ?? 'Validasi gagal.',
-            ], 422);
-        }
 
-        try {
             $alasan = Alasan::create([
-                'keterangan' => $request->input('nama'),
+                'keterangan' => $validated['nama'],
             ]);
 
-            Cache::forget('alasan_data');
-            Log::info('Cache cleared for alasan_data');
+            $this->clearAlasanCache();
 
-            Log::info('Alasan created successfully', ['alasan' => $alasan->toArray()]);
+            Log::info('Alasan created', ['alasan' => $alasan->toArray()]);
+
             return response()->json([
-                'status' => 'success',
                 'message' => 'Alasan berhasil ditambahkan.',
                 'data' => null,
             ], 201);
+        } catch (ValidationException $e) {
+            Log::error('Validation failed', [
+                'errors' => $e->errors(),
+                'request_data' => $request->all(),
+            ]);
+
+            $errorMessage = $e->errors()['nama'][0] ?? 'Validasi gagal.';
+            return response()->json([
+                'message' => $errorMessage,
+                'data' => null,
+            ], 422);
         } catch (\Exception $e) {
             Log::error('Error creating alasan', [
                 'message' => $e->getMessage(),
-                'stack' => $e->getTraceAsString()
+                'stack' => $e->getTraceAsString(),
             ]);
+
             return response()->json([
-                'status' => 'error',
-                'message' => 'Gagal menambahkan alasan.',
+                'message' => 'Gagal menambahkan alasan: ' . $e->getMessage(),
+                'data' => null,
             ], 500);
         }
     }
 
+    /**
+     * Delete an alasan.
+     *
+     * @param string $id
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function destroy($id)
     {
         Log::info('Starting deleteAlasan', [
             'id' => $id,
-            'timestamp' => now()
+            'timestamp' => now(),
         ]);
 
         $alasan = Alasan::find($id);
         if (!$alasan) {
             Log::warning('Alasan not found for deletion', ['id' => $id]);
             return response()->json([
-                'status' => 'error',
-                'message' => 'Alasan tidak ditemukan.'
+                'message' => 'Alasan tidak ditemukan.',
+                'data' => null,
             ], 404);
         }
 
         try {
             $alasan->delete();
+            $this->clearAlasanCache();
 
-            Cache::forget('alasan_data');
-            Log::info('Cache cleared for alasan_data');
+            Log::info('Alasan deleted', ['id' => $id]);
 
-            Log::info('Alasan deleted successfully', ['id' => $id]);
             return response()->json([
-                'status' => 'success',
-                'message' => 'Alasan berhasil dihapus.'
+                'message' => 'Alasan berhasil dihapus.',
+                'data' => null,
             ], 200);
         } catch (\Exception $e) {
             Log::error('Error deleting alasan', [
                 'message' => $e->getMessage(),
                 'stack' => $e->getTraceAsString(),
-                'id' => $id
+                'id' => $id,
             ]);
+
             return response()->json([
-                'status' => 'error',
-                'message' => 'Gagal menghapus alasan.',
-                'details' => $e->getMessage()
+                'message' => 'Gagal menghapus alasan: ' . $e->getMessage(),
+                'data' => null,
+            ], 500);
+        }
+    }
+
+    /**
+     * Clear the alasan cache.
+     *
+     * @return void
+     */
+    private function clearAlasanCache()
+    {
+        Cache::forget('alasan_data');
+        Log::info('Cache cleared for alasan_data');
+    }
+
+    public function getAllAlasan()
+    {
+        try {
+            Log::info('Alasan data NOT fetched from database', ['timestamp' => now()]);
+            $data = Cache::rememberForever('alasan_data', function () {
+                Log::info('Alasan data fetched from database', ['timestamp' => now()]);
+                return Alasan::all();
+            });
+
+            return response()->json([
+                'message' => 'Alasan data retrieved successfully',
+                'data' => AlasanResource::collection($data)
+            ], 200);
+        } catch (\Exception $e) {
+            Log::error('Error fetching alasan data', [
+                'error' => $e->getMessage(),
+                'timestamp' => now()
+            ]);
+
+            return response()->json([
+                'message' => 'Failed to retrieve alasan data: ' . $e->getMessage()
             ], 500);
         }
     }

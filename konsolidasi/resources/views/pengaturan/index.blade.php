@@ -58,5 +58,21 @@
                 Aktifkan
             </x-primary-button>
         </div>
+
+        <!-- Efek Section -->
+        <div class="mt-6">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Efek</h2>
+            <div class="mt-2">
+                <span class="block text-sm font-medium text-gray-800 dark:text-gray-300">Pusat</span>
+                <ul class="list-disc list-outside ml-5 mt-1 text-xs text-gray-600 dark:text-gray-400">
+                    <li>Default bulan tahun untuk tiap halaman</li>
+                    <li>Penambahan komoditas rekonsiliasi hanya di bulan tahun aktif</li>
+                </ul>
+                <span class="block text-sm font-medium text-gray-800 dark:text-gray-300 mt-3">Satuan Kerja Lainnya</span>
+                <ul class="list-disc list-outside ml-5 mt-1 text-xs text-gray-600 dark:text-gray-400">
+                    <li>Hanya dapat melihat & mengisi rekonsiliasi di bulan tahun aktif</li>
+                </ul>
+            </div>
+        </div>
     </div>
 </x-one-panel-layout>

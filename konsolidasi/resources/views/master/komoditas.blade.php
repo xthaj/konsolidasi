@@ -4,7 +4,6 @@
     @vite(['resources/css/app.css', 'resources/js/master/komoditas.js'])
     @endsection
 
-    <!-- New Success Modal -->
     <!-- Success Modal -->
     <x-modal name="success-modal" title="Berhasil" maxWidth="md">
         <div class="text-gray-900 dark:text-white">
@@ -20,13 +19,12 @@
     </x-modal>
 
 
-
     <!-- Modal for Adding Komoditas -->
     <x-modal name="add-komoditas" focusable title="Konfirmasi Penambahan Komoditas">
         <div class="px-6 py-4">
             <div class="mb-4">
                 <label class="block mb-2 text-sm font-medium text-gray-900">Nama Komoditas</label>
-                <input type="text" x-model="newKomoditas.nama_komoditas" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5" required>
+                <input maxlength="200" type="text" x-model="newKomoditas.nama_komoditas" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5" required>
             </div>
             <div class="mt-6 flex justify-end gap-3">
                 <x-secondary-button x-on:click="$dispatch('close')">Batal</x-secondary-button>
@@ -44,7 +42,7 @@
             </div>
             <div class="mb-4">
                 <label class="block mb-2 text-sm font-medium text-gray-900">Nama Komoditas</label>
-                <input type="text" x-model="editKomoditas.nama_komoditas" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5" required>
+                <input maxlength="200" type="text" x-model="editKomoditas.nama_komoditas" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5" required>
             </div>
             <div class="mt-6 flex justify-end gap-3">
                 <x-secondary-button x-on:click="$dispatch('close')">Batal</x-secondary-button>

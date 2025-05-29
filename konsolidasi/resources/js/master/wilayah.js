@@ -15,7 +15,7 @@ Alpine.data("webData", () => ({
     async init() {
         this.loading = true;
         try {
-            const response = await fetch("/api/master-wilayah");
+            const response = await fetch("/all-wilayah");
             const result = await response.json();
             this.wilayahData = result.data || [];
         } catch (error) {

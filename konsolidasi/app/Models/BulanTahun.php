@@ -12,6 +12,7 @@ class BulanTahun extends Model
     protected $table = 'bulan_tahun';
     protected $primaryKey = 'bulan_tahun_id';
     protected $fillable = ['bulan', 'tahun', 'aktif'];
+    public $timestamps = false;
 
     public function inflasi()
     {

@@ -36,7 +36,7 @@ Alpine.data("webData", () => ({
         this.loading = true;
         try {
             // Fetch Bulan and Tahun
-            const bulanTahunResponse = await fetch("/api/bulan_tahun");
+            const bulanTahunResponse = await fetch("/bulan-tahun");
             const bulanTahunData = await bulanTahunResponse.json();
 
             const aktifData = bulanTahunData.data.bt_aktif;

@@ -57,13 +57,13 @@ Alpine.data("webData", () => ({
         try {
             const [wilayahResponse, komoditasResponse, bulanTahunResponse] =
                 await Promise.all([
-                    fetch("/api/wilayah").then((res) =>
+                    fetch("/segmented-wilayah").then((res) =>
                         this.handleApiResponse(res, "Wilayah")
                     ),
-                    fetch("/api/komoditas").then((res) =>
+                    fetch("/all-komoditas").then((res) =>
                         this.handleApiResponse(res, "Komoditas")
                     ),
-                    fetch("/api/bulan_tahun").then((res) =>
+                    fetch("/bulan-tahun").then((res) =>
                         this.handleApiResponse(res, "BulanTahun")
                     ),
                 ]);

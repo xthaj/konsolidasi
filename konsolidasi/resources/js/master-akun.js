@@ -70,7 +70,7 @@ Alpine.data("webData", () => ({
     async init() {
         this.loading = true;
         try {
-            const wilayahResponse = await fetch("/api/wilayah");
+            const wilayahResponse = await fetch("/segmented-wilayah");
             if (!wilayahResponse.ok) {
                 throw new Error(
                     `HTTP error! status: ${wilayahResponse.status}`
@@ -401,7 +401,7 @@ Alpine.data("webData", () => ({
 
             const data = await response.json();
 
-            if (response.status !== 201) {
+            if (!response.ok) {
                 this.failMessage = data.message || "Failed to add user";
                 this.$dispatch("open-modal", "fail-update-bulan-tahun");
                 return;
@@ -658,7 +658,7 @@ Alpine.data("webData", () => ({
 
                 const result = await response.json();
 
-                if (response.status !== 200) {
+                if (!response.ok) {
                     this.modalMessage =
                         result.message || `Gagal menghapus pengguna`;
                     this.$dispatch("open-modal", "error-modal");

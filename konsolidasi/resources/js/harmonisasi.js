@@ -112,17 +112,17 @@ Alpine.data("webData", () => ({
                 provGeo,
                 kabkotGeo,
             ] = await Promise.all([
-                fetch("/api/wilayah").then((res) => {
+                fetch("/segmented-wilayah").then((res) => {
                     if (!res.ok)
                         throw new Error(`Wilayah API error: ${res.status}`);
                     return res.json();
                 }),
-                fetch("/api/komoditas").then((res) => {
+                fetch("/all-komoditas").then((res) => {
                     if (!res.ok)
                         throw new Error(`Komoditas API error: ${res.status}`);
                     return res.json();
                 }),
-                fetch("/api/bulan_tahun").then((res) => {
+                fetch("/bulan-tahun").then((res) => {
                     if (!res.ok)
                         throw new Error(`BulanTahun API error: ${res.status}`);
                     return res.json();

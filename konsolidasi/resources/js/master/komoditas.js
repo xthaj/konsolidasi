@@ -16,7 +16,7 @@ Alpine.data("webData", () => ({
     confirmAction: null,
 
     async fetchKomoditas() {
-        const komoditasResponse = await fetch("/api/komoditas");
+        const komoditasResponse = await fetch("/all-komoditas");
         const result = await komoditasResponse.json();
         this.komoditasData = result.data || [];
     },
@@ -53,18 +53,20 @@ Alpine.data("webData", () => ({
                 body: JSON.stringify(this.newKomoditas),
             });
 
-            const data = await response.json();
-
-            if (data.status !== "success") {
-                this.modalMessage = data.message || "Gagal menambah komoditas.";
+            const result = await response.json();
+            // 200 for get, 201 for post
+            if (!response.ok) {
+                this.modalMessage =
+                    result.message || "Gagal menambahkan komoditas.";
                 this.$dispatch("open-modal", "error-modal");
                 return;
             }
 
             this.modalMessage =
-                data.message || "Komoditas berhasil ditambahkan!";
+                result.message || "Komoditas berhasil ditambahkan!";
             this.$dispatch("open-modal", "success-modal");
             this.$dispatch("close");
+
             await this.fetchKomoditas(); // Re-fetch data
         } catch (error) {
             this.modalMessage = "Terjadi kesalahan saat menambah komoditas.";
@@ -91,20 +93,21 @@ Alpine.data("webData", () => ({
                 }
             );
 
-            const data = await response.json();
+            const result = await response.json();
 
-            if (data.status !== "success") {
+            if (!response.ok) {
                 this.modalMessage =
-                    data.message || "Gagal memperbarui komoditas.";
+                    result.message || "Gagal memperbarui komoditas.";
                 this.$dispatch("open-modal", "error-modal");
                 return;
             }
 
             this.modalMessage =
-                data.message || "Komoditas berhasil diperbarui!";
-            this.$dispatch("open-modal", "success-modal");
-            this.$dispatch("close");
+                result.message || "Komoditas berhasil diperbarui!";
+
             await this.fetchKomoditas(); // Re-fetch data
+            this.$dispatch("close");
+            this.$dispatch("open-modal", "success-modal");
         } catch (error) {
             this.modalMessage = "Terjadi kesalahan saat memperbarui komoditas.";
             this.$dispatch("open-modal", "error-modal");
@@ -137,17 +140,17 @@ Alpine.data("webData", () => ({
                     },
                 });
 
-                const data = await response.json();
+                const result = await response.json();
 
-                if (data.status !== "success") {
+                if (!response.ok) {
                     this.modalMessage =
-                        data.message || "Gagal menghapus komoditas.";
+                        result.message || "Gagal menghapus komoditas.";
                     this.$dispatch("open-modal", "error-modal");
                     return;
                 }
 
                 this.modalMessage =
-                    data.message || "Komoditas berhasil dihapus!";
+                    result.message || "Komoditas berhasil dihapus!";
                 this.$dispatch("open-modal", "success-modal");
                 await this.fetchKomoditas(); // Re-fetch data
             } catch (error) {

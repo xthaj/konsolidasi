@@ -26,7 +26,7 @@ Alpine.data("webData", () => ({
 
     async init() {
         try {
-            const wilayahResponse = await fetch("/api/wilayah");
+            const wilayahResponse = await fetch("/segmented-wilayah");
             if (!wilayahResponse.ok) {
                 throw new Error(
                     `HTTP error! status: ${wilayahResponse.status}`

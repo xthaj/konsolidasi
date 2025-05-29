@@ -9,24 +9,19 @@ use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\KomoditasController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AlasanController;
+use App\Http\Controllers\BulanTahunController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Log;
 use App\Http\Middleware\isPusat;
 use App\Models\BulanTahun;
-use App\Models\Komoditas;
 use App\Models\Wilayah;
-use App\Models\Alasan;
 use Illuminate\Support\Facades\Cache;
-use Maatwebsite\Excel\Facades\Excel;
-use App\Exports\KomoditasExport;
-use App\Exports\WilayahExport;
 use App\Http\Controllers\InflasiController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WilayahController;
-use App\Http\Resources\AlasanResource;
 use App\Http\Resources\WilayahResource;
 use App\Http\Resources\BulanTahunResource;
-use App\Http\Resources\KomoditasResource;
+
 
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth'])
@@ -97,95 +92,36 @@ Route::middleware('auth')->group(function () {
     Route::get('/pengaturan', [DataController::class, 'pengaturan'])->name('pengaturan');
 
     Route::post('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
-    // master
-    Route::get('/master/komoditas', [DataController::class, 'master_komoditas'])->name('master.komoditas');
-    Route::get('/master/wilayah', [WilayahController::class, 'index'])->name('master.wilayah');
-
-
-    Route::get('/api/master-wilayah', [WilayahController::class, 'getWilayah']);
-    Route::post('/wilayah', [WilayahController::class, 'store']);
-    Route::put('/wilayah/{kd_wilayah}', [WilayahController::class, 'update']);
-    Route::delete('/wilayah/{kd_wilayah}', [WilayahController::class, 'destroy']);
-
-    Route::get('/master/alasan', [DataController::class, 'master_alasan'])->name('master.alasan');
 });
 
 // APIs
-Route::get('/api/wilayah', function () {
-    Log::info('Wilayah data NOT fetched from database', ['timestamp' => now()]);
 
-    $data = Cache::rememberForever('wilayah_data', function () {
-        Log::info('Wilayah data fetched from database', ['timestamp' => now()]);
-        return [
-            'provinces' => WilayahResource::collection(Wilayah::where('flag', 2)->get()),
-            'kabkots' => WilayahResource::collection(Wilayah::where('flag', 3)->get()),
-        ];
-    });
 
-    return response()->json(['data' => $data]);
-});
 
-Route::get('/api/bulan_tahun', function () {
-    Log::info('BT aktif data NOT fetched from database', ['timestamp' => now()]);
 
-    $data = Cache::remember('bt_aktif', now()->addWeek(), function () {
-        Log::info('BT aktif fetched from database', ['timestamp' => now()]);
-
-        $btAktif = BulanTahun::where('aktif', 1)->first();
-        $minTahun = BulanTahun::min('tahun') ?? now()->year;
-        $maxTahun = BulanTahun::max('tahun') ?? now()->year;
-
-        $tahun = range($minTahun - 2, $maxTahun + 2);
-
-        return [
-            'bt_aktif' => $btAktif,
-            'tahun' => $tahun,
-        ];
-    });
-
-    return BulanTahunResource::make($data);
-});
-
-// Komoditas
+// master Section
+// komoditas section
+Route::get('/master/komoditas', [DataController::class, 'master_komoditas'])->name('master.komoditas');
 Route::post('/komoditas', [KomoditasController::class, 'store']); // Add Komoditas
 Route::put('/komoditas/{kd_komoditas}', [KomoditasController::class, 'update']); // Edit Komoditas
 Route::delete('/komoditas/{kd_komoditas}', [KomoditasController::class, 'destroy']); // Delete Komoditas
+Route::get('/all-komoditas', [KomoditasController::class, 'getAllKomoditas']); // Add Komoditas
 
-// NOTE: The APIs can be cleaned up further by using resource stuff
+// alasan section
+Route::get('/master/alasan', [DataController::class, 'master_alasan'])->name('master.alasan');
+Route::post('/alasan', [AlasanController::class, 'store']);
+Route::delete('/alasan/{id}', [AlasanController::class, 'destroy']);
+Route::get('/all-alasan', [AlasanController::class, 'getAllAlasan']);
 
-Route::get('/api/komoditas', function () {
-    Log::info('Komoditas data NOT fetched from database', ['timestamp' => now()]);
-    $data = Cache::rememberForever('komoditas_data', function () {
-        Log::info('Komoditas data fetched from database', ['timestamp' => now()]);
-        return Komoditas::all();
-    });
+// wilayah section
+Route::get('/master/wilayah', [WilayahController::class, 'index'])->name('master.wilayah');
 
-    return KomoditasResource::collection($data);
-});
+Route::get('/all-wilayah', [WilayahController::class, 'getAllWilayah']);
+Route::post('/segmented-wilayah', [WilayahController::class, 'getSegmentedWilayah']);
 
-
-
-Route::get('/api/alasan', function () {
-    Log::info('Alasan data NOT fetched from database', ['timestamp' => now()]);
-    $data = Cache::rememberForever('alasan_data', function () {
-        Log::info('Alasan data fetched from database', ['timestamp' => now()]);
-        return Alasan::all();
-    });
-    return AlasanResource::collection($data);
-});
-
-
-Route::get('/komoditas/export', function () {
-    return Excel::download(new KomoditasExport, 'master_komoditas.xlsx');
-});
-
-Route::get('/wilayah/export', function () {
-    return Excel::download(new WilayahExport, 'master_wilayah.xlsx');
-});
-
-
-
-Route::post('/update-bulan-tahun', [DataController::class, 'updateBulanTahun']);
+// bulan tahun section
+Route::post('/bulan-tahun', [BulanTahunController::class, 'update']);
+Route::get('/bulan-tahun', [BulanTahunController::class, 'get']);
 
 Route::get('/api/check-username', [RegisteredUserController::class, 'checkUsername']);
 Route::get('/rekonsiliasi/user-provinsi', [UserController::class, 'getProvinsi'])->name('rekon.get_provinsi')->middleware('auth');
@@ -193,8 +129,20 @@ Route::get('/rekonsiliasi/user-provinsi', [UserController::class, 'getProvinsi']
 Route::post('/api/inflasi-id', [DataController::class, 'findInflasiId']);
 Route::put('/api/data/inflasi/{id}', [InflasiController::class, 'update'])->name('inflasi.update');
 
-Route::post('/alasan', [AlasanController::class, 'store']);
-Route::delete('/alasan/{id}', [AlasanController::class, 'destroy']);
+// Unused
+// master downloads
+// Route::get('/komoditas/export', function () {
+//     return Excel::download(new KomoditasExport, 'master_komoditas.xlsx');
+// });
+
+// Route::get('/wilayah/export', function () {
+//     return Excel::download(new WilayahExport, 'master_wilayah.xlsx');
+// });
+
+// wilayah
+// Route::post('/wilayah', [WilayahController::class, 'store']);
+// Route::put('/wilayah/{kd_wilayah}', [WilayahController::class, 'update']);
+// Route::delete('/wilayah/{kd_wilayah}', [WilayahController::class, 'destroy']);
 
 
 require __DIR__ . '/auth.php';

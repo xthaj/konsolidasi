@@ -15,18 +15,6 @@ class WilayahController extends Controller
         return view('master.wilayah');
     }
 
-    public function getWilayah()
-    {
-        Log::info('Wilayah data fetched', ['timestamp' => now()]);
-
-        $data = Cache::rememberForever('all_wilayah_data', function () {
-            Log::info('Wilayah data fetched from database', ['timestamp' => now()]);
-            return WilayahResource::collection(Wilayah::all());
-        });
-
-        return response()->json(['data' => $data]);
-    }
-
     public function store(Request $request)
     {
         $request->validate([
@@ -88,5 +76,32 @@ class WilayahController extends Controller
         $lastWilayah = Wilayah::orderBy('kd_wilayah', 'desc')->first();
         $lastCode = $lastWilayah ? (int) $lastWilayah->kd_wilayah : 0;
         return str_pad($lastCode + 1, 4, '0', STR_PAD_LEFT);
+    }
+
+    public function getAllWilayah()
+    {
+        Log::info('Wilayah data fetched', ['timestamp' => now()]);
+
+        $data = Cache::rememberForever('all_wilayah_data', function () {
+            Log::info('Wilayah data fetched from database', ['timestamp' => now()]);
+            return WilayahResource::collection(Wilayah::all());
+        });
+
+        return response()->json(['data' => $data]);
+    }
+
+    public function getSegmentedWilayah()
+    {
+        Log::info('Wilayah data NOT fetched from database', ['timestamp' => now()]);
+
+        $data = Cache::rememberForever('wilayah_data', function () {
+            Log::info('Wilayah data fetched from database', ['timestamp' => now()]);
+            return [
+                'provinces' => WilayahResource::collection(Wilayah::where('flag', 2)->get()),
+                'kabkots' => WilayahResource::collection(Wilayah::where('flag', 3)->get()),
+            ];
+        });
+
+        return response()->json(['data' => $data]);
     }
 }
