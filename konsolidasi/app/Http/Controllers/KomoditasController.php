@@ -12,6 +12,11 @@ use App\Http\Resources\KomoditasResource;
 
 class KomoditasController extends Controller
 {
+    public function index()
+    {
+        return view('master.komoditas');
+    }
+
     /**
      * Store a new komoditas.
      *

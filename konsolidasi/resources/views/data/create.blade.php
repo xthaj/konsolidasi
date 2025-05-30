@@ -11,7 +11,7 @@
         </svg>
         <div>
             <span class="font-medium">Kesalahan:</span>
-            <ul class="mt-1.5 list-disc list-inside">
+            <ul class="mt-1.5">
                 <li>File terlalu besar. Maksimum 5MB.</li>
             </ul>
         </div>
@@ -25,7 +25,7 @@
         </svg>
         <div>
             <span class="font-medium">Kesalahan:</span>
-            <ul class="mt-1.5 list-disc list-inside">
+            <ul class="mt-1.5">
                 @foreach ($errors->all() as $error)
                 <li>{{ $error }}</li>
                 @endforeach
@@ -41,7 +41,7 @@
         </svg>
         <div>
             <span class="font-medium">Berhasil:</span>
-            <ul class="mt-1.5 list-disc list-inside">
+            <ul class="mt-1.5">
                 @if(is_array(session('success')))
                 @foreach(session('success') as $line)
                 <li>{{ $line }}</li>
@@ -74,10 +74,10 @@
 
             <!-- Tahun -->
             <div>
-                <label class="block mb-1 text-sm font-medium text-gray-900">Tahun</label>
+                <label class="block mb-2 text-sm font-medium text-gray-900">Tahun<span class="text-red-500 ml-1">*</span></label>
                 <select name="tahun" x-model="tahun" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                     <template x-for="year in tahunOptions" :key="year">
-                        <option :value="year" :selected="year === tahun" x-text="year"></option>
+                        <option :value="year" :selected="year == tahun" x-text="year"></option>
                     </template>
                 </select>
             </div>
@@ -92,9 +92,6 @@
                     <option value="04">Harga Produsen Desa</option>
                     <option value="05">Harga Produsen</option>
                 </select>
-                <!-- @error('level')
-                <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
-                @enderror -->
             </div>
         </div>
 
@@ -208,7 +205,7 @@
                 <label class="block mb-1 text-sm font-medium text-gray-900">Tahun</label>
                 <select name="tahun" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5  ">
                     <template x-for="year in tahunOptions" :key="year">
-                        <option :value="year" :selected="year === tahun" x-text="year"></option>
+                        <option :value="year" :selected="year == tahun" x-text="year"></option>
                     </template>
                 </select>
             </div>

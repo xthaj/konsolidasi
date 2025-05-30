@@ -149,4 +149,9 @@ class AlasanController extends Controller
             ], 500);
         }
     }
+
+    public function index()
+    {
+        return view('master.alasan');
+    }
 }

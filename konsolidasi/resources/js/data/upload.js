@@ -39,20 +39,19 @@ Alpine.data("webData", () => ({
     async init() {
         this.loading = true;
         try {
-            // Fetch Bulan and Tahun
-            const bulanTahunResponse = await fetch("/bulan-tahun");
-            const bulanTahunData = await bulanTahunResponse.json();
+            const res = await fetch("/bulan-tahun");
+            if (!res.ok)
+                throw new Error(`BulanTahun API error! status: ${res.status}`);
 
-            const aktifData = bulanTahunData.data.bt_aktif;
+            const data = await res.json();
+            const aktifData = data.data.bt_aktif;
+
             this.bulan = aktifData.bulan;
             this.tahun = aktifData.tahun;
+            this.activeBulan = aktifData.bulan;
+            this.activeTahun = aktifData.tahun;
+            this.tahunOptions = data.data.tahun || [aktifData.tahun];
 
-            this.activeBulan = this.bulan;
-            this.activeTahun = this.tahun;
-
-            this.tahunOptions =
-                bulanTahunData.data.tahun ||
-                (aktifData ? [aktifData.tahun] : []);
         } catch (error) {
             console.error("Failed to load data:", error);
         } finally {

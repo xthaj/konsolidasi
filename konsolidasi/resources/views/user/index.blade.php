@@ -1,8 +1,7 @@
 <x-one-panel-layout>
     @section('vite')
-    @vite(['resources/css/app.css', 'resources/js/master-akun.js'])
+    @vite(['resources/css/app.css', 'resources/js/administrasi/user.js'])
     @endsection
-
 
     <!-- Add User Modal -->
     <x-modal name="add-user" focusable title="Tambah Pengguna">
@@ -18,6 +17,7 @@
                         x-bind:class="{ 'border-red-600': newUser.errors.nama_lengkap }"
                         class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5"
                         placeholder="Muhammad Hatta"
+                        maxlength="255"
                         required>
                     <template x-if="newUser.errors.nama_lengkap">
                         <p class="mt-2 text-sm text-red-600" x-text="newUser.errors.nama_lengkap"></p>
@@ -163,6 +163,7 @@
                         x-model="editUser.nama_lengkap"
                         class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5"
                         placeholder="Muhammad Hatta"
+                        maxlength="255"
                         required>
                     <div class="mt-2 flex justify-end">
                         <x-primary-button type="submit">Update Nama Lengkap</x-primary-button>

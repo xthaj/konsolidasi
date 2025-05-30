@@ -17,7 +17,7 @@ class UserService
         // Define validation rules
         $rules = [
             'nama_lengkap' => ['required', 'string', 'max:255'],
-            'username' => ['required', 'string', 'min:7', 'max:255', 'unique:user,username', 'regex:/^[a-zA-Z0-9_]+$/'],
+            'username' => ['required', 'string', 'min:6', 'max:255', 'unique:user,username', 'regex:/^[a-zA-Z0-9_]+$/'],
             'password' => ['required', 'string', 'min:6', 'max:255'],
             'kd_wilayah' => ['required', 'string', 'max:6'],
             'level' => ['required', 'integer', 'in:0,1,2,3,4,5'],

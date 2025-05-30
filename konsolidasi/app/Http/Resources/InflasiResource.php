@@ -19,7 +19,7 @@ class InflasiResource extends JsonResource
             'nama_komoditas' => $this->nama_komoditas,
             'inflasi_id' => $this->inflasi_id ?? null,
             'nilai_inflasi' => $this->nilai_inflasi !== null ? number_format($this->nilai_inflasi, 2, '.', '') : '-',
-            'andil' => $this->andil !== null ? number_format($this->andil, 4, '.', '') : '-',
+            'andil' => $this->andil !== null ? number_format($this->andil, 2, '.', '') : '-',
             'kd_wilayah' => $this->kd_wilayah ?? null,
         ];
     }

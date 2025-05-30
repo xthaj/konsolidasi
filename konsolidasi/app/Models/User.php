@@ -130,7 +130,6 @@ class User extends Authenticatable
             3 => 'Operator Provinsi',
             4 => 'Admin Kabupaten/Kota',
             5 => 'Operator Kabupaten/Kota',
-            default => 'Unknown',
         };
     }
 
@@ -171,4 +170,8 @@ class User extends Authenticatable
             ? 'Pusat'
             : $this->wilayah->nama_wilayah;
     }
+
+    protected $casts = [
+        'level' => 'integer',
+    ];
 }
