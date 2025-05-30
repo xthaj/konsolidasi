@@ -247,7 +247,7 @@ class FinalImport implements ToCollection, WithHeadingRow, WithChunkReading
             if (!is_numeric($final_andilClean)) {
                 $this->throwError('final_andil harus numerik');
             }
-            $final_andil = round((float) $final_andilClean, 4);
+            $final_andil = round((float) $final_andilClean, 2);
         }
 
         // Check for duplicates in the current batch

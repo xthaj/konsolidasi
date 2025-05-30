@@ -268,7 +268,7 @@ class DataImport implements ToCollection, WithHeadingRow, WithChunkReading
             if (!is_numeric($andilClean)) {
                 $this->throwError('Andil harus numerik');
             }
-            $andil = round((float) $andilClean, 4);
+            $andil = round((float) $andilClean, 2);
         }
 
         // Validate rekonsiliasi_flag (boolean, 0 or 1)
