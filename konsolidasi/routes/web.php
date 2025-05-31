@@ -29,6 +29,14 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
 // Data routes, protected by both auth and ispusat middleware
 Route::middleware(['auth'])->group(function () {});
 
+Route::middleware('auth')->group(function () {
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    Route::post('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
+});
+
 // User management routes
 Route::get('/users', [UserController::class, 'index'])->name('user.index');
 
@@ -41,33 +49,30 @@ Route::delete('/user/{user_id}', [UserController::class, 'destroy']);
 // upload
 Route::get('/data/upload', [InflasiController::class, 'create'])->name('data.create');
 Route::post('/data/upload', [InflasiController::class, 'upload'])->name('data.upload');
-
 Route::post('/data/final-upload', [InflasiController::class, 'final_upload'])->name('data.final');
+// hapus data 1 bulan 1 level
 Route::post('/data/hapus', [InflasiController::class, 'hapus'])->name('data.hapus');
+// export
+Route::post('/data/export/final', [InflasiController::class, 'export_final'])->name('data.export.final');
+// ui, single inflasi
+Route::delete('/data/delete/{id}', [InflasiController::class, 'delete']);
+Route::patch('/data/update/{id}', [InflasiController::class, 'update']);
 
-Route::post('/data/export/final', [DataController::class, 'export_final'])->name('data.export.final');
+// Route::post('/data/store', [DataController::class, 'store'])->name('data.store');
+Route::get('/data/edit', [InflasiController::class, 'edit'])->name('data.edit');
+Route::get('/api/data/edit', [InflasiController::class, 'apiEdit']);
 
-Route::delete('/data/delete/{id}', [DataController::class, 'delete'])->name('data.delete');
-Route::post('/data/store', [DataController::class, 'store'])->name('data.store');
-Route::patch('/data/update/{id}', [DataController::class, 'update'])->name('data.update');
-Route::get('/data/edit', [DataController::class, 'edit'])->name('data.edit');
-Route::get('/api/data/edit', [DataController::class, 'apiEdit'])->name('api.data.edit');
-
-Route::get('/data/finalisasi', [DataController::class, 'finalisasi'])->name('data.finalisasi');
-
+Route::get('/data/finalisasi', [InflasiController::class, 'finalisasi'])->name('data.finalisasi');
 
 //visualisasi
 Route::get('/visualisasi', [VisualisasiController::class, 'create'])->name('visualisasi.create');
 Route::get('/api/visualisasi', [VisualisasiController::class, 'apiVisualisasi']);
-Route::post('/visualisasi/cek-data', [VisualisasiController::class, 'cekData']);
+// Route::post('/visualisasi/cek-data', [VisualisasiController::class, 'cekData']);
 
-
-//Bulan tahun
 
 
 // Rekonsiliasi
 Route::get('/rekonsiliasi/pemilihan', [RekonsiliasiController::class, 'pemilihan'])->name('rekon.pemilihan');
-
 Route::get('/rekonsiliasi/pembahasan', [RekonsiliasiController::class, 'pembahasan'])->name('rekon.pembahasan');
 Route::get('/api/rekonsiliasi/pembahasan', [RekonsiliasiController::class, 'apiPembahasan']);
 Route::patch('/api/rekonsiliasi/{id}/pembahasan', [RekonsiliasiController::class, 'updatePembahasan']);
@@ -81,15 +86,10 @@ Route::post('/rekonsiliasi/confirm', [DataController::class, 'confirmRekonsilias
 Route::put('/rekonsiliasi/update/{id}', [RekonsiliasiController::class, 'update'])->name('rekonsiliasi.update');
 Route::delete('/rekonsiliasi/{id}', [RekonsiliasiController::class, 'destroy'])->name('rekon.destroy');
 
+// so far isi pengaturan hanyalah bulantahun
+Route::get('/pengaturan', [BulanTahunController::class, 'pengaturan'])->name('pengaturan');
 
-Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-    Route::get('/pengaturan', [DataController::class, 'pengaturan'])->name('pengaturan');
 
-    Route::post('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
-});
 
 // master Section
 // komoditas section
@@ -136,7 +136,5 @@ Route::put('/api/data/inflasi/{id}', [InflasiController::class, 'update'])->name
 // Route::delete('/wilayah/{kd_wilayah}', [WilayahController::class, 'destroy']);
 
 // Route::post('/data/final-hapus', [DataController::class, 'hapus_final'])->name('data.hapus.final');
-
-
 
 require __DIR__ . '/auth.php';

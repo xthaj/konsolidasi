@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\InflasiExport;
+use App\Http\Resources\InflasiAllLevelResource;
+use App\Http\Resources\InflasiResource;
+use App\Models\Komoditas;
 use App\Models\LevelHarga;
-
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use App\Models\Inflasi;
@@ -15,14 +18,27 @@ use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\DataImport;
 use App\Models\BulanTahun;
 use App\Imports\FinalImport;
+use App\Models\Wilayah;
+
+// InflasiAllLevelResource
+// InflasiResource
+// Wilayah
+
 
 
 
 class InflasiController extends Controller
 {
+    // views
+
     public function create(): View
     {
         return view('data.create');
+    }
+
+    public function finalisasi()
+    {
+        return view('data.finalisasi');
     }
 
     /**
@@ -455,6 +471,294 @@ class InflasiController extends Controller
             DB::rollBack();
             return response()->json([
                 'message' => 'Gagal memperbarui data: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function export_final(Request $request)
+    {
+        Log::info('Export final method started', $request->all());
+
+        $request->merge(['bulan' => (int) $request->bulan]);
+
+        $validated = $request->validate([
+            'bulan' => 'required|integer|between:1,12',
+            'tahun' => 'required|integer|min:2000|max:2100',
+            'level' => 'required|string|in:01,02,03,04,05',
+        ]);
+
+        $response = [
+            'success' => false,
+            'message' => [],
+            'data' => [],
+        ];
+
+        try {
+            $bulanTahun = BulanTahun::where('bulan', $validated['bulan'])
+                ->where('tahun', $validated['tahun'])
+                ->first();
+
+            if (!$bulanTahun) {
+                $response['message'] = ["Tidak ada data tersedia untuk periode tersebut."];
+                return $request->wantsJson()
+                    ? response()->json($response)
+                    : redirect()->back()->with('response', $response);
+            }
+
+            $count = Inflasi::where('bulan_tahun_id', $bulanTahun->bulan_tahun_id)
+                ->where('kd_level', $validated['level'])
+                ->count();
+
+            if ($count === 0) {
+                $response['message'] = ["Tidak ada data yang sesuai untuk diunduh."];
+                return $request->wantsJson()
+                    ? response()->json($response)
+                    : redirect()->back()->with('response', $response);
+            }
+
+            $namaBulan = BulanTahun::getBulanName($validated['bulan']);
+            $namaLevel = LevelHarga::getLevelHargaNameShortened($validated['level']);
+            $fileName = "Konsolidasi_{$namaBulan}_{$validated['tahun']}_{$namaLevel}.xlsx";
+            return Excel::download(new InflasiExport($validated['bulan'], $validated['tahun'], $validated['level']), $fileName);
+        } catch (\Exception $e) {
+            $response['message'] = ["Terjadi kesalahan saat mengunduh data: {$e->getMessage()}"];
+            Log::error("Export final error: {$e->getMessage()}", ['trace' => $e->getTraceAsString()]);
+            return $request->wantsJson()
+                ? response()->json($response)
+                : redirect()->back()->with('response', $response);
+        }
+    }
+
+    // the view guy
+    public function edit(Request $request): View
+    {
+        return view('data.edit');
+    }
+
+    // the api caller
+    public function apiEdit(Request $request)
+    {
+        // Fallback to active BulanTahun if bulan or tahun is missing
+        if (!$request->filled('bulan') || !$request->filled('tahun')) {
+            $aktifBulanTahun = BulanTahun::where('aktif', 1)->first();
+            if ($aktifBulanTahun) {
+                $request->merge([
+                    'bulan' => $aktifBulanTahun->bulan,
+                    'tahun' => $aktifBulanTahun->tahun,
+                ]);
+            }
+        }
+
+        // Extract request parameters with defaults
+        $bulan = $request->input('bulan');
+        $tahun = $request->input('tahun');
+        $kd_level = $request->input('kd_level', '01');
+        $kd_wilayah = $request->input('kd_wilayah', '0');
+        $kd_komoditas = $request->input('kd_komoditas', '');
+        $sortColumn = $request->input('sort', 'kd_komoditas');
+        $sortDirection = $request->input('direction', 'asc');
+
+        // Validate request
+        $validator = Validator::make($request->all(), [
+            'bulan' => 'required|integer|min:1|max:12',
+            'tahun' => 'required|integer',
+            'kd_level' => 'required|in:00,01,02,03,04,05',
+            'kd_wilayah' => 'required|string',
+            'kd_komoditas' => 'nullable|string',
+            'sort' => 'in:kd_komoditas,nilai_inflasi',
+            'direction' => 'in:asc,desc',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => $validator->errors()->first(),
+            ], 422);
+        }
+
+        // Merge defaults back into request
+        $request->merge([
+            'kd_level' => $kd_level,
+            'kd_wilayah' => $kd_wilayah,
+        ]);
+
+        // Initialize response
+        $response = [
+            'message' => 'Data ditemukan.',
+            'data' => [
+                'inflasi' => [],
+                'title' => $this->generateTableTitle($request),
+                'kd_wilayah' => $kd_wilayah, // Include kd_wilayah in response
+            ],
+            'meta' => [
+                'timestamp' => now()->toIso8601String(),
+            ],
+        ];
+
+        // Fetch BulanTahun record
+        $bulanTahun = BulanTahun::where('bulan', $bulan)
+            ->where('tahun', $tahun)
+            ->first();
+
+        if (!$bulanTahun) {
+            return response()->json([
+                'message' => 'Tidak ada data tersedia untuk bulan dan tahun yang dipilih.',
+                'data' => [
+                    'inflasi' => [],
+                    'title' => $this->generateTableTitle($request),
+                    'kd_wilayah' => $kd_wilayah,
+                ],
+                'meta' => [
+                    'timestamp' => now()->toIso8601String(),
+                ],
+            ], 404);
+        }
+
+        // Case: kd_level is '00' (all price levels)
+        if ($kd_level === '00') {
+            $query = Komoditas::query()
+                ->leftJoin('inflasi', function ($join) use ($bulanTahun, $kd_wilayah) {
+                    $join->on('komoditas.kd_komoditas', '=', 'inflasi.kd_komoditas')
+                        ->where('inflasi.bulan_tahun_id', $bulanTahun->bulan_tahun_id)
+                        ->where('inflasi.kd_wilayah', $kd_wilayah);
+                })
+                ->select('komoditas.kd_komoditas', 'komoditas.nama_komoditas')
+                ->selectRaw("
+                MAX(CASE WHEN inflasi.kd_level = '01' THEN inflasi.nilai_inflasi END) as inflasi_01,
+                MAX(CASE WHEN inflasi.kd_level = '01' THEN inflasi.andil END) as andil_01,
+                MAX(CASE WHEN inflasi.kd_level = '02' THEN inflasi.nilai_inflasi END) as inflasi_02,
+                MAX(CASE WHEN inflasi.kd_level = '02' THEN inflasi.andil END) as andil_02,
+                MAX(CASE WHEN inflasi.kd_level = '03' THEN inflasi.nilai_inflasi END) as inflasi_03,
+                MAX(CASE WHEN inflasi.kd_level = '03' THEN inflasi.andil END) as andil_03,
+                MAX(CASE WHEN inflasi.kd_level = '04' THEN inflasi.nilai_inflasi END) as inflasi_04,
+                MAX(CASE WHEN inflasi.kd_level = '04' THEN inflasi.andil END) as andil_04,
+                MAX(CASE WHEN inflasi.kd_level = '05' THEN inflasi.nilai_inflasi END) as inflasi_05,
+                MAX(CASE WHEN inflasi.kd_level = '05' THEN inflasi.andil END) as andil_05
+            ")
+                ->groupBy('komoditas.kd_komoditas', 'komoditas.nama_komoditas');
+
+            if ($kd_komoditas) {
+                $query->where('komoditas.kd_komoditas', $kd_komoditas);
+            }
+
+            // Handle sorting
+            if ($sortColumn === 'nilai_inflasi') {
+                // Sort by a specific aggregated column, e.g., inflasi_01 (Harga Konsumen Kota)
+                $query->orderByRaw('MAX(CASE WHEN inflasi.kd_level = "01" THEN inflasi.nilai_inflasi END) ' . $sortDirection);
+            } else {
+                // Sort by kd_komoditas
+                $query->orderBy('komoditas.kd_komoditas', $sortDirection);
+            }
+
+            $inflasi = $query->get();
+        } else {
+            // Case: Specific kd_level
+            $query = Komoditas::query()
+                ->leftJoin('inflasi', function ($join) use ($bulanTahun, $kd_level, $kd_wilayah) {
+                    $join->on('komoditas.kd_komoditas', '=', 'inflasi.kd_komoditas')
+                        ->where('inflasi.bulan_tahun_id', $bulanTahun->bulan_tahun_id)
+                        ->where('inflasi.kd_level', $kd_level)
+                        ->where('inflasi.kd_wilayah', $kd_wilayah);
+                })
+                ->select(
+                    'komoditas.kd_komoditas',
+                    'komoditas.nama_komoditas',
+                    'inflasi.inflasi_id',
+                    'inflasi.nilai_inflasi',
+                    'inflasi.andil',
+                    'inflasi.kd_wilayah'
+                );
+
+            if ($kd_komoditas) {
+                $query->where('komoditas.kd_komoditas', $kd_komoditas);
+            }
+
+            $query->orderBy($sortColumn, $sortDirection);
+            $inflasi = $query->get();
+        }
+
+        if ($inflasi->isEmpty()) {
+            return response()->json([
+                'message' => 'Tidak ada data inflasi tersedia untuk filter tersebut.',
+                'data' => [
+                    'inflasi' => [],
+                    'title' => $this->generateTableTitle($request),
+                    'kd_wilayah' => $kd_wilayah,
+                ],
+                'meta' => [
+                    'timestamp' => now()->toIso8601String(),
+                ],
+            ], 404);
+        }
+
+        // Transform data based on kd_level
+        $response['data']['inflasi'] = $kd_level === '00'
+            ? InflasiAllLevelResource::collection($inflasi)
+            : InflasiResource::collection($inflasi);
+
+        return response()->json($response, 200);
+    }
+
+    /**
+     * Generate the table title based on request parameters
+     */
+    private function generateTableTitle(Request $request): string
+    {
+        $bulan = $request->bulan;
+        $tahun = $request->tahun;
+        $kd_level = $request->kd_level;
+        $kd_wilayah = $request->kd_wilayah;
+
+        log::info('Generating table title', [
+            'bulan' => $bulan,
+            'tahun' => $tahun,
+            'kd_level' => $kd_level,
+            'kd_wilayah' => $kd_wilayah,
+        ]);
+
+        // Default title
+        $title = 'Inflasi';
+
+        // Wilayah
+        $wilayah = Wilayah::getWilayahName($kd_wilayah);
+
+        // Level Harga
+        $levelHarga = LevelHarga::getLevelHargaNameComplete($kd_level);
+
+        // Month and Year
+        $monthName = BulanTahun::getBulanName($bulan);
+
+        $title = "Inflasi {$wilayah} {$levelHarga} {$monthName} {$tahun} (dalam persen)";
+
+        return $title;
+    }
+
+    // singles
+
+    public function delete($id)
+    {
+        try {
+            // Find the Inflasi record or fail with a 404
+            $inflasi = Inflasi::findOrFail($id);
+
+            // Delete the Inflasi record
+            $inflasi->delete();
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Data inflasi berhasil dihapus.',
+                'data' => null,
+            ], 200);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            // Handle case where Inflasi record is not found
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Data inflasi tidak ditemukan.',
+                'data' => null,
+            ], 404);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal menghapus data inflasi. Silakan coba lagi.',
+                'data' => null,
             ], 500);
         }
     }

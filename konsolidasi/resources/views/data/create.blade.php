@@ -54,9 +54,24 @@
     </div>
     @endif
 
-    <div class="my-4">
-        <h1 class="text-lg font-semibold">Upload/Update Data</h1>
+    <div class="my-4 flex">
+        <h1 class="text-lg font-semibold mr-2">Upload/Update Data</h1>
+
+        <!-- tooltip -->
+        <span data-tooltip-target="tooltip" data-tooltip-placement="bottom" class="material-symbols-rounded">
+            info
+        </span>
+        <!-- <button  type="button" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">Default tooltip</button> -->
+
+        <div id="tooltip" role="tooltip" class="absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
+            <ul>
+                <li>1. Gunakan kode komoditas tanpa padding (contoh: 0, bukan 000)</li>
+                <li>2. Gunakan kode 1 untuk membuat rekonsiliasi, 0 untuk tidak membuat rekonsiliasi</li>
+            </ul>
+            <div class="tooltip-arrow" data-popper-arrow></div>
+        </div>
     </div>
+
 
     <!-- Upload Form -->
     <form action="{{ route('data.upload') }}" method="POST" enctype="multipart/form-data">

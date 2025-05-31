@@ -89,7 +89,7 @@
         <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
             <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                 <tr>
-                    <th scope="col" class="px-6 py-3">Kode Komoditas</th>
+                    <th scope="col" class="px-6 py-3 text-right">Kode Komoditas</th>
                     <th scope="col" class="px-6 py-3">Nama Komoditas</th>
                     <th scope="col" class="px-6 py-3 text-right">Aksi</th>
                 </tr>
@@ -97,7 +97,7 @@
             <tbody>
                 <template x-for="komoditas in komoditasData" :key="komoditas.kd_komoditas">
                     <tr class="bg-white border-b border-gray-200">
-                        <td class="px-6 py-4" x-text="komoditas.kd_komoditas"></td>
+                        <td class="px-6 py-4 text-right" x-text="komoditas.kd_komoditas"></td>
                         <td class="px-6 py-4" x-text="komoditas.nama_komoditas"></td>
                         <td class="px-6 py-4 text-right">
                             <button @click="openEditKomoditasModal(komoditas)" class="font-medium text-blue-600 dark:text-blue-500 hover:underline mr-3">Edit</button>

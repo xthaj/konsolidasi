@@ -277,13 +277,11 @@ Alpine.data("webData", () => ({
             const result = await response.json();
 
             if (!response.ok) {
-                this.status = "error";
                 this.modalMessage = result.message || "Gagal memperbarui data";
                 this.$dispatch("open-modal", "error-modal");
                 return;
             }
 
-            this.status = "success";
             this.modalMessage = "Data inflasi berhasil diperbarui";
             this.$dispatch("open-modal", "success-modal");
             this.$dispatch("close-modal", "edit-modal");
@@ -292,7 +290,6 @@ Alpine.data("webData", () => ({
             await this.fetchData(this.data.inflasi.current_page || 1);
         } catch (error) {
             console.error("Failed to update data:", error);
-            this.status = "error";
             this.modalMessage = "Gagal memperbarui data";
             this.$dispatch("open-modal", "error-modal");
         } finally {
@@ -366,15 +363,14 @@ Alpine.data("webData", () => ({
             });
 
             const response = await fetch(`/api/data/edit?${params.toString()}`);
+            const result = await response.json();
+
             if (!response.ok) {
-                const result = await response.json();
                 throw new Error(
                     result.message || `HTTP error! status: ${response.status}`
                 );
             }
 
-            const result = await response.json();
-            this.status = result.data.inflasi.length ? "success" : "no_data";
             this.message = result.message;
             this.data = {
                 inflasi: result.data.inflasi,
@@ -384,7 +380,6 @@ Alpine.data("webData", () => ({
             };
         } catch (error) {
             console.error("Failed to fetch data:", error);
-            this.status = "error";
             this.message = error.message || "Gagal memuat data.";
             this.data.inflasi = [];
         }

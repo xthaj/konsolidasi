@@ -37,13 +37,17 @@ class KomoditasController extends Controller
                 'nama_komoditas.max' => 'Nama komoditas tidak boleh melebihi 255 karakter.',
             ]);
 
+            // Find the last kd_komoditas, cast to integer, and increment
             $lastKomoditas = Komoditas::orderBy(DB::raw('CAST(kd_komoditas AS INT)'), 'desc')->first();
-            $lastNumber = $lastKomoditas ? (int) $lastKomoditas->kd_komoditas : 0;
-            $kd_komoditas = str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
+            $lastNumber = $lastKomoditas ? (int) $lastKomoditas->kd_komoditas : -1; // Start at -1 to get 0 for first entry
+            $newKdKomoditas = $lastNumber + 1;
 
+            // Create the new komoditas
             $komoditas = Komoditas::create([
-                'kd_komoditas' => $kd_komoditas,
+                'kd_komoditas' => $newKdKomoditas,
                 'nama_komoditas' => $validated['nama_komoditas'],
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
 
             $this->clearKomoditasCache();
@@ -52,7 +56,7 @@ class KomoditasController extends Controller
 
             return response()->json([
                 'message' => 'Komoditas berhasil ditambahkan.',
-                'data' => null,
+                'data' => new KomoditasResource($komoditas), // Return the created resource
             ], 201);
         } catch (ValidationException $e) {
             Log::error('Validation failed', [

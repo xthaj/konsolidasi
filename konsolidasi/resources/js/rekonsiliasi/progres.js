@@ -178,17 +178,17 @@ Alpine.data("webData", () => ({
     },
 
     checkFormValidity() {
-        if (
-            !this.bulan ||
-            !this.tahun ||
-            !this.selectedKdLevel ||
-            !this.status ||
-            !this.wilayahLevel
-        ) {
-            this.errorMessage =
-                "Harap isi bulan, tahun, level harga, status, dan level wilayah.";
-            return false;
-        }
+        // if (
+        //     !this.bulan ||
+        //     !this.tahun ||
+        //     !this.selectedKdLevel ||
+        //     !this.status ||
+        //     !this.wilayahLevel
+        // ) {
+        //     this.errorMessage =
+        //         "Harap isi bulan, tahun, level harga, status, dan level wilayah.";
+        //     return false;
+        // }
         if (
             this.wilayahLevel === "semua" ||
             this.wilayahLevel === "semua-provinsi" ||
@@ -231,29 +231,24 @@ Alpine.data("webData", () => ({
                 status_rekon: this.status_rekon,
             });
             const response = await fetch(`/api/rekonsiliasi/progres?${params}`);
-
             const result = await response.json();
-            if (
-                !response.ok ||
-                result.status === "validation_error" ||
-                result.status === "unauthorized"
-            ) {
-                this.errorMessage = result.message;
-                this.data = {
-                    rekonsiliasi: [],
-                    title: result.data?.title || "Rekonsiliasi",
-                };
-                this.status = result.status;
-                return;
+
+            if (!response.ok) {
+                throw new Error(
+                    result.message || `HTTP error! status: ${response.status}`
+                );
             }
-            this.data.rekonsiliasi = result.data.rekonsiliasi || [];
-            this.data.title = result.data.title || "Rekonsiliasi";
-            this.status = result.status;
+            
             this.message = result.message;
+            this.data = {
+                rekonsiliasi: result.data.rekonsiliasi || [],
+                title: result.data.title || "Rekonsiliasi",
+            }
+
         } catch (error) {
-            console.error("Fetch error:", error);
-            this.errorMessage = "Gagal memuat data.";
-            this.status = "error";
+            console.error("Failed to fetch data:", error);
+            this.message = error.message || "Gagal memuat data.";
+            this.data.rekonsiliasi = [];
         }
     },
 

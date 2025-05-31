@@ -21,7 +21,7 @@ class PengisianRekonsiliasiResource extends JsonResource
             'kd_wilayah' => $this->inflasi->kd_wilayah,
             'nama_wilayah' => $this->inflasi->wilayah->nama_wilayah,
             'kd_level' => $this->inflasi->kd_level,
-            'nilai_inflasi' => $this->inflasi->nilai_inflasi,
+            'nilai_inflasi' => $this->inflasi->nilai_inflasi !== null ? number_format($this->inflasi->nilai_inflasi, 2, '.', '') : '-',
             'user_id' => $this->user_id,
             'alasan' => $this->alasan,
             'detail' => $this->detail,

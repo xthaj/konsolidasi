@@ -108,47 +108,25 @@ class RekonsiliasiController extends Controller
     private function fetchRekonsiliasiData(Request $request, bool $isApi = false, bool $unused = false)
     {
         // Helper: Return error response
-        $errorResponse = fn(string $message, string $status, int $code) => response()->json([
+        $errorResponse = fn(string $message, int $code) => response()->json([
             'message' => $message,
-            'status' => $status,
-            'data' => [
-                'rekonsiliasi' => null,
-                'title' => 'Rekonsiliasi'
-            ],
+            'data' => ['rekonsiliasi' => null, 'title' => 'Rekonsiliasi'],
         ], $code);
 
         // Step 1: Get user and region code
-        $user = null;
-        if ($request->input('user_id')) {
-            $user = User::find($request->input('user_id'));
-            if (!$user) {
-                return response()->json([
-                    'status' => 'user_not_found',
-                    'message' => 'User tidak ditemukan.',
-                    'data' => null,
-                ], 404);
-            }
-        } else {
-            $user = Auth::user();
-            if (!$user) {
-                return response()->json([
-                    'status' => 'unauthenticated',
-                    'message' => 'User tidak ditemukan atau belum login.',
-                    'data' => null,
-                ], 401);
-            }
-        }
+        $user = $request->input('user_id')
+            ? User::find($request->input('user_id')) ?? $errorResponse('User tidak ditemukan.', 404)
+            : Auth::user() ?? $errorResponse('User tidak ditemukan atau belum login.', 401);
+
         $userKdWilayah = $user->kd_wilayah;
 
         // Step 2: Fetch active period
-        $activeBulanTahun = BulanTahun::where('aktif', 1)->first();
-        if (!$activeBulanTahun) {
-            return $errorResponse('Tidak ada periode aktif.', 'no_period', 400);
-        }
+        $activeBulanTahun = BulanTahun::where('aktif', 1)->first()
+            ?? $errorResponse('Tidak ada periode aktif.', 400);
 
         // Step 3: Set defaults based on user region
         $defaults = match (true) {
-            $userKdWilayah === '0' => [
+            $user->isPusat() => [
                 'bulan' => $activeBulanTahun->bulan,
                 'tahun' => $activeBulanTahun->tahun,
                 'kd_level' => '01',
@@ -157,7 +135,7 @@ class RekonsiliasiController extends Controller
                 'status_rekon' => '00',
                 'kd_komoditas' => null,
             ],
-            strlen($userKdWilayah) === 2 => [
+            $user->isProvinsi() => [
                 'bulan' => $activeBulanTahun->bulan,
                 'tahun' => $activeBulanTahun->tahun,
                 'kd_level' => '00',
@@ -166,7 +144,7 @@ class RekonsiliasiController extends Controller
                 'status_rekon' => '00',
                 'kd_komoditas' => null,
             ],
-            strlen($userKdWilayah) === 4 => [
+            $user->isKabkot() => [
                 'bulan' => $activeBulanTahun->bulan,
                 'tahun' => $activeBulanTahun->tahun,
                 'kd_level' => '00',
@@ -175,13 +153,11 @@ class RekonsiliasiController extends Controller
                 'status_rekon' => '00',
                 'kd_komoditas' => null,
             ],
-            default => $errorResponse('Invalid user region code.', 'invalid_user', 400),
+            default => $errorResponse('Invalid user region code.', 400),
         };
 
-        // Step 4: Merge inputs
+        // Step 4: Merge and validate inputs
         $input = array_merge($defaults, $request->only(array_keys($defaults)));
-
-        // Step 5: Validate inputs
         $validator = Validator::make($input, [
             'bulan' => 'required|integer|between:1,12',
             'tahun' => 'required|integer|between:2000,2100',
@@ -193,37 +169,129 @@ class RekonsiliasiController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return $errorResponse($validator->errors()->first(), 'validation_error', 400);
+            return $errorResponse($validator->errors()->first(), 400);
         }
 
         extract($validator->validated());
 
-        // Step 6: Validate kd_wilayah for provinsi/kabkot and semua-provinsi/semua-kabkot
+        // Step 5: Validate kd_wilayah
         if (in_array($level_wilayah, ['provinsi', 'kabkot']) && !$kd_wilayah) {
-            return $errorResponse('Kode wilayah harus disediakan untuk provinsi atau kabupaten/kota.', 'incomplete_request', 400);
+            return $errorResponse('Kode wilayah harus disediakan untuk provinsi atau kabupaten/kota.', 400);
         }
         if (in_array($level_wilayah, ['semua-provinsi', 'semua-kabkot']) && $kd_wilayah !== '0') {
-            return $errorResponse('Kode wilayah harus 0 untuk semua provinsi atau kabupaten/kota.', 'invalid_wilayah', 400);
+            return $errorResponse('Kode wilayah harus 0 untuk semua provinsi atau kabupaten/kota.', 400);
         }
 
-        // Step 7: Validate level_wilayah and kd_level
+        // Step 6: Validate level_wilayah and kd_level
         if ($level_wilayah === 'kabkot' && $kd_level !== '01') {
-            return $errorResponse('Kabupaten/Kota hanya tersedia untuk Harga Konsumen Kota.', 'invalid_wilayah', 400);
+            return $errorResponse('Kabupaten/Kota hanya tersedia untuk Harga Konsumen Kota.', 400);
         }
 
-        // Step 8: Restrict non-central users to active period
+        // Step 7: Restrict non-central users to active period
         if (!$user->isPusat() && ($bulan != $activeBulanTahun->bulan || $tahun != $activeBulanTahun->tahun)) {
-            return $errorResponse('Akses dibatasi untuk periode aktif di wilayah Anda.', 'unauthorized', 403);
+            return $errorResponse('Akses dibatasi untuk periode aktif di wilayah Anda.', 403);
         }
 
-        // Step 9: Verify kd_wilayah
+        // Step 8: Verify kd_wilayah
         if ($kd_wilayah !== '0' && !Wilayah::where('kd_wilayah', $kd_wilayah)->exists()) {
-            return $errorResponse('Harap pilih wilayah yang valid.', 'invalid_wilayah', 400);
+            return $errorResponse('Harap pilih wilayah yang valid.', 400);
         }
 
-        // Step 10: Restrict access by user's region
+        // Step 9: Apply region-based access restrictions
+        if ($restrictionResult = $this->restrictAccessByRegion($user, $userKdWilayah, $level_wilayah, $kd_wilayah)) {
+            return $restrictionResult;
+        }
+
+        // Step 10: Verify period exists
+        $bulanTahun = BulanTahun::where('bulan', $bulan)->where('tahun', $tahun)->first();
+        if (!$bulanTahun) {
+            return $errorResponse('Periode tidak ditemukan.', 400);
+        }
+
+        // Step 11: Build query
+        $rekonQuery = Rekonsiliasi::with(['inflasi.komoditas', 'inflasi.wilayah', 'user'])
+            ->where('rekonsiliasi.bulan_tahun_id', $bulanTahun->bulan_tahun_id)
+            ->whereHas('inflasi.wilayah', function ($query) use ($kd_level, $kd_wilayah, $level_wilayah, $userKdWilayah, $user) {
+                if ($kd_level !== '00') {
+                    $query->where('inflasi.kd_level', $kd_level);
+                }
+                if ($kd_wilayah !== '0') {
+                    $query->where('wilayah.kd_wilayah', $kd_wilayah);
+                } elseif ($level_wilayah === 'semua') {
+                    // No filtering
+                } elseif ($user->isPusat() && in_array($level_wilayah, ['semua-provinsi', 'semua-kabkot'])) {
+                    $query->where('wilayah.flag', $level_wilayah === 'semua-provinsi' ? 2 : 3);
+                } elseif (!$user->isPusat() && strlen($userKdWilayah) === 2 && $level_wilayah === 'kabkot') {
+                    $query->where(function ($q) use ($userKdWilayah) {
+                        $q->where('wilayah.kd_wilayah', $userKdWilayah)
+                            ->orWhere('wilayah.parent_kd', $userKdWilayah);
+                    });
+                }
+            });
+
+        if ($level_wilayah === 'semua') {
+            $rekonQuery->join('inflasi', 'rekonsiliasi.inflasi_id', '=', 'inflasi.inflasi_id')
+                ->join('wilayah', 'inflasi.kd_wilayah', '=', 'wilayah.kd_wilayah')
+                ->orderByRaw("
+                CASE 
+                    WHEN wilayah.flag = 2 THEN wilayah.kd_wilayah 
+                    ELSE wilayah.parent_kd 
+                END ASC,
+                wilayah.flag ASC,
+                wilayah.kd_wilayah ASC
+            ");
+        }
+
+        // Step 12: Apply commodity filter
+        if ($kd_komoditas) {
+            $rekonQuery->whereHas('inflasi', function ($query) use ($kd_komoditas) {
+                $query->where('kd_komoditas', $kd_komoditas);
+            });
+        }
+
+        // Step 13: Apply status filter
+        if ($status_rekon !== '00') {
+            $rekonQuery->where($status_rekon === '01' ? 'user_id' : 'user_id', $status_rekon === '01' ? null : '!=', null);
+        }
+
+        // Step 14: Execute query
+        $rekonsiliasi = $rekonQuery->get();
+
+        // Step 15: Transform data for API
+        $rekonsiliasiData = $isApi ? PengisianRekonsiliasiResource::collection($rekonsiliasi) : $rekonsiliasi;
+
+        // Step 16: Return response
+        return response()->json([
+            'message' => $rekonsiliasi->isEmpty() ? 'Tidak ada data untuk filter ini.' : 'Data berhasil dimuat.',
+            'data' => [
+                'rekonsiliasi' => $rekonsiliasiData,
+                'title' => $this->generateRekonTableTitle($request),
+            ],
+        ], 200);
+    }
+
+    /**
+     * Restrict access based on user's region and role.
+     *
+     * @param User $user
+     * @param string $userKdWilayah
+     * @param string $level_wilayah
+     * @param string $kd_wilayah
+     * @return \Illuminate\Http\JsonResponse|null
+     */
+    private function restrictAccessByRegion($user, $userKdWilayah, $level_wilayah, $kd_wilayah)
+    {
+        $errorResponse = fn(string $message, string $status, int $code) => response()->json([
+            'message' => $message,
+            'status' => $status,
+            'data' => [
+                'rekonsiliasi' => null,
+                'title' => 'Rekonsiliasi'
+            ],
+        ], $code);
+
         if (!$user->isPusat()) {
-            if (strlen($userKdWilayah) === 2) {
+            if ($user->isProvinsi()) {
                 // Province users: restrict to their province or its cities (via parent_kd)
                 if ($level_wilayah === 'semua-provinsi') {
                     return $errorResponse('Akses semua provinsi tidak diizinkan untuk pengguna provinsi.', 'unauthorized', 403);
@@ -234,7 +302,7 @@ class RekonsiliasiController extends Controller
                         return $errorResponse('Akses dibatasi untuk provinsi atau kabupaten/kota di wilayah Anda.', 'unauthorized', 403);
                     }
                 }
-            } elseif (strlen($userKdWilayah) === 4) {
+            } elseif ($user->isKabkot()) {
                 // City users: restrict to their city and kabkot only
                 if ($level_wilayah !== 'kabkot') {
                     return $errorResponse('Akses dibatasi untuk kabupaten/kota Anda.', 'unauthorized', 403);
@@ -245,69 +313,7 @@ class RekonsiliasiController extends Controller
             }
         }
 
-        // Step 11: Verify period exists
-        $bulanTahun = BulanTahun::where('bulan', $bulan)->where('tahun', $tahun)->first();
-        if (!$bulanTahun) {
-            return $errorResponse('Periode tidak ditemukan.', 'no_period', 400);
-        }
-
-        // Step 12: Build query
-        $rekonQuery = Rekonsiliasi::with(['inflasi.komoditas', 'inflasi.wilayah', 'user'])
-            ->where('bulan_tahun_id', $bulanTahun->bulan_tahun_id)
-            ->whereHas('inflasi.wilayah', function ($query) use ($kd_level, $kd_wilayah, $level_wilayah, $userKdWilayah, $user) {
-                if ($kd_level !== '00') {
-                    $query->where('inflasi.kd_level', $kd_level);
-                }
-                if ($kd_wilayah !== '0') {
-                    $query->where('wilayah.kd_wilayah', $kd_wilayah);
-                } elseif ($level_wilayah === 'semua') {
-                    // Do nothing – fetch all wilayah regardless of flag
-                } elseif ($user->isPusat() && in_array($level_wilayah, ['semua-provinsi', 'semua-kabkot'])) {
-                    $query->where('wilayah.flag', $level_wilayah === 'semua-provinsi' ? 2 : 3);
-                } elseif (!$user->isPusat() && strlen($userKdWilayah) === 2 && $level_wilayah === 'kabkot') {
-                    $query->where(function ($q) use ($userKdWilayah) {
-                        $q->where('wilayah.kd_wilayah', $userKdWilayah)
-                            ->orWhere('wilayah.parent_kd', $userKdWilayah);
-                    });
-                }
-
-                if ($level_wilayah === 'semua') {
-                    $query->orderByRaw("
-                LENGTH(wilayah.kd_wilayah) ASC,
-                SUBSTRING(wilayah.kd_wilayah, 1, 2) ASC,
-                wilayah.kd_wilayah ASC
-            ");
-                }
-            });
-
-
-        // Step 13: Apply commodity filter
-        if ($kd_komoditas) {
-            $rekonQuery->whereHas('inflasi', function ($query) use ($kd_komoditas) {
-                $query->where('kd_komoditas', $kd_komoditas);
-            });
-        }
-
-        // Step 14: Apply status filter
-        if ($status_rekon !== '00') {
-            $rekonQuery->where($status_rekon === '01' ? 'user_id' : 'user_id', $status_rekon === '01' ? null : '!=', null);
-        }
-
-        // Step 15: Execute query (no pagination)
-        $rekonsiliasi = $rekonQuery->get();
-
-        // Step 16: Transform rekonsiliasi for API
-        $rekonsiliasiData = $isApi ? PengisianRekonsiliasiResource::collection($rekonsiliasi) : $rekonsiliasi;
-
-        // Step 17: Return response
-        return response()->json([
-            'message' => $rekonsiliasi->isEmpty() ? 'Tidak ada data untuk filter ini.' : 'Data berhasil dimuat.',
-            'status' => $rekonsiliasi->isEmpty() ? 'no_data' : ($rekonsiliasi->first()?->user_id ? 'sudah_diisi' : 'belum_diisi'),
-            'data' => [
-                'rekonsiliasi' => $rekonsiliasiData,
-                'title' => $this->generateRekonTableTitle($request),
-            ],
-        ], 200);
+        return null; // No restrictions violated
     }
 
     /**

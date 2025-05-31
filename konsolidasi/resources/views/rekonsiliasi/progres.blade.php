@@ -257,25 +257,14 @@
     </x-modal>
 
     <!-- Rekon table -->
-    <div x-show="status === 'no_filters'" class="bg-white px-6 py-4 rounded-lg shadow-sm text-center text-gray-500">
+    <div x-show="!data.rekonsiliasi?.length" class="bg-white px-6 py-4 rounded-lg shadow-sm text-center text-gray-500">
         <div class="mb-1">
-            <h2 class="text-lg font-semibold mb-2" x-text="data.title || 'Rekonsiliasi'"></h2>
+            <h2 class="text-lg font-semibold mb-2" x-text="data.title || 'Inflasi'"></h2>
         </div>
         <span x-text="message"></span>
     </div>
-    <div x-show="status === 'no_data' && !data.rekonsiliasi?.length" class="bg-white px-6 py-4 rounded-lg shadow-sm text-center text-gray-500">
-        <div class="mb-1">
-            <h2 class="text-lg font-semibold mb-2" x-text="data.title || 'Rekonsiliasi'"></h2>
-        </div>
-        <span x-text="message"></span>
-    </div>
-    <div x-show="status === 'access_not_allowed'" class="bg-white px-6 py-4 rounded-lg shadow-sm text-center text-gray-500">
-        <div class="mb-1">
-            <h2 class="text-lg font-semibold mb-2" x-text="data.title || 'Rekonsiliasi'"></h2>
-        </div>
-        <span x-text="message"></span>
-    </div>
-    <div x-show="data.rekonsiliasi?.length || status === 'success'">
+
+    <div x-show="data.rekonsiliasi?.length">
         <div class="mb-1">
             <h2 class="text-lg font-semibold mb-2" x-text="data.title || 'Rekonsiliasi'"></h2>
         </div>

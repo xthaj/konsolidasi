@@ -13,6 +13,11 @@ use Illuminate\Validation\ValidationException;
 
 class BulanTahunController extends Controller
 {
+    public function pengaturan()
+    {
+        return view('pengaturan.index');
+    }
+
     public function update(Request $request)
     {
         Log::info('Starting updateBulanTahun', [
