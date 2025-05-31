@@ -16,8 +16,15 @@
 
     <div class="flex flex-col md:flex-row h-screen overflow-x-hidden" x-data="{ isSidebarVisible: true }">
         <!-- Sidebar -->
-        <aside class="w-full md:w-1/3 bg-white p-6 shadow-lg md:overflow-y-auto md:h-full transition-transform duration-300 "
-            x-show="isSidebarVisible">
+        <aside
+            x-show="isSidebarVisible"
+            x-transition:enter="transition-transform duration-200 ease-out"
+            x-transition:enter-start="-translate-x-full"
+            x-transition:enter-end="translate-x-0"
+            x-transition:leave="transition-transform duration-200 ease-in"
+            x-transition:leave-start="translate-x-0"
+            x-transition:leave-end="-translate-x-full"
+            class="w-full md:w-1/3 bg-white p-6 shadow-lg md:overflow-y-auto md:h-full transform">
             {{ $sidebar }}
         </aside>
 
