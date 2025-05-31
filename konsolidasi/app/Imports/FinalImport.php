@@ -225,12 +225,21 @@ class FinalImport implements ToCollection, WithHeadingRow, WithChunkReading
         }
 
         // Validate kd_komoditas
-        if ($kd_komoditasRaw === '') {
+        if (is_null($kd_komoditasRaw) || $kd_komoditasRaw === '') {
             $this->throwError('kd_komoditas kosong');
         }
-        $kd_komoditas = str_pad($kd_komoditasRaw, 3, '0', STR_PAD_LEFT);
-        if (!in_array($kd_komoditas, $this->validKdKomoditas)) {
-            $this->throwError("kd_komoditas '$kd_komoditas' tidak valid");
+        // Convert to integer
+        if (!is_numeric($kd_komoditasRaw)) {
+            $this->throwError("kd_komoditas '$kd_komoditasRaw' harus berupa bilangan bulat");
+        }
+        $kd_komoditas = (int) $kd_komoditasRaw;
+        // Ensure non-negative for unsignedInteger
+        if ($kd_komoditas < 0) {
+            $this->throwError("kd_komoditas '$kd_komoditas' tidak valid, harus non-negatif");
+        }
+        // Check if valid and exists in komoditas table
+        if (!in_array($kd_komoditas, $this->validKdKomoditas, true)) {
+            $this->throwError("kd_komoditas '$kd_komoditas' tidak valid atau tidak ditemukan");
         }
 
         // Validate final_inflasi (required, numeric)

@@ -30,10 +30,13 @@ class InflasiExport implements FromCollection, WithHeadings
             return collect([]);
         }
 
+        $bulan = $bulanTahun->bulan;
+        $tahun = $bulanTahun->tahun;
+
         return Inflasi::where('inflasi.bulan_tahun_id', $bulanTahun->bulan_tahun_id)
             ->where('inflasi.kd_level', $this->level)
             ->join('wilayah', 'inflasi.kd_wilayah', '=', 'wilayah.kd_wilayah')
-            ->join('komoditas', 'inflasi.kd_komoditas', '=', 'komoditas.kd_komoditas') // <-- this line added
+            ->join('komoditas', 'inflasi.kd_komoditas', '=', 'komoditas.kd_komoditas')
             ->leftJoin('rekonsiliasi', 'inflasi.inflasi_id', '=', 'rekonsiliasi.inflasi_id')
             ->select(
                 'inflasi.kd_komoditas',
@@ -47,13 +50,32 @@ class InflasiExport implements FromCollection, WithHeadings
                 'rekonsiliasi.alasan',
                 'rekonsiliasi.detail'
             )
-            ->get();
+            ->get()
+            ->map(function ($row) use ($bulan, $tahun) {
+                return [
+                    $tahun,
+                    $bulan,
+                    str_pad((string)$row->kd_komoditas, 3, '0', STR_PAD_LEFT),
+                    $row->nama_komoditas,
+                    $row->kd_wilayah,
+                    $row->nama_wilayah,
+                    $row->nilai_inflasi,
+                    $row->final_inflasi,
+                    $row->andil,
+                    $row->final_andil,
+                    $row->alasan,
+                    $row->detail,
+                ];
+            });
     }
+
 
 
     public function headings(): array
     {
         return [
+            'Tahun',
+            'Bulan',
             'Kode Komoditas',
             'Nama Komoditas',
             'Kode Wilayah',

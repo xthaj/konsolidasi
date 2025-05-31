@@ -2,9 +2,11 @@
 
 namespace Database\Seeders;
 
+use App\Models\Komoditas;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+
 
 class DatabaseSeeder extends Seeder
 {
@@ -218,62 +220,75 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // komoditas
-        DB::table('komoditas')->insert([
-            ['kd_komoditas' => "000", 'nama_komoditas' => "Umum"],
-            ['kd_komoditas' => "001", 'nama_komoditas' => "Gabah"],
-            ['kd_komoditas' => "002", 'nama_komoditas' => "GKG"],
-            ['kd_komoditas' => "003", 'nama_komoditas' => "GKP"],
-            ['kd_komoditas' => "004", 'nama_komoditas' => "Gabah Luar Kualitas"],
-            ['kd_komoditas' => "005", 'nama_komoditas' => "Beras"],
-            ['kd_komoditas' => "006", 'nama_komoditas' => "Beras Premium"],
-            ['kd_komoditas' => "007", 'nama_komoditas' => "Beras Medium"],
-            ['kd_komoditas' => "008", 'nama_komoditas' => "Beras Submedium"],
-            ['kd_komoditas' => "009", 'nama_komoditas' => "Beras Pecah"],
-            ['kd_komoditas' => "010", 'nama_komoditas' => "Jagung"],
-            ['kd_komoditas' => "011", 'nama_komoditas' => "Daging Ayam Ras"],
-            ['kd_komoditas' => "012", 'nama_komoditas' => "Ayam Hidup (RAS)"],
-            ['kd_komoditas' => "013", 'nama_komoditas' => "Ayam Kampung"],
-            ['kd_komoditas' => "014", 'nama_komoditas' => "Daging Sapi"],
-            ['kd_komoditas' => "015", 'nama_komoditas' => "Sapi"],
-            ['kd_komoditas' => "016", 'nama_komoditas' => "Telur Ayam Ras"],
-            ['kd_komoditas' => "017", 'nama_komoditas' => "Bawang Merah"],
-            ['kd_komoditas' => "018", 'nama_komoditas' => "Bawang Putih"],
-            ['kd_komoditas' => "019", 'nama_komoditas' => "Cabai Merah"],
-            ['kd_komoditas' => "020", 'nama_komoditas' => "Cabai Rawit"],
-            ['kd_komoditas' => "021", 'nama_komoditas' => "Tomat"],
-            ['kd_komoditas' => "022", 'nama_komoditas' => "Gula Pasir"],
-            ['kd_komoditas' => "023", 'nama_komoditas' => "Tepung Terigu"],
-            ['kd_komoditas' => "024", 'nama_komoditas' => "Minyak Goreng"],
-            ['kd_komoditas' => "025", 'nama_komoditas' => "CPO"],
-            ['kd_komoditas' => "026", 'nama_komoditas' => "TBS"],
-            ['kd_komoditas' => "027", 'nama_komoditas' => "Tarif Angkutan Udara"],
-            ['kd_komoditas' => "028", 'nama_komoditas' => "AKAP"],
-            ['kd_komoditas' => "029", 'nama_komoditas' => "Angkutan dalam kota"],
-            ['kd_komoditas' => "030", 'nama_komoditas' => "Pengiriman barang"],
-            ['kd_komoditas' => "031", 'nama_komoditas' => "Tarif Kendaraan Travel"],
-            ['kd_komoditas' => "032", 'nama_komoditas' => "Taksi"],
-            ['kd_komoditas' => "033", 'nama_komoditas' => "KAI"],
-            ['kd_komoditas' => "034", 'nama_komoditas' => "Ojek Online 2"],
-            ['kd_komoditas' => "035", 'nama_komoditas' => "Ojek Online 4"],
-            ['kd_komoditas' => "036", 'nama_komoditas' => "Tarif Pulsa"],
-            ['kd_komoditas' => "037", 'nama_komoditas' => "Layanan Internet"],
-            ['kd_komoditas' => "038", 'nama_komoditas' => "PAUD"],
-            ['kd_komoditas' => "039", 'nama_komoditas' => "TK"],
-            ['kd_komoditas' => "040", 'nama_komoditas' => "SD"],
-            ['kd_komoditas' => "041", 'nama_komoditas' => "SLTP"],
-            ['kd_komoditas' => "042", 'nama_komoditas' => "SLTA"],
-            ['kd_komoditas' => "043", 'nama_komoditas' => "PT"],
-            ['kd_komoditas' => "044", 'nama_komoditas' => "Sigaret Kretek Tangan (SKT)"],
-            ['kd_komoditas' => "045", 'nama_komoditas' => "Sigaret Kretek Mesin (SKM)"],
-            ['kd_komoditas' => "046", 'nama_komoditas' => "Sigaret Putih Mesin (SPM)"],
-            ['kd_komoditas' => "047", 'nama_komoditas' => "Emas Perhiasan"],
-            ['kd_komoditas' => "048", 'nama_komoditas' => "Emas Batangan"],
-            ['kd_komoditas' => "049", 'nama_komoditas' => "Bensin"],
-            ['kd_komoditas' => "050", 'nama_komoditas' => "Solar"],
-            ['kd_komoditas' => "051", 'nama_komoditas' => "Tarif PDAM (PAM)"],
-        ]);
+        // Insert data using Eloquent
+        $data = [
+            ['kd_komoditas' => 0, 'nama_komoditas' => "Umum"],
+            ['kd_komoditas' => 1, 'nama_komoditas' => "Gabah"],
+            ['kd_komoditas' => 2, 'nama_komoditas' => "GKG"],
+            ['kd_komoditas' => 3, 'nama_komoditas' => "GKP"],
+            ['kd_komoditas' => 4, 'nama_komoditas' => "Gabah Luar Kualitas"],
+            ['kd_komoditas' => 5, 'nama_komoditas' => "Beras"],
+            ['kd_komoditas' => 6, 'nama_komoditas' => "Beras Premium"],
+            ['kd_komoditas' => 7, 'nama_komoditas' => "Beras Medium"],
+            ['kd_komoditas' => 8, 'nama_komoditas' => "Beras Submedium"],
+            ['kd_komoditas' => 9, 'nama_komoditas' => "Beras Pecah"],
+            ['kd_komoditas' => 10, 'nama_komoditas' => "Jagung"],
+            ['kd_komoditas' => 11, 'nama_komoditas' => "Daging Ayam Ras"],
+            ['kd_komoditas' => 12, 'nama_komoditas' => "Ayam Hidup (RAS)"],
+            ['kd_komoditas' => 13, 'nama_komoditas' => "Ayam Kampung"],
+            ['kd_komoditas' => 14, 'nama_komoditas' => "Daging Sapi"],
+            ['kd_komoditas' => 15, 'nama_komoditas' => "Sapi"],
+            ['kd_komoditas' => 16, 'nama_komoditas' => "Telur Ayam Ras"],
+            ['kd_komoditas' => 17, 'nama_komoditas' => "Bawang Merah"],
+            ['kd_komoditas' => 18, 'nama_komoditas' => "Bawang Putih"],
+            ['kd_komoditas' => 19, 'nama_komoditas' => "Cabai Merah"],
+            ['kd_komoditas' => 20, 'nama_komoditas' => "Cabai Rawit"],
+            ['kd_komoditas' => 21, 'nama_komoditas' => "Tomat"],
+            ['kd_komoditas' => 22, 'nama_komoditas' => "Gula Pasir"],
+            ['kd_komoditas' => 23, 'nama_komoditas' => "Tepung Terigu"],
+            ['kd_komoditas' => 24, 'nama_komoditas' => "Minyak Goreng"],
+            ['kd_komoditas' => 25, 'nama_komoditas' => "CPO"],
+            ['kd_komoditas' => 26, 'nama_komoditas' => "TBS"],
+            ['kd_komoditas' => 27, 'nama_komoditas' => "Tarif Angkutan Udara"],
+            ['kd_komoditas' => 28, 'nama_komoditas' => "AKAP"],
+            ['kd_komoditas' => 29, 'nama_komoditas' => "Angkutan dalam kota"],
+            ['kd_komoditas' => 30, 'nama_komoditas' => "Pengiriman barang"],
+            ['kd_komoditas' => 31, 'nama_komoditas' => "Tarif Kendaraan Travel"],
+            ['kd_komoditas' => 32, 'nama_komoditas' => "Taksi"],
+            ['kd_komoditas' => 33, 'nama_komoditas' => "KAI"],
+            ['kd_komoditas' => 34, 'nama_komoditas' => "Ojek Online 2"],
+            ['kd_komoditas' => 35, 'nama_komoditas' => "Ojek Online 4"],
+            ['kd_komoditas' => 36, 'nama_komoditas' => "Tarif Pulsa"],
+            ['kd_komoditas' => 37, 'nama_komoditas' => "Layanan Internet"],
+            ['kd_komoditas' => 38, 'nama_komoditas' => "PAUD"],
+            ['kd_komoditas' => 39, 'nama_komoditas' => "TK"],
+            ['kd_komoditas' => 40, 'nama_komoditas' => "SD"],
+            ['kd_komoditas' => 41, 'nama_komoditas' => "SLTP"],
+            ['kd_komoditas' => 42, 'nama_komoditas' => "SLTA"],
+            ['kd_komoditas' => 43, 'nama_komoditas' => "PT"],
+            ['kd_komoditas' => 44, 'nama_komoditas' => "Sigaret Kretek Tangan (SKT)"],
+            ['kd_komoditas' => 45, 'nama_komoditas' => "Sigaret Kretek Mesin (SKM)"],
+            ['kd_komoditas' => 46, 'nama_komoditas' => "Sigaret Putih Mesin (SPM)"],
+            ['kd_komoditas' => 47, 'nama_komoditas' => "Emas Perhiasan"],
+            ['kd_komoditas' => 48, 'nama_komoditas' => "Emas Batangan"],
+            ['kd_komoditas' => 49, 'nama_komoditas' => "Bensin"],
+            ['kd_komoditas' => 50, 'nama_komoditas' => "Solar"],
+            ['kd_komoditas' => 51, 'nama_komoditas' => "Tarif PDAM (PAM)"],
+        ];
+
+        // Use Eloquent to insert with explicit timestamps
+        foreach ($data as $item) {
+            Komoditas::create([
+                'kd_komoditas' => $item['kd_komoditas'],
+                'nama_komoditas' => $item['nama_komoditas'],
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
 
         $this->call([
+            TestSeeder::class,
+            AlasanSeeder::class,
             TestSeeder::class,
         ]);
     }

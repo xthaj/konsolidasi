@@ -37,9 +37,9 @@ return new class extends Migration
         });
 
         Schema::create('komoditas', function (Blueprint $table) {
-            $table->string('kd_komoditas', 3)->primary();
+            $table->tinyInteger('kd_komoditas')->primary()->unsigned();
             $table->string('nama_komoditas', 255);
-            $table->timestamps(); // created_at and updated_at added
+            $table->timestamps();
         });
 
         Schema::create('bulan_tahun', function (Blueprint $table) {
@@ -58,7 +58,7 @@ return new class extends Migration
 
         Schema::create('inflasi', function (Blueprint $table) {
             $table->id('inflasi_id');
-            $table->string('kd_komoditas', 3);
+            $table->tinyInteger('kd_komoditas')->unsigned();
             $table->string('kd_wilayah', 10);
             $table->unsignedBigInteger('bulan_tahun_id');
             $table->string('kd_level', 2);
