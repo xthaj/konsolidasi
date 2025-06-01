@@ -1,10 +1,10 @@
 <nav class="bg-white relative z-20">
-    <div class="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4 border-b border-gray-200">
+    <div class="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto px-4 py-3 border-b border-gray-200">
 
         <!-- Logo and Page Title -->
         <div class="shrink-0 flex items-center">
             <a href="{{ route('dashboard') }}">
-                <x-application-logo class="block h-9 w-auto fill-current text-gray-800" />
+                <x-application-logo class="block h-7 w-auto fill-current text-gray-800" />
             </a>
             @php
             $pageTitle = match (true) {
