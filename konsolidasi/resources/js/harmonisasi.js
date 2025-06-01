@@ -536,6 +536,36 @@ Alpine.data("webData", () => ({
         // Horizontal Bar Chart
         const horizontalBarChart = charts.get("horizontalBarChart");
         if (horizontalBarChart && data?.chart_data?.horizontalBar) {
+            // Check if there is valid andil data
+            const hasAndilData = data.chart_data.horizontalBar.datasets.some(
+                (d) => d.andil && d.andil.length > 0 && d.andil[d.andil.length - 1] != null
+            );
+
+            // Prepare series data, including Andil only if it exists
+            const series = [
+                {
+                    name: "Inflasi",
+                    type: "bar",
+                    data: data.chart_data.horizontalBar.datasets.map(
+                        (d) => d.inflasi[d.inflasi.length - 1]
+                    ),
+                    itemStyle: { color: this.colorPalette.HK },
+                    label: { show: true, position: "right" },
+                },
+            ];
+
+            if (hasAndilData) {
+                series.push({
+                    name: "Andil",
+                    type: "bar",
+                    data: data.chart_data.horizontalBar.datasets.map(
+                        (d) => d.andil[d.andil.length - 1]
+                    ),
+                    itemStyle: { color: this.colorPalette.HK_Desa },
+                    label: { show: true, position: "right" },
+                });
+            }
+
             horizontalBarChart.setOption({
                 tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
                 toolbox: {
@@ -544,35 +574,17 @@ Alpine.data("webData", () => ({
                         restore: {},
                     },
                 },
-                legend: { bottom: 0, data: ["Inflasi", "Andil"] },
+                legend: {
+                    bottom: 0,
+                    data: hasAndilData ? ["Inflasi", "Andil"] : ["Inflasi"],
+                },
                 grid: { containLabel: true, left: "5%", right: "15%" },
                 xAxis: { type: "value", name: "Nilai (%)" },
                 yAxis: {
                     type: "category",
-                    data: data.chart_data.horizontalBar.datasets.map(
-                        (d) => d.label
-                    ),
+                    data: data.chart_data.horizontalBar.datasets.map((d) => d.label),
                 },
-                series: [
-                    {
-                        name: "Inflasi",
-                        type: "bar",
-                        data: data.chart_data.horizontalBar.datasets.map(
-                            (d) => d.inflasi[d.inflasi.length - 1]
-                        ),
-                        itemStyle: { color: this.colorPalette.HK },
-                        label: { show: true, position: "right" },
-                    },
-                    {
-                        name: "Andil",
-                        type: "bar",
-                        data: data.chart_data.horizontalBar.datasets.map(
-                            (d) => d.andil[d.andil.length - 1]
-                        ),
-                        itemStyle: { color: this.colorPalette.HK_Desa },
-                        label: { show: true, position: "right" },
-                    },
-                ],
+                series: series,
             });
             horizontalBarChart.hideLoading();
         } else if (horizontalBarChart) {
