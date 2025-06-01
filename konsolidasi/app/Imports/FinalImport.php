@@ -57,11 +57,6 @@ class FinalImport implements ToCollection, WithHeadingRow, WithChunkReading
     private int $updatedCount = 0;
 
     /**
-     * @var int Count of inserted Inflasi records.
-     */
-    private int $insertedCount = 0;
-
-    /**
      * @var int|null The row number where the first error occurred, if any.
      */
     private ?int $failedRow = null;
@@ -84,7 +79,7 @@ class FinalImport implements ToCollection, WithHeadingRow, WithChunkReading
     /**
      * @var int Number of rows to process per chunk for memory efficiency.
      */
-    private const CHUNK_SIZE = 100;
+    private const CHUNK_SIZE = 200;
 
     /**
      * Constructor to initialize the import process.
@@ -120,10 +115,10 @@ class FinalImport implements ToCollection, WithHeadingRow, WithChunkReading
      */
     private function initializeBulanTahun(int $bulan, int $tahun): void
     {
-        $bulanTahun = BulanTahun::firstOrCreate(
-            ['bulan' => $bulan, 'tahun' => $tahun],
-            ['aktif' => 0]
-        );
+        $bulanTahun = BulanTahun::where('bulan', $bulan)->where('tahun', $tahun)->first();
+        if (!$bulanTahun) {
+            throw new \Exception("No BulanTahun record found for bulan {$bulan} and tahun {$tahun}");
+        }
         $this->bulanTahunId = $bulanTahun->bulan_tahun_id;
     }
 
@@ -156,21 +151,21 @@ class FinalImport implements ToCollection, WithHeadingRow, WithChunkReading
 
         Log::info("Processing chunk, rows: " . count($rows) . ", starting at row {$this->rowNumber}");
 
-        $inserts = [];
         $updates = [];
 
         foreach ($rows as $row) {
             $this->rowNumber++;
 
-            // Check for empty row (indicates EOF)
-            if (empty(array_filter($row->toArray(), fn($value) => $value !== null && $value !== ''))) {
-                Log::info("Detected empty row (likely EOF) at row {$this->rowNumber}");
+            // Check for empty kd wilayah (indicates EOF)
+            $kd_wilayah = trim($row['kd_wilayah'] ?? '');
+            if ($kd_wilayah === '') {
+                Log::info("Detected empty kd_wilayah (likely EOF) at row {$this->rowNumber}");
                 $this->stopProcessing = true;
                 break;
             }
 
             try {
-                $this->validateAndPrepareRow($row, $inserts, $updates);
+                $this->validateAndPrepareRow($row, $updates);
             } catch (\Exception $e) {
                 Log::error("Error at row {$this->rowNumber}: " . $e->getMessage());
                 $this->stopProcessing = true;
@@ -179,17 +174,14 @@ class FinalImport implements ToCollection, WithHeadingRow, WithChunkReading
         }
 
         // Process valid rows before any error
-        if (!empty($inserts) || !empty($updates)) {
+        if (!empty($updates)) {
             if ($this->debugMode) {
                 foreach ($updates as $update) {
                     $this->processSingleUpdate($update);
                 }
-                foreach ($inserts as $insert) {
-                    $this->processSingleInsert($insert);
-                }
             } else {
                 try {
-                    $this->processBulk($inserts, $updates);
+                    $this->processBulk($updates);
                 } catch (\Exception $e) {
                     Log::error("Failed to process collected rows: " . $e->getMessage());
                 }
@@ -209,11 +201,11 @@ class FinalImport implements ToCollection, WithHeadingRow, WithChunkReading
      * @param array &$updates Array to store updates for existing Inflasi records.
      * @throws \Exception If validation fails.
      */
-    private function validateAndPrepareRow(Collection $row, array &$inserts, array &$updates): void
+    private function validateAndPrepareRow(Collection $row, array &$updates): void
     {
-        $kd_wilayah = trim($row['kd_wilayah'] ?? '0');
+        $kd_wilayah = trim($row['kd_wilayah'] ?? '');
         if ($kd_wilayah === '') {
-            $kd_wilayah = '0';
+            $this->throwError("kd_wilayah kosong");
         }
         $kd_komoditasRaw = trim($row['kd_komoditas'] ?? '');
         $final_inflasiRaw = trim($row['final_inflasi'] ?? '');
@@ -233,10 +225,7 @@ class FinalImport implements ToCollection, WithHeadingRow, WithChunkReading
             $this->throwError("kd_komoditas '$kd_komoditasRaw' harus berupa bilangan bulat");
         }
         $kd_komoditas = (int) $kd_komoditasRaw;
-        // Ensure non-negative for unsignedInteger
-        if ($kd_komoditas < 0) {
-            $this->throwError("kd_komoditas '$kd_komoditas' tidak valid, harus non-negatif");
-        }
+
         // Check if valid and exists in komoditas table
         if (!in_array($kd_komoditas, $this->validKdKomoditas, true)) {
             $this->throwError("kd_komoditas '$kd_komoditas' tidak valid atau tidak ditemukan");
@@ -266,22 +255,16 @@ class FinalImport implements ToCollection, WithHeadingRow, WithChunkReading
         }
         $this->seenKeys[$key] = true;
 
-        // Prepare data for insert or update
-        $data = [
-            'bulan_tahun_id' => $this->bulanTahunId,
-            'kd_level' => $this->level,
-            'kd_komoditas' => $kd_komoditas,
-            'kd_wilayah' => $kd_wilayah,
+        if (!isset($this->existingInflasi[$key])) {
+            $this->throwError("No existing Inflasi record for kd_komoditas-kd_wilayah {$key} at row {$this->rowNumber}"); //edit
+        }
+
+        $updates[] = [
+            'inflasi_id' => $this->existingInflasi[$key]->inflasi_id,
             'final_inflasi' => $final_inflasi,
             'final_andil' => $final_andil,
             'updated_at' => now(),
         ];
-
-        if (isset($this->existingInflasi[$key])) {
-            $updates[] = array_merge($data, ['inflasi_id' => $this->existingInflasi[$key]->inflasi_id]);
-        } else {
-            $inserts[] = array_merge($data, ['created_at' => now()]);
-        }
     }
 
     /**
@@ -306,24 +289,15 @@ class FinalImport implements ToCollection, WithHeadingRow, WithChunkReading
      * Performs bulk inserts for new Inflasi records and updates for existing ones.
      * Uses a transaction to ensure atomicity and rolls back on error.
      *
-     * @param array $inserts Array of new Inflasi records to insert.
      * @param array $updates Array of updates for existing Inflasi records.
      * @throws \Exception If the bulk operation fails.
      */
-    private function processBulk(array $inserts, array $updates): void
+    private function processBulk(array $updates): void
     {
-        Log::info("Bulk processing: " . count($inserts) . " inserts, " . count($updates) . " updates");
+        Log::info("Bulk processing: "  . count($updates) . " updates");
 
         DB::beginTransaction();
         try {
-            // Handle inserts
-            if (!empty($inserts)) {
-                DB::table('inflasi')->insert($inserts);
-                $this->insertedCount += count($inserts);
-                Log::debug("Inserted {$this->insertedCount} rows");
-            }
-
-            // Handle updates
             if (!empty($updates)) {
                 $updatedRows = 0;
                 foreach ($updates as $update) {
@@ -344,9 +318,9 @@ class FinalImport implements ToCollection, WithHeadingRow, WithChunkReading
             Log::debug("Transaction committed");
 
             // Stop processing if the chunk is smaller than CHUNK_SIZE (end of data)
-            if (count($inserts) + count($updates) < self::CHUNK_SIZE) {
+            if (count($updates) < self::CHUNK_SIZE) {
                 $this->stopProcessing = true;
-                Log::info("Stopping processing: chunk size " . (count($inserts) + count($updates)) . " < " . self::CHUNK_SIZE);
+                Log::info("Stopping processing: chunk size " . count($updates) . " < " . self::CHUNK_SIZE);
             }
         } catch (\Exception $e) {
             DB::rollBack();
@@ -389,31 +363,6 @@ class FinalImport implements ToCollection, WithHeadingRow, WithChunkReading
     }
 
     /**
-     * Processes a single insert in debug mode.
-     *
-     * Inserts a new Inflasi record and logs the result.
-     *
-     * @param array $data The data to insert.
-     */
-    private function processSingleInsert(array $data): void
-    {
-        Log::info("Debug: Attempting to insert row {$this->rowNumber}: " . json_encode($data));
-        try {
-            DB::table('inflasi')->insert($data);
-            $this->insertedCount++;
-            Log::info("Debug: Successfully inserted row {$this->rowNumber}");
-        } catch (\Exception $e) {
-            $this->errors->add("row_{$this->rowNumber}", "Insert failed: " . $e->getMessage());
-            $this->failedRow = $this->rowNumber;
-            Log::error("Debug: Insert failed at row {$this->rowNumber}: " . $e->getMessage(), [
-                'data' => $data,
-                'trace' => $e->getTraceAsString(),
-            ]);
-            $this->stopProcessing = true;
-        }
-    }
-
-    /**
      * Returns the chunk size for processing.
      *
      * @return int The number of rows per chunk.
@@ -442,7 +391,6 @@ class FinalImport implements ToCollection, WithHeadingRow, WithChunkReading
     {
         return [
             'updated' => $this->updatedCount,
-            'inserted' => $this->insertedCount,
             'failed_row' => $this->failedRow,
         ];
     }

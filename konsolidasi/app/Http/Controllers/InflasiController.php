@@ -29,16 +29,11 @@ use App\Models\Wilayah;
 
 class InflasiController extends Controller
 {
-    // views
+    // create/upload: upload data, hapus data sebulan
 
     public function create(): View
     {
         return view('data.create');
-    }
-
-    public function finalisasi()
-    {
-        return view('data.finalisasi');
     }
 
     /**
@@ -258,6 +253,13 @@ class InflasiController extends Controller
         return redirect()->back()->withErrors(['file' => $errorMessage]);
     }
 
+    // finalisasi
+
+    public function finalisasi()
+    {
+        return view('data.finalisasi');
+    }
+
     /**
      * Handles the upload of an Excel file for final inflation data import.
      *
@@ -361,7 +363,6 @@ class InflasiController extends Controller
     private function handleFinalImportResult(FinalImport $import, array $summary, array $validated)
     {
         $errors = $import->getErrors()->all();
-        $inserted = $summary['inserted'];
         $updated = $summary['updated'];
         $failedRow = $summary['failed_row'];
         $levelHarga = $validated['level'];
@@ -370,7 +371,6 @@ class InflasiController extends Controller
 
         // Log the summary for debugging
         Log::debug('Final import summary', [
-            'inserted' => $inserted,
             'updated' => $updated,
             'failed_row' => $failedRow,
             'errors' => $errors,
@@ -385,14 +385,14 @@ class InflasiController extends Controller
         }
 
         // If no data was processed
-        if ($inserted === 0 && $updated === 0) {
+        if ($updated === 0) {
             return redirect()->back()->withErrors([
                 'file' => "$title gagal diimpor: Tidak ada data yang berhasil diimpor. Pastikan file Anda tidak kosong dan formatnya sesuai.",
             ]);
         }
 
         // Success case
-        $message = "$title berhasil diimpor: {$inserted} data final baru ditambahkan, {$updated} data final diperbarui.";
+        $message = "$title berhasil diimpor: {$updated} data final diperbarui.";
         return redirect()->back()->with('success', $message);
     }
 
@@ -411,7 +411,6 @@ class InflasiController extends Controller
     private function handleFinalImportErrors(FinalImport $import, array $summary, string $levelHarga, int $bulan, int $tahun)
     {
         $errors = $import->getErrors()->all();
-        $inserted = $summary['inserted'];
         $updated = $summary['updated'];
         $failedRow = $summary['failed_row'];
 
@@ -420,7 +419,7 @@ class InflasiController extends Controller
 
         // Build error message
         $errorMessage = "$title gagal diimpor pada baris {$failedRow}: " . implode(', ', $errors) . ". ";
-        $errorMessage .= "Sebelum kegagalan, {$inserted} data baru ditambahkan, {$updated} data diperbarui.";
+        $errorMessage .= "Sebelum kegagalan {$updated} data diperbarui.";
 
         return redirect()->back()->withErrors(['file' => $errorMessage]);
     }
@@ -536,7 +535,7 @@ class InflasiController extends Controller
     }
 
     // the api caller
-    public function apiEdit(Request $request)
+    public function fetchEditData(Request $request)
     {
         // Fallback to active BulanTahun if bulan or tahun is missing
         if (!$request->filled('bulan') || !$request->filled('tahun')) {
@@ -587,10 +586,6 @@ class InflasiController extends Controller
             'data' => [
                 'inflasi' => [],
                 'title' => $this->generateTableTitle($request),
-                'kd_wilayah' => $kd_wilayah, // Include kd_wilayah in response
-            ],
-            'meta' => [
-                'timestamp' => now()->toIso8601String(),
             ],
         ];
 
@@ -605,10 +600,6 @@ class InflasiController extends Controller
                 'data' => [
                     'inflasi' => [],
                     'title' => $this->generateTableTitle($request),
-                    'kd_wilayah' => $kd_wilayah,
-                ],
-                'meta' => [
-                    'timestamp' => now()->toIso8601String(),
                 ],
             ], 404);
         }
@@ -640,18 +631,9 @@ class InflasiController extends Controller
                 $query->where('komoditas.kd_komoditas', $kd_komoditas);
             }
 
-            // Handle sorting
-            if ($sortColumn === 'nilai_inflasi') {
-                // Sort by a specific aggregated column, e.g., inflasi_01 (Harga Konsumen Kota)
-                $query->orderByRaw('MAX(CASE WHEN inflasi.kd_level = "01" THEN inflasi.nilai_inflasi END) ' . $sortDirection);
-            } else {
-                // Sort by kd_komoditas
-                $query->orderBy('komoditas.kd_komoditas', $sortDirection);
-            }
-
             $inflasi = $query->get();
         } else {
-            // Case: Specific kd_level
+            // Specific kd_level
             $query = Komoditas::query()
                 ->leftJoin('inflasi', function ($join) use ($bulanTahun, $kd_level, $kd_wilayah) {
                     $join->on('komoditas.kd_komoditas', '=', 'inflasi.kd_komoditas')
@@ -668,7 +650,7 @@ class InflasiController extends Controller
                     'inflasi.kd_wilayah'
                 );
 
-            if ($kd_komoditas) {
+            if (!is_null($kd_komoditas) && $kd_komoditas !== '') {
                 $query->where('komoditas.kd_komoditas', $kd_komoditas);
             }
 
@@ -682,12 +664,8 @@ class InflasiController extends Controller
                 'data' => [
                     'inflasi' => [],
                     'title' => $this->generateTableTitle($request),
-                    'kd_wilayah' => $kd_wilayah,
                 ],
-                'meta' => [
-                    'timestamp' => now()->toIso8601String(),
-                ],
-            ], 404);
+            ], 200);
         }
 
         // Transform data based on kd_level
