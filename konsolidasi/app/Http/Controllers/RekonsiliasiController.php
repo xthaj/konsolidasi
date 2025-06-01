@@ -489,28 +489,22 @@ class RekonsiliasiController extends Controller
 
         // Enrich data based on kd_level
         if ($kd_level === '01') {
-            $inflasiDataKota = Inflasi::where('bulan_tahun_id', $bulanTahun->bulan_tahun_id)
-                ->where('kd_level', '01')
+            $inflasiData = Inflasi::where('bulan_tahun_id', $bulanTahun->bulan_tahun_id)
+                ->whereIn('kd_level', ['01', '02'])
                 ->whereIn('kd_wilayah', $rekonsiliasi->pluck('inflasi.kd_wilayah')->unique())
                 ->whereIn('kd_komoditas', $rekonsiliasi->pluck('inflasi.kd_komoditas')->unique())
+                ->select('kd_wilayah', 'kd_komoditas', 'kd_level', 'nilai_inflasi')
                 ->get()
-                ->groupBy(['kd_wilayah', 'kd_komoditas', 'kd_level']);
+                ->keyBy(function ($item) {
+                    return "{$item->kd_wilayah}-{$item->kd_komoditas}-{$item->kd_level}";
+                });
 
-            $inflasiDataDesa = Inflasi::where('bulan_tahun_id', $bulanTahun->bulan_tahun_id)
-                ->where('kd_level', '02')
-                ->whereIn('kd_wilayah', $rekonsiliasi->pluck('inflasi.kd_wilayah')->unique())
-                ->whereIn('kd_komoditas', $rekonsiliasi->pluck('inflasi.kd_komoditas')->unique())
-                ->get()
-                ->groupBy(['kd_wilayah', 'kd_komoditas', 'kd_level']);
-
-            $rekonsiliasi->each(function ($rekon) use ($inflasiDataKota, $inflasiDataDesa) {
+            // edit: Updated loop to use keyBy structure
+            $rekonsiliasi->each(function ($rekon) use ($inflasiData) {
                 $wilayah = $rekon->inflasi->kd_wilayah;
                 $komoditas = $rekon->inflasi->kd_komoditas;
 
-                $rekon->inflasi_kota = isset($inflasiDataKota[$wilayah][$komoditas]['01'])
-                    ? $inflasiDataKota[$wilayah][$komoditas]['01'][0]->nilai_inflasi
-                    : null;
-
+                $rekon->inflasi_kota = $inflasiData["{$wilayah}-{$komoditas}-01"]->nilai_inflasi ?? null; // edit
                 if ($rekon->inflasi_kota === null) {
                     Log::error('Missing or invalid inflasi_kota for Rekonsiliasi', [
                         'rekonsiliasi_id' => $rekon->rekonsiliasi_id,
@@ -521,33 +515,25 @@ class RekonsiliasiController extends Controller
                     ]);
                 }
 
-                $rekon->inflasi_desa = isset($inflasiDataDesa[$wilayah][$komoditas]['02'])
-                    ? $inflasiDataDesa[$wilayah][$komoditas]['02'][0]->nilai_inflasi
-                    : null;
+                $rekon->inflasi_desa = $inflasiData["{$wilayah}-{$komoditas}-02"]->nilai_inflasi ?? null; // edit
             });
         } elseif ($kd_level === '02') {
-            $inflasiDataDesa = Inflasi::where('bulan_tahun_id', $bulanTahun->bulan_tahun_id)
-                ->where('kd_level', '02')
+            $inflasiData = Inflasi::where('bulan_tahun_id', $bulanTahun->bulan_tahun_id)
+                ->whereIn('kd_level', ['01', '02'])
                 ->whereIn('kd_wilayah', $rekonsiliasi->pluck('inflasi.kd_wilayah')->unique())
                 ->whereIn('kd_komoditas', $rekonsiliasi->pluck('inflasi.kd_komoditas')->unique())
+                ->select('kd_wilayah', 'kd_komoditas', 'kd_level', 'nilai_inflasi')
                 ->get()
-                ->groupBy(['kd_wilayah', 'kd_komoditas', 'kd_level']);
+                ->keyBy(function ($item) {
+                    return "{$item->kd_wilayah}-{$item->kd_komoditas}-{$item->kd_level}";
+                });
 
-            $inflasiDataKota = Inflasi::where('bulan_tahun_id', $bulanTahun->bulan_tahun_id)
-                ->where('kd_level', '01')
-                ->whereIn('kd_wilayah', $rekonsiliasi->pluck('inflasi.kd_wilayah')->unique())
-                ->whereIn('kd_komoditas', $rekonsiliasi->pluck('inflasi.kd_komoditas')->unique())
-                ->get()
-                ->groupBy(['kd_wilayah', 'kd_komoditas', 'kd_level']);
-
-            $rekonsiliasi->each(function ($rekon) use ($inflasiDataDesa, $inflasiDataKota) {
+            // edit: Updated loop to use keyBy structure
+            $rekonsiliasi->each(function ($rekon) use ($inflasiData) {
                 $wilayah = $rekon->inflasi->kd_wilayah;
                 $komoditas = $rekon->inflasi->kd_komoditas;
 
-                $rekon->inflasi_desa = isset($inflasiDataDesa[$wilayah][$komoditas]['02'])
-                    ? $inflasiDataDesa[$wilayah][$komoditas]['02'][0]->nilai_inflasi
-                    : null;
-
+                $rekon->inflasi_desa = $inflasiData["{$wilayah}-{$komoditas}-02"]->nilai_inflasi ?? null; // edit
                 if ($rekon->inflasi_desa === null) {
                     Log::error('Missing or invalid inflasi_desa for Rekonsiliasi', [
                         'rekonsiliasi_id' => $rekon->rekonsiliasi_id,
@@ -558,9 +544,7 @@ class RekonsiliasiController extends Controller
                     ]);
                 }
 
-                $rekon->inflasi_kota = isset($inflasiDataKota[$wilayah][$komoditas]['01'])
-                    ? $inflasiDataKota[$wilayah][$komoditas]['01'][0]->nilai_inflasi
-                    : null;
+                $rekon->inflasi_kota = $inflasiData["{$wilayah}-{$komoditas}-01"]->nilai_inflasi ?? null; // edit
             });
         } else {
             $rekonsiliasi->each(function ($rekon) {
@@ -688,40 +672,34 @@ class RekonsiliasiController extends Controller
             // Log::info("Rekonsiliasi with ID {$id} deleted successfully.");
 
             return response()->json([
-                'status' => 'success',
                 'message' => 'Rekonsiliasi berhasil dihapus.',
             ], 200);
         } catch (ModelNotFoundException $e) {
             Log::warning("Rekonsiliasi with ID {$id} not found for deletion.");
 
             return response()->json([
-                'status' => 'not_found',
                 'message' => 'Data rekonsiliasi tidak ditemukan.',
             ], 404);
         } catch (\Exception $e) {
             Log::error("Error deleting rekonsiliasi with ID {$id}: " . $e->getMessage());
 
             return response()->json([
-                'status' => 'error',
-                'message' => 'Terjadi kesalahan saat menghapus data.',
+                'message' => 'Terjadi kesalahan saat menghapus data: ' . $e->getMessage(),
             ], 500);
         }
     }
 
 
-    // modddified
+    // modified: can take user_id
+
     public function update(Request $request, $id)
     {
-        Log::info('update hit');
-        Log::info('Raw request input:', ['input' => $request->all()]);
-
         // Step 1: Get user and region code
         $user = null;
         if ($request->input('user_id')) {
             $user = User::find($request->input('user_id'));
             if (!$user) {
                 return response()->json([
-                    'status' => 'user_not_found',
                     'message' => 'User tidak ditemukan.',
                     'data' => null,
                 ], 404);
@@ -730,7 +708,6 @@ class RekonsiliasiController extends Controller
             $user = Auth::user();
             if (!$user) {
                 return response()->json([
-                    'status' => 'unauthenticated',
                     'message' => 'User tidak ditemukan atau belum login.',
                     'data' => null,
                 ], 401);
@@ -746,16 +723,8 @@ class RekonsiliasiController extends Controller
                 'media' => 'nullable|url',
             ]);
         } catch (ValidationException $e) {
-            // Log::error('Validation failed', [
-            //     'errors' => $e->errors(),
-            //     'input' => $request->all(),
-            //     'id' => $id,
-            // ]);
-            // Laravel automatically returns a 422 response with validation errors,
-            // but we can customize it to match the structure
             return response()->json([
-                'status' => 'error',
-                'message' => 'Validasi gagal',
+                'message' => 'Validasi gagal: ' . $e->errors()[array_key_first($e->errors())][0],
                 'data' => null,
             ], 422);
         }
@@ -766,7 +735,6 @@ class RekonsiliasiController extends Controller
 
             if (!$rekonsiliasi) {
                 return response()->json([
-                    'status' => 'error',
                     'message' => 'Rekonsiliasi tidak ditemukan',
                     'data' => null,
                 ], 404);
@@ -780,14 +748,12 @@ class RekonsiliasiController extends Controller
             ]);
 
             return response()->json([
-                'status' => 'success',
                 'message' => 'Rekonsiliasi berhasil diperbarui',
                 'data' => null,
             ], 200);
         } catch (\Exception $e) {
             return response()->json([
-                'status' => 'error',
-                'message' => 'An unexpected error occurred',
+                'message' => 'Terjadi kesalahan tak terduga: ' . $e->getMessage(),
                 'data' => null,
             ], 500);
         }

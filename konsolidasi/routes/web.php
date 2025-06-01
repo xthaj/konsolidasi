@@ -45,6 +45,7 @@ Route::get('/user', [UserController::class, 'getUsers']);
 Route::post('/user', [UserController::class, 'store']);
 Route::put('/user/{user_id}', [UserController::class, 'update']);
 Route::delete('/user/{user_id}', [UserController::class, 'destroy']);
+Route::get('/api/check-username', [RegisteredUserController::class, 'checkUsername']);
 
 // upload
 Route::get('/data/upload', [InflasiController::class, 'create'])->name('data.create');
@@ -60,27 +61,25 @@ Route::patch('/data/update/{id}', [InflasiController::class, 'update']);
 
 // Route::post('/data/store', [DataController::class, 'store'])->name('data.store');
 Route::get('/data/edit', [InflasiController::class, 'edit'])->name('data.edit');
-Route::get('/api/data/edit', [InflasiController::class, 'apiEdit']);
+Route::get('/api/data/edit', [InflasiController::class, 'fetchEditData']);
 
 Route::get('/data/finalisasi', [InflasiController::class, 'finalisasi'])->name('data.finalisasi');
 
 //visualisasi
 Route::get('/visualisasi', [VisualisasiController::class, 'create'])->name('visualisasi.create');
-Route::get('/api/visualisasi', [VisualisasiController::class, 'apiVisualisasi']);
-// Route::post('/visualisasi/cek-data', [VisualisasiController::class, 'cekData']);
-
+Route::get('/api/visualisasi', [VisualisasiController::class, 'fetchVisualisasiData']);
 
 
 // Rekonsiliasi
 Route::get('/rekonsiliasi/pemilihan', [RekonsiliasiController::class, 'pemilihan'])->name('rekon.pemilihan');
 Route::get('/rekonsiliasi/pembahasan', [RekonsiliasiController::class, 'pembahasan'])->name('rekon.pembahasan');
-Route::get('/api/rekonsiliasi/pembahasan', [RekonsiliasiController::class, 'apiPembahasan']);
+Route::get('/api/rekonsiliasi/pembahasan', [RekonsiliasiController::class, 'fetchPembahasanData']);
 Route::patch('/api/rekonsiliasi/{id}/pembahasan', [RekonsiliasiController::class, 'updatePembahasan']);
 
 Route::get('/rekonsiliasi/progres', [RekonsiliasiController::class, 'progres'])->name('rekon.progres');
 Route::get('/rekonsiliasi/progres-skl', [RekonsiliasiController::class, 'progres_skl'])->name('rekon.progres-skl');
 
-Route::get('/api/rekonsiliasi/progres', [RekonsiliasiController::class, 'apiProgres'])->name('api.rekon.progres');
+Route::get('/api/rekonsiliasi/progres', [RekonsiliasiController::class, 'apiProgres']);
 
 Route::post('/rekonsiliasi/confirm', [DataController::class, 'confirmRekonsiliasi'])->name('rekonsiliasi.confirm');
 Route::put('/rekonsiliasi/update/{id}', [RekonsiliasiController::class, 'update'])->name('rekonsiliasi.update');
@@ -114,7 +113,6 @@ Route::get('/segmented-wilayah', [WilayahController::class, 'getSegmentedWilayah
 Route::post('/bulan-tahun', [BulanTahunController::class, 'update']);
 Route::get('/bulan-tahun', [BulanTahunController::class, 'get']);
 
-Route::get('/api/check-username', [RegisteredUserController::class, 'checkUsername']);
 Route::get('/rekonsiliasi/user-provinsi', [UserController::class, 'getProvinsi'])->name('rekon.get_provinsi')->middleware('auth');
 
 Route::post('/api/inflasi-id', [DataController::class, 'findInflasiId']);

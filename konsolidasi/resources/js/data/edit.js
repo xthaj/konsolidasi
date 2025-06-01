@@ -5,10 +5,9 @@ window.Alpine = Alpine;
 Alpine.data("webData", () => ({
     loading: true,
 
-    modalMessage: "",
-    status: "no_filters",
+    modalMessage: "", 
     message: "Silakan pilih filter untuk menampilkan data.",
-    data: { inflasi: null, title: null, kd_level: null, kd_wilayah: null },
+    data: { inflasi: [], title: null, kd_level: null, kd_wilayah: null },
 
     bulan: "",
     tahun: "",
@@ -33,23 +32,7 @@ Alpine.data("webData", () => ({
     direction: "asc",
     deleteRekonsiliasi: false,
     modalData: { id: "", komoditas: "" },
-    editModal: {
-        inflasi_id: null,
-        nilai_inflasi: null,
-        andil: null,
-    },
-    data: {
-        inflasi: {
-            data: [],
-            current_page: 1,
-            last_page: 1,
-            prev_page_url: null,
-            next_page_url: null,
-        },
-        title: null,
-        kd_level: null,
-        kd_wilayah: null,
-    },
+    inflasi_id:null,
     bulanOptions: [
         ["Januari", 1],
         ["Februari", 2],
@@ -172,26 +155,21 @@ Alpine.data("webData", () => ({
     },
 
     openEditModal(inflasi_id, nilai_inflasi, andil) {
-        this.editModal.inflasi_id = inflasi_id;
-        this.edit_nilai_inflasi = nilai_inflasi; // Changed from editModal.nilai_inflasi
-        this.edit_andil = andil; // Changed from editModal.andil
+        this.inflasi_id = inflasi_id;
+        this.edit_nilai_inflasi = nilai_inflasi; 
+        this.edit_andil = andil; 
         this.$dispatch("open-modal", "edit-modal");
     },
 
     checkEditFormValidity() {
-        // Validate that nilai_inflasi is not null or empty
-        if (
-            this.edit_nilai_inflasi === null ||
-            this.edit_nilai_inflasi === ""
-        ) {
+        if (this.edit_nilai_inflasi === null || this.edit_nilai_inflasi === "") {
             this.modalMessage = "Data inflasi baru tidak boleh kosong.";
             this.$dispatch("open-modal", "error-modal");
             return false;
         }
 
-        // Find the original inflation record
         const originalItem = this.data.inflasi?.find(
-            (item) => item.inflasi_id === this.editModal.inflasi_id
+            (item) => item.inflasi_id === this.inflasi_id 
         );
 
         if (!originalItem) {
@@ -201,35 +179,16 @@ Alpine.data("webData", () => ({
         }
 
         const nilaiInflasiChanged =
-            parseFloat(this.edit_nilai_inflasi) !==
-            parseFloat(originalItem.nilai_inflasi);
+            parseFloat(this.edit_nilai_inflasi) !== parseFloat(originalItem.nilai_inflasi);
 
-        // Use data.kd_wilayah for validation
         if (this.data.kd_wilayah === "0") {
             if (this.edit_andil === null || this.edit_andil === "") {
                 this.modalMessage = "Data andil baru tidak boleh kosong.";
                 this.$dispatch("open-modal", "error-modal");
                 return false;
             }
-
-            const andilChanged =
-                this.edit_andil !== null &&
-                parseFloat(this.edit_andil) !==
-                    parseFloat(originalItem.andil || 0);
-
-            if (!nilaiInflasiChanged && !andilChanged) {
-                this.modalMessage = "Tidak ada nilai yang diganti.";
-                this.$dispatch("open-modal", "error-modal");
-                return false;
-            }
-
+            const andilChanged = parseFloat(this.edit_andil) !== parseFloat(originalItem.andil || 0);
             return nilaiInflasiChanged || andilChanged;
-        }
-
-        if (!nilaiInflasiChanged) {
-            this.modalMessage = "Tidak ada nilai yang diganti.";
-            this.$dispatch("open-modal", "error-modal");
-            return false;
         }
 
         return nilaiInflasiChanged;
@@ -262,7 +221,7 @@ Alpine.data("webData", () => ({
             }
 
             const response = await fetch(
-                `/api/data/inflasi/${this.editModal.inflasi_id}`,
+                `/api/data/inflasi/${this.inflasi_id}`,
                 {
                     method: "PUT",
                     headers: {
@@ -285,9 +244,12 @@ Alpine.data("webData", () => ({
             this.modalMessage = "Data inflasi berhasil diperbarui";
             this.$dispatch("open-modal", "success-modal");
             this.$dispatch("close-modal", "edit-modal");
+            this.inflasi_id = null;
+            this.edit_nilai_inflasi = "";
+            this.edit_andil = "";
 
             // Refresh data
-            await this.fetchData(this.data.inflasi.current_page || 1);
+            await this.fetchData();
         } catch (error) {
             console.error("Failed to update data:", error);
             this.modalMessage = "Gagal memperbarui data";
@@ -345,7 +307,7 @@ Alpine.data("webData", () => ({
         return "";
     },
 
-    async fetchData(page) {
+    async fetchData() {
         if (!this.checkFormValidity()) {
             return;
         }
@@ -359,7 +321,6 @@ Alpine.data("webData", () => ({
                 kd_komoditas: this.selectedKomoditas,
                 sort: this.sort,
                 direction: this.direction,
-                page: page,
             });
 
             const response = await fetch(`/api/data/edit?${params.toString()}`);
@@ -422,7 +383,7 @@ Alpine.data("webData", () => ({
             if (response.ok) {
                 // On success, store the message and refresh data
                 this.modalMessage = result.message || "Data berhasil dihapus!";
-                await this.fetchData(this.data.inflasi.current_page);
+                await this.fetchData();
                 this.$dispatch("open-modal", "success-modal");
             } else {
                 // On failure, store the error message

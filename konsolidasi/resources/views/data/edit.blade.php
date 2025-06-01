@@ -134,8 +134,9 @@
                     <label class="block mb-2 text-sm font-medium text-gray-900">Level Wilayah<span class="text-red-500 ml-1">*</span></label>
                     <select x-model="wilayahLevel" @change="isPusat = wilayahLevel === 'pusat'; selectedProvince = ''; selectedKabkot = ''; updateKdWilayah()" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                         <option value="pusat" :selected="isPusat">Nasional</option>
-                        <option value="provinsi" :selected="!isPusat && selectedKabkot === ''">Provinsi</option>
-                        <option value="kabkot" :selected="!isPusat && selectedKabkot !== ''">Kabupaten/Kota</option>
+                        <option value="provinsi" :disabled="selectedKdLevel === '00'" :selected="!isPusat && selectedKabkot === ''">Provinsi</option>
+                        <option value="kabkot" :disabled="selectedKdLevel !== '01'"
+                            :selected="!isPusat && selectedKabkot !== ''">Kabupaten/Kota</option>
                     </select>
                 </div>
                 <div x-show="selectedKdLevel == '00'" class="mt-4 text-sm text-gray-500">
@@ -159,9 +160,10 @@
                         </template>
                     </select>
                 </div>
-                <div x-show="wilayahLevel === 'kabkot' && selectedKdLevel !== '01' && selectedKdLevel !== '' && selectedKdLevel !== '00'" class="mt-4 text-sm text-gray-500">
-                    Data tidak tersedia untuk kabupaten/kota pada level harga ini.
+                <div x-show="selectedKdLevel !== '01' && selectedKdLevel !== '00'" class="text-sm text-gray-500 mt-2">
+                    Pilihan Kabupaten/Kota hanya tersedia untuk level harga <strong>Harga Konsumen Kota</strong>.
                 </div>
+
 
                 <input type="hidden" name="kd_wilayah" :value="kd_wilayah" required>
 
@@ -201,12 +203,6 @@
                         <span x-text="getValidationMessage()"></span>
                     </div>
 
-                    <!-- <button type="submit"
-                        :disabled="!checkFormValidity()"
-                        class="w-full bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 text-white font-medium rounded-lg text-sm px-5 py-2.5 text-center">
-                        Tampilkan
-                    </button> -->
-
                     <x-primary-button
                         type="submit"
                         x-bind:disabled="!checkFormValidity()"
@@ -218,23 +214,13 @@
         </form>
     </x-slot>
 
-    <!-- Case: No valid filters applied -->
-    <div x-show="!checkFormValidity()" class="bg-white px-6 py-4 rounded-lg shadow-sm text-center text-gray-500">
+    <div x-show="!data.inflasi?.length" class="bg-white px-6 py-4 rounded-lg shadow-sm text-center text-gray-500">
         <div class="mb-1">
             <h2 class="text-lg font-semibold mb-2" x-text="data.title || 'Inflasi'"></h2>
         </div>
         <span x-text="message"></span>
     </div>
 
-    <!-- Case: Valid filters but no data returned -->
-    <div x-show="checkFormValidity() && !data.inflasi?.length" class="bg-white px-6 py-4 rounded-lg shadow-sm text-center text-gray-500">
-        <div class="mb-1">
-            <h2 class="text-lg font-semibold mb-2" x-text="data.title || 'Inflasi'"></h2>
-        </div>
-        <span x-text="message"></span>
-    </div>
-
-    <!-- Case: Data returned -->
     <div x-show="data.inflasi?.length">
         <div class="mb-1">
             <h2 class="text-lg font-semibold mb-2" x-text="data.title || 'Inflasi'"></h2>
@@ -320,7 +306,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <template x-if="data.inflasi?.length">
+                        <template>
                             <template x-for="item in data.inflasi" :key="item.kd_komoditas">
                                 <tr class="bg-white border-b border-gray-200">
                                     <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap" x-text="item.kd_komoditas"></th>

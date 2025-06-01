@@ -433,11 +433,9 @@ Alpine.data("webData", () => ({
             if (!response.ok) throw new Error(`API error: ${response.status}`);
             const result = await response.json();
 
-            if (result.status === "partial" || result.errors?.length > 0) {
-                // this.errorMessage =
-                //     result.message || "Beberapa data tidak tersedia.";
-                this.errors = result.errors || result.data?.errors || [];
-            }
+            if (result.data?.errors?.length > 0 || result.errors?.length > 0) { 
+                this.errors = result.errors || result.data?.errors || []; 
+            } 
             this.wilayahLevel = this.pendingWilayahLevel;
             this.data = result.data;
 
@@ -479,6 +477,7 @@ Alpine.data("webData", () => ({
         this.data = data;
         const isNational = this.kd_wilayah === "0";
         const chartKey = "line";
+        
 
         const levelColorMap = {
             "01": this.colorPalette.HK,
@@ -491,14 +490,28 @@ Alpine.data("webData", () => ({
         // Line Chart
         const lineChart = charts.get("lineChart");
         if (lineChart && data?.chart_data?.[chartKey]) {
+            const hasAndilData = data.chart_data[chartKey].series.some(
+                (s) => s.andil && s.andil.length > 0 && s.andil.some((v) => v != null)
+            );
+
+            // If at province level and showAndil is true but no andil data, reset to Inflasi
+            if (this.wilayahLevel === "2" && this.showAndil && !hasAndilData) {
+                this.showAndil = false;
+                const toggleAndilBtn = document.getElementById("toggleAndilBtn");
+                if (toggleAndilBtn) {
+                    toggleAndilBtn.textContent = "Lihat Andil";
+                }
+            }
+
             const seriesData = data.chart_data[chartKey].series.map((s) => ({
-                name: `${s.name} (${this.showAndil ? "Andil" : "Inflasi"})`,
+                name: `${s.name} (${this.showAndil && hasAndilData ? "Andil" : "Inflasi"})`,
                 type: "line",
-                data: this.showAndil ? s.andil : s.inflasi,
+                data: (this.showAndil && hasAndilData) ? s.andil : s.inflasi,
                 itemStyle: {
                     color: this.colors[s.name] || this.colorPalette.HK,
                 },
             }));
+
             lineChart.setOption({
                 tooltip: { trigger: "axis" },
                 legend: { bottom: 0, data: seriesData.map((s) => s.name) },
@@ -518,9 +531,9 @@ Alpine.data("webData", () => ({
                     type: "category",
                     data: data.chart_data[chartKey].xAxis,
                 },
-                yAxis: {
+                        yAxis: {
                     type: "value",
-                    name: this.showAndil ? "Andil (%)" : "Inflasi (%)",
+                    name: (this.showAndil && hasAndilData) ? "Andil (%)" : "Inflasi (%)",
                 },
                 series: seriesData,
             });

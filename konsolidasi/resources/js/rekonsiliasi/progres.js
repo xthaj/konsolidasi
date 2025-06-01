@@ -286,22 +286,6 @@ Alpine.data("webData", () => ({
         this.$dispatch("open-modal", "delete-rekonsiliasi");
     },
 
-    // toggleAlasan(keterangan) {
-    //     let alasanArray = this.selectedAlasan
-    //         ? this.selectedAlasan.split(",").map((s) => s.trim())
-    //         : [];
-
-    //     const index = alasanArray.indexOf(keterangan);
-    //     if (index === -1) {
-    //         alasanArray.push(keterangan);
-    //     } else {
-    //         alasanArray.splice(index, 1);
-    //     }
-
-    //     this.selectedAlasan = alasanArray.join(", ");
-    //     console.log(this.selectedAlasan);
-    // },
-
     async submitEditRekon() {
         if (
             !Array.isArray(this.selectedAlasan) ||
@@ -359,19 +343,20 @@ Alpine.data("webData", () => ({
             );
 
             const result = await response.json();
-            if (result.status === "success") {
+
+            if (!response.ok) {
+                this.modalMessage =
+                    result.message || "Gagal memperbarui data.";
+                this.$dispatch("open-modal", "error-modal");
+            } else {
                 this.modalMessage = result.message;
                 this.$dispatch("close");
                 this.fetchData();
                 this.$dispatch("open-modal", "success-modal");
-            } else {
-                this.modalMessage =
-                    result.message || "Gagal mengkonfirmasi rekonsiliasi.";
-                this.$dispatch("open-modal", "error-modal");
             }
         } catch (error) {
             this.modalMessage =
-                "Terjadi kesalahan saat mengkonfirmasi rekonsiliasi.";
+                "Terjadi kesalahan saat memperbarui rekonsiliasi.";
             this.$dispatch("open-modal", "error-modal");
         }
     },
@@ -388,7 +373,7 @@ Alpine.data("webData", () => ({
                 },
             });
             const result = await response.json();
-            if (result.status === "success") {
+            if (response.ok) {
                 this.modalMessage = result.message;
                 this.$dispatch("close");
                 this.$dispatch("open-modal", "success-modal");

@@ -27,49 +27,13 @@ class VisualisasiController extends Controller
     }
 
     /**
-     * API endpoint to fetch visualization data for ECharts.
-     *
-     * @param Request $request
-     * @return JsonResponse
-     */
-    public function apiVisualisasi(Request $request): JsonResponse
-    {
-        Log::info('VisualisasiController@apiVisualisasi called', ['request' => $request->all()]);
-        return $this->fetchVisualisasiData($request, true);
-    }
-
-    /**
-     * Format response as array or JsonResponse.
-     *
-     * @param array $response
-     * @param bool $isApi
-     * @param string $status
-     * @param int $code
-     * @return array|JsonResponse
-     */
-    private function formatResponse(array $response, bool $isApi, string $status, int $code = 200)
-    {
-        $response['message'] = $response['errors'] ? 'Beberapa data tidak tersedia.' : 'Data retrieved successfully';
-
-        if ($isApi) {
-            return response()->json([
-                'message' => $response['message'],
-                'status' => $status,
-                'data' => $response
-            ], $code);
-        }
-
-        return $response;
-    }
-
-    /**
      * Fetch visualization data for charts.
      *
      * @param Request $request
      * @param bool $isApi
      * @return array|JsonResponse
      */
-    private function fetchVisualisasiData(Request $request, bool $isApi = false)
+    public function fetchVisualisasiData(Request $request): JsonResponse
     {
         Log::info('VisualisasiController@fetchVisualisasiData called', ['request' => $request->all()]);
 
@@ -82,7 +46,10 @@ class VisualisasiController extends Controller
                 'chart_data' => []
             ];
             Log::warning('No active period found');
-            return $this->formatResponse($response, $isApi, 'error', 400);
+            return response()->json([
+                'message' => 'Beberapa data tidak tersedia.',
+                'data' => $response
+            ], 400);
         }
 
         $defaults = [
@@ -118,30 +85,25 @@ class VisualisasiController extends Controller
             ]);
         } catch (ValidationException $e) {
             Log::warning('Validation failed', ['errors' => $e->errors()]);
-            if ($isApi) {
-                return response()->json([
-                    'message' => 'Validation failed',
-                    'errors' => $e->errors()
-                ], 422);
-            }
-            return [
-                'title' => 'Inflasi',
-                'errors' => ['Input tidak valid: ' . implode(', ', array_merge(...array_values($e->errors())))],
-                'chart_status' => [],
-                'chart_data' => []
-            ];
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
         }
 
         $bulanTahunRecord = $this->resolveBulanTahun($validated['bulan'] ?? null, $validated['tahun'] ?? null);
         if (!$bulanTahunRecord) {
             $response = [
                 'title' => 'Inflasi',
-                'errors' => ['Bulan dan tahun aktif tidak ditemukan.'],
+                'errors' => ['Belum ada data di periode terpilih.'],
                 'chart_status' => [],
                 'chart_data' => []
             ];
             Log::warning('BulanTahun not found', ['bulan' => $validated['bulan'], 'tahun' => $validated['tahun']]);
-            return $this->formatResponse($response, $isApi, 'error', 404);
+            return response()->json([
+                'message' => 'Beberapa data tidak tersedia.',
+                'data' => $response
+            ], 200);
         }
 
         $bulan = sprintf('%02d', $bulanTahunRecord->bulan);
@@ -198,7 +160,10 @@ class VisualisasiController extends Controller
 
         Log::info('Chart Data Prepared:', ['chart_status' => $response['chart_status'], 'errors' => $response['errors']]);
 
-        return $this->formatResponse($response, $isApi, empty($response['errors']) ? 'success' : 'partial');
+        return response()->json([ //edit
+            'message' => empty($response['errors']) ? 'Data retrieved successfully' : 'Beberapa data tidak tersedia.', //edit
+            'data' => $response //edit // Removed status key
+        ], 200);
     }
 
 

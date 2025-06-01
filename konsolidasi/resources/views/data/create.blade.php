@@ -66,7 +66,8 @@
         <div id="tooltip" role="tooltip" class="absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
             <ul>
                 <li>1. Gunakan kode komoditas tanpa padding (contoh: 0, bukan 000)</li>
-                <li>2. Gunakan kode 1 untuk membuat rekonsiliasi, 0 untuk tidak membuat rekonsiliasi</li>
+                <li>2. Untuk kode wilayah nasional, gunakan 0 (jangan dikosongkan). Proses berhenti saat kode wilayah kosong.</li>
+                <li>3. Gunakan kode 1 untuk membuat rekonsiliasi, 0 untuk tidak membuat rekonsiliasi</li>
             </ul>
             <div class="tooltip-arrow" data-popper-arrow></div>
         </div>
@@ -79,7 +80,7 @@
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <!-- Bulan -->
             <div>
-                <label class="block mb-1 text-sm font-medium text-gray-900">Bulan</label>
+                <label class="block mb-2 text-sm font-medium text-gray-900">Bulan</label>
                 <select name="bulan" x-model="bulan" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                     <template x-for="[nama, bln] in bulanOptions" :key="bln">
                         <option :value="bln" :selected="bulan == bln" x-text="nama"></option>
@@ -99,7 +100,7 @@
 
             <!-- Level Harga -->
             <div>
-                <label class="block mb-1 text-sm font-medium text-gray-900">Level Harga</label>
+                <label class="block mb-2 text-sm font-medium text-gray-900">Level Harga</label>
                 <select id="level" name="level" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                     <option value="01">Harga Konsumen Kota</option>
                     <option value="02">Harga Konsumen Desa</option>

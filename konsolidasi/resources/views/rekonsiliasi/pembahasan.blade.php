@@ -40,11 +40,11 @@
                 <div>
                     <label class="block mb-2 text-sm font-medium text-gray-900">Level Wilayah<span class="text-red-500 ml-1">*</span></label>
                     <select name="level_wilayah" x-model="wilayahLevel" @change="updateWilayahOptions" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
-                        <option value="semua">Semua Provinsi dan Kab/Kota</option>
+                        <option value="semua" :disabled="pendingKdLevel !== '01'">Semua Provinsi dan Kab/Kota</option>
                         <option value="semua-provinsi">Semua Provinsi</option>
-                        <option value="semua-kabkot">Semua Kabupaten/Kota</option>
                         <option value="provinsi">Provinsi</option>
-                        <option value="kabkot">Kabupaten/Kota</option>
+                        <option value="semua-kabkot" :disabled="pendingKdLevel !== '01'">Semua Kabupaten/Kota</option>
+                        <option value="kabkot" :disabled="pendingKdLevel !== '01'">Kabupaten/Kota</option>
                     </select>
                 </div>
                 <div x-show="wilayahLevel === 'provinsi' || wilayahLevel === 'kabkot'" class="mt-4">
@@ -69,6 +69,11 @@
                     Data tidak tersedia untuk kabupaten/kota pada level harga ini.
                 </div>
                 <input type="hidden" name="kd_wilayah" x-model="kd_wilayah" required>
+
+                <div x-show="pendingKdLevel !== '01'" class="text-sm text-gray-500 mt-2">
+                    Pilihan Kabupaten/Kota hanya tersedia untuk level harga <strong>Harga Konsumen Kota</strong>.
+                </div>
+
                 <div>
                     <label class="block mb-2 text-sm font-medium text-gray-900">Komoditas</label>
                     <select name="kd_komoditas" x-model="selectedKomoditas" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
