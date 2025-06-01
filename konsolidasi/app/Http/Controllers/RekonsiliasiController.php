@@ -21,32 +21,19 @@ use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
+
 class RekonsiliasiController extends Controller
 {
+    // Pemilihan
     public function pemilihan()
     {
         return view('rekonsiliasi.pemilihan');
     }
 
-
-    /**
-     * Display the reconciliation progress view.
-     *
-     * @param Request $request HTTP request with input parameters.
-     * @return View The progress view with reconciliation data and user info.
-     */
+    // Progres
     public function progres(Request $request): View
     {
-        Log::info('RekonsiliasiController@progres called', ['request' => $request->all()]);
-        $response = $this->fetchRekonsiliasiData($request);
-        $data = $response->getData(true);
-        // $user = Auth::user();
-        return view('rekonsiliasi.progres', array_merge($data, [
-            // 'user' => [
-            //     'id' => $user->id,
-            //     'kd_wilayah' => $user->kd_wilayah,
-            // ],
-        ]));
+        return view('rekonsiliasi.progres');
     }
 
     public function progres_skl(Request $request): View
@@ -77,12 +64,6 @@ class RekonsiliasiController extends Controller
     {
         Log::info('RekonsiliasiController@apiProgres called', ['request' => $request->all()]);
         return $this->fetchRekonsiliasiData($request, true); // JsonResponse mode
-    }
-
-    public function apiPembahasan(Request $request)
-    {
-        Log::info('RekonsiliasiController@apiPembahasan called', ['request' => $request->all()]);
-        return $this->fetchPembahasanData($request, true); // JsonResponse mode
     }
 
     /**
@@ -368,49 +349,52 @@ class RekonsiliasiController extends Controller
 
         return $title;
     }
-    private function fetchPembahasanData(Request $request, bool $isApi = false)
+
+    public function pembahasan(): View
     {
-        // Helper: Return error response as JSON
-        $errorResponse = fn(string $message, int $code) => response()->json([
-            'message' => $message,
-            'data' => [
-                'rekonsiliasi' => null,
-                'title' => 'Rekonsiliasi',
-            ],
-        ], $code);
+        return view('rekonsiliasi.pembahasan');
+    }
 
-        // Step 1: Verify authenticated user
-        $user = Auth::user();
-        if (!$user) {
-            return $errorResponse('User tidak ditemukan atau belum login.', 401);
+    public function fetchPembahasanData(Request $request)
+    {
+        // Fallback to active BulanTahun if bulan or tahun is missing
+        if (!$request->filled('bulan') || !$request->filled('tahun')) {
+            $aktifBulanTahun = BulanTahun::where('aktif', 1)->first();
+            if ($aktifBulanTahun) {
+                $request->merge([
+                    'bulan' => $aktifBulanTahun->bulan,
+                    'tahun' => $aktifBulanTahun->tahun,
+                ]);
+            } else {
+                return response()->json([
+                    'message' => 'Tidak ada periode aktif.',
+                    'data' => [
+                        'rekonsiliasi' => [],
+                        'title' => 'Rekonsiliasi',
+                    ],
+                ], 400);
+            }
         }
 
-        // Step 2: Verify pusat-level user
-        if ($user->kd_wilayah !== '0') {
-            return $errorResponse('Akses hanya untuk pengguna pusat.', 403);
-        }
-
-        // Step 3: Fetch active period
-        $activeBulanTahun = BulanTahun::where('aktif', 1)->first();
-        if (!$activeBulanTahun) {
-            return $errorResponse('Tidak ada periode aktif.', 400);
-        }
-
-        // Step 4: Set defaults for pusat user
-        $defaults = [
-            'bulan' => $activeBulanTahun->bulan,
-            'tahun' => $activeBulanTahun->tahun,
+        // Extract request parameters with defaults
+        $input = $request->only([
+            'bulan',
+            'tahun',
+            'kd_level',
+            'kd_wilayah',
+            'status_rekon',
+            'kd_komoditas',
+            'level_wilayah'
+        ]);
+        $input = array_merge([
             'kd_level' => '01',
             'kd_wilayah' => '0',
             'status_rekon' => '00',
             'kd_komoditas' => '',
             'level_wilayah' => 'semua',
-        ];
+        ], $input);
 
-        // Step 5: Merge inputs
-        $input = array_merge($defaults, $request->only(array_keys($defaults)));
-
-        // Step 6: Validate inputs
+        // Validate request
         $validator = Validator::make($input, [
             'bulan' => [
                 'required',
@@ -440,15 +424,37 @@ class RekonsiliasiController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return $errorResponse($validator->errors()->first(), 400);
+            return response()->json([
+                'message' => $validator->errors()->first(),
+                'data' => [
+                    'rekonsiliasi' => [],
+                    'title' => 'Rekonsiliasi',
+                ],
+            ], 422);
         }
 
-        extract($validator->validated());
+        // Extract validated inputs
+        $bulan = $input['bulan'];
+        $tahun = $input['tahun'];
+        $kd_level = $input['kd_level'];
+        $kd_wilayah = $input['kd_wilayah'];
+        $status_rekon = $input['status_rekon'];
+        $kd_komoditas = $input['kd_komoditas'];
+        $level_wilayah = $input['level_wilayah'];
 
-        // Step 7: Fetch period
+        // Fetch BulanTahun record
         $bulanTahun = BulanTahun::where('bulan', $bulan)->where('tahun', $tahun)->first();
+        if (!$bulanTahun) {
+            return response()->json([
+                'message' => 'Tidak ada data tersedia untuk bulan dan tahun yang dipilih.',
+                'data' => [
+                    'rekonsiliasi' => [],
+                    'title' => 'Pembahasan ' . $this->generateRekonTableTitle($request),
+                ],
+            ], 404);
+        }
 
-        // Step 8: Build query
+        // Build query
         $rekonQuery = Rekonsiliasi::query()
             ->select('rekonsiliasi.*')
             ->join('inflasi', 'rekonsiliasi.inflasi_id', '=', 'inflasi.inflasi_id')
@@ -456,7 +462,7 @@ class RekonsiliasiController extends Controller
             ->where('rekonsiliasi.bulan_tahun_id', $bulanTahun->bulan_tahun_id)
             ->where('inflasi.kd_level', $kd_level);
 
-        // Step 9: Apply kd_wilayah filter
+        // Apply filters
         if ($kd_wilayah !== '0') {
             $rekonQuery->where('inflasi.kd_wilayah', $kd_wilayah);
         } elseif ($level_wilayah === 'semua-provinsi') {
@@ -465,17 +471,15 @@ class RekonsiliasiController extends Controller
             $rekonQuery->where('wilayah.flag', 3);
         }
 
-        // Step 10: Apply commodity filter
-        if ($kd_komoditas) {
+        if (!is_null($kd_komoditas) && $kd_komoditas !== '') {
             $rekonQuery->where('inflasi.kd_komoditas', $kd_komoditas);
         }
 
-        // Step 11: Apply status_rekon filter
         if ($status_rekon !== '00') {
             $rekonQuery->where('rekonsiliasi.user_id', $status_rekon === '01' ? null : '!=', null);
         }
 
-        // Step 12: Apply sorting based on level_wilayah
+        // Apply sorting
         if ($level_wilayah === 'semua') {
             $rekonQuery->orderByRaw("
             CASE
@@ -490,13 +494,13 @@ class RekonsiliasiController extends Controller
             $rekonQuery->orderBy('wilayah.kd_wilayah', 'ASC');
         }
 
-        // Step 13: Eager load relationships
+        // Eager load relationships
         $rekonQuery->with(['inflasi.komoditas', 'inflasi.wilayah', 'user']);
 
-        // Step 14: Execute query
+        // Execute query
         $rekonsiliasi = $rekonQuery->get();
 
-        // Step 15: Enrich data based on kd_level
+        // Enrich data based on kd_level
         if ($kd_level === '01') {
             $inflasiDataKota = Inflasi::where('bulan_tahun_id', $bulanTahun->bulan_tahun_id)
                 ->where('kd_level', '01')
@@ -588,14 +592,16 @@ class RekonsiliasiController extends Controller
             });
         }
 
-        // Step 16: Return JSON response
-        return response()->json([
+        // Return response
+        $response = [
             'message' => $rekonsiliasi->isEmpty() ? 'Tidak ada data untuk filter ini.' : 'Data berhasil dimuat.',
             'data' => [
                 'rekonsiliasi' => PembahasanDataResource::collection($rekonsiliasi),
                 'title' => 'Pembahasan ' . $this->generateRekonTableTitle($request),
             ],
-        ], 200);
+        ];
+
+        return response()->json($response, 200);
     }
 
     public function apiPemilihan(Request $request)
@@ -612,19 +618,8 @@ class RekonsiliasiController extends Controller
         ]);
     }
 
-    public function pembahasan(Request $request): View
-    {
-        Log::info('RekonsiliasiController@pembahasan called', ['request' => $request->all()]);
-        $response = $this->fetchPembahasanData($request);
-        $data = $response->getData(true);
-        // $user = Auth::user();
-        return view('rekonsiliasi.pembahasan', array_merge($data, [
-            // 'user' => [
-            //     'id' => $user->id,
-            //     'kd_wilayah' => $user->kd_wilayah,
-            // ],
-        ]));
-    }
+
+
     public function updatePembahasan(Request $request, $id)
     {
         try {
@@ -644,7 +639,6 @@ class RekonsiliasiController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Pembahasan berhasil diperbarui.',
-                'data' => $rekonsiliasi,
             ], 200);
         } catch (\Exception $e) {
             Log::error('Terjadi error saat memperbarui pembahasan', [
