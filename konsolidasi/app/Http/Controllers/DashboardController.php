@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use Illuminate\View\View;
 use App\Models\BulanTahun;
 use App\Models\Rekonsiliasi;
@@ -16,31 +15,29 @@ class DashboardController extends Controller
 
         $activeMonthYear = $activeBulanTahun
             ? $activeBulanTahun->getBulanName($activeBulanTahun->bulan) . " {$activeBulanTahun->tahun}"
-            : "Tidak ditemukan"; // Fallback if no active period
+            : "Tidak ditemukan";
 
-        // Initialize percentage
         $percentage = -1; // Default: no reconciliations
+        $progressWidth = null; // For minimum visual width of the bar
 
         if ($activeBulanTahun) {
-            // Total reconciliations for the active month
-            $totalRekonsiliasi = Rekonsiliasi::where('bulan_tahun_id', $activeBulanTahun->bulan_tahun_id)
-                ->count();
+            $totalRekonsiliasi = Rekonsiliasi::where('bulan_tahun_id', $activeBulanTahun->bulan_tahun_id)->count();
 
             if ($totalRekonsiliasi > 0) {
-                // Reconciliations with 'alasan' filled
                 $filledRekonsiliasi = Rekonsiliasi::where('bulan_tahun_id', $activeBulanTahun->bulan_tahun_id)
                     ->whereNotNull('alasan')
                     ->where('alasan', '!=', '')
                     ->count();
 
-                // Calculate percentage
                 $percentage = round(($filledRekonsiliasi / $totalRekonsiliasi) * 100);
+                $progressWidth = max($percentage, 5); // Ensures at least 10% width
             }
         }
 
         return view('dashboard', [
             'activeMonthYear' => $activeMonthYear,
-            'percentage' => $percentage
+            'percentage' => $percentage,
+            'progressWidth' => $progressWidth,
         ]);
     }
 }
