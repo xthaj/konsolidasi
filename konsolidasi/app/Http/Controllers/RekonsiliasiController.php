@@ -479,20 +479,7 @@ class RekonsiliasiController extends Controller
             $rekonQuery->where('rekonsiliasi.user_id', $status_rekon === '01' ? null : '!=', null);
         }
 
-        // Apply sorting
-        if ($level_wilayah === 'semua') {
-            $rekonQuery->orderByRaw("
-            CASE
-                WHEN wilayah.flag = 2 THEN wilayah.kd_wilayah
-                WHEN wilayah.flag = 3 THEN wilayah.parent_kd
-                ELSE NULL
-            END ASC,
-            wilayah.flag ASC,
-            wilayah.kd_wilayah ASC
-        ");
-        } else {
-            $rekonQuery->orderBy('wilayah.kd_wilayah', 'ASC');
-        }
+        $rekonQuery->orderBy('inflasi.kd_komoditas', 'ASC');
 
         // Eager load relationships
         $rekonQuery->with(['inflasi.komoditas', 'inflasi.wilayah', 'user']);
