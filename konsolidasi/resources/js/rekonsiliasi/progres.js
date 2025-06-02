@@ -5,8 +5,7 @@ window.Alpine = Alpine;
 Alpine.data("webData", () => ({
     loading: true,
 
-    modalMessage: "",
-    status: "no_filters",
+    modalMessage: "", 
     message: "Silakan pilih filter untuk menampilkan data.",
     data: { rekonsiliasi: null, title: null },
 
@@ -130,7 +129,6 @@ Alpine.data("webData", () => ({
             await this.fetchData();
         } catch (error) {
             console.error("Failed to load data:", error);
-            this.status = "error";
             this.message = "Gagal memuat data awal.";
             this.data.rekonsiliasi = [];
         } finally {
@@ -237,14 +235,13 @@ Alpine.data("webData", () => ({
                 throw new Error(
                     result.message || `HTTP error! status: ${response.status}`
                 );
+            } else {
+                this.message = result.message;
+                this.data = {
+                    rekonsiliasi: result.data.rekonsiliasi || [],
+                    title: result.data.title || "Rekonsiliasi",
+                }
             }
-            
-            this.message = result.message;
-            this.data = {
-                rekonsiliasi: result.data.rekonsiliasi || [],
-                title: result.data.title || "Rekonsiliasi",
-            }
-
         } catch (error) {
             console.error("Failed to fetch data:", error);
             this.message = error.message || "Gagal memuat data.";

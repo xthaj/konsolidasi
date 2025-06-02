@@ -1,5 +1,5 @@
 <x-modal name="success-modal" title="Berhasil" maxWidth="md">
-    <div class="text-gray-900 dark:text-white">
+    <div class="text-gray-900 ">
         {{ $slot }}
         <div class="mt-4 flex justify-end">
             <x-primary-button

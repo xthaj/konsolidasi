@@ -54,8 +54,21 @@
     </div>
     @endif
 
-    <div class="my-4">
-        <h1 class="text-lg font-semibold">Upload/Update Data Final</h1>
+    <div class="my-4 flex">
+        <h1 class="text-lg font-semibold mr-2">Upload/Update Data Final</h1>
+
+        <!-- tooltip -->
+        <span data-tooltip-target="tooltip" data-tooltip-placement="bottom" class="material-symbols-rounded">
+            info
+        </span>
+
+        <div id="tooltip" role="tooltip" class="absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip">
+            <ul>
+                <li>1. Gunakan kode komoditas tanpa padding (contoh: 0, bukan 000)</li>
+                <li>2. Untuk kode wilayah nasional, gunakan 0 (jangan dikosongkan). Proses berhenti saat kode wilayah kosong.</li>
+            </ul>
+            <div class="tooltip-arrow" data-popper-arrow></div>
+        </div>
     </div>
 
     <!-- Upload Form -->
@@ -92,9 +105,6 @@
                     <option value="04">Harga Produsen Desa</option>
                     <option value="05">Harga Produsen</option>
                 </select>
-                <!-- @error('level')
-                <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
-                @enderror -->
             </div>
         </div>
 

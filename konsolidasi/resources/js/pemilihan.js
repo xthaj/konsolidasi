@@ -265,44 +265,51 @@ Alpine.data("webData", () => ({
     },
 
     async addRow() {
-        this.errorMessage = "";
         if (!this.bulan || !this.tahun || !this.selectedKdLevel) {
             this.errorMessage = "Pilih bulan, tahun, dan level harga.";
             return;
         }
+
         const selectedWilayah =
             this.selectedKdLevel === "01"
                 ? [...this.selectedProvinces, ...this.selectedKabkots]
                 : [...this.selectedProvinces];
-        if (
-            selectedWilayah.length === 0 ||
-            this.selectedKomoditas.length === 0
-        ) {
+
+        if (selectedWilayah.length === 0 || this.selectedKomoditas.length === 0) {
             this.errorMessage =
                 "Pilih minimal satu provinsi/kabupaten dan komoditas.";
             return;
         }
+
         const komoditasToAdd = this.komoditas.filter((k) =>
-            this.selectedKomoditas.includes(k.kd_komoditas)
+            this.selectedKomoditas.includes(String(k.kd_komoditas))
         );
-        const levelHargaMapping = {
+
+        if (komoditasToAdd.length === 0) {
+            this.errorMessage = "Tidak ada komoditas yang valid dipilih.";
+            return;
+        }
+
+        const levelHargaMap = {
             "01": "Harga Konsumen Kota",
             "02": "Harga Konsumen Desa",
             "03": "Harga Perdagangan Besar",
             "04": "Harga Produsen Desa",
             "05": "Harga Produsen",
         };
-        const levelHargaDisplay = levelHargaMapping[this.selectedKdLevel];
+
+        const namaKdLevel = levelHargaMap[this.selectedKdLevel] || "Unknown Level Harga";
+
         const combinations = [];
         selectedWilayah.forEach((wilayah) => {
             komoditasToAdd.forEach((komoditas) => {
                 combinations.push({
-                    kd_wilayah: wilayah.kd_wilayah,
-                    level_harga: levelHargaDisplay,
-                    kd_komoditas: komoditas.kd_komoditas,
-                    nama_komoditas: komoditas.nama_komoditas,
                     bulan: this.bulan,
                     tahun: this.tahun,
+                    kd_wilayah: wilayah.kd_wilayah,
+                    kd_komoditas: String(komoditas.kd_komoditas),
+                    kd_level: this.selectedKdLevel,
+                    nama_komoditas: komoditas.nama_komoditas,
                 });
             });
         });
@@ -316,6 +323,7 @@ Alpine.data("webData", () => ({
             const csrfToken = document
                 .querySelector('meta[name="csrf-token"]')
                 .getAttribute("content");
+
             const response = await fetch("/api/inflasi-id", {
                 method: "POST",
                 headers: {
@@ -323,42 +331,53 @@ Alpine.data("webData", () => ({
                     Accept: "application/json",
                     "X-CSRF-TOKEN": csrfToken,
                 },
-                body: JSON.stringify(
-                    combinations.map((combo) => ({
-                        bulan: combo.bulan,
-                        tahun: combo.tahun,
-                        kd_level: this.selectedKdLevel,
-                        kd_wilayah: combo.kd_wilayah,
-                        kd_komoditas: combo.kd_komoditas,
-                        level_harga: combo.level_harga,
-                        nama_komoditas: combo.nama_komoditas,
-                    }))
-                ),
+                body: JSON.stringify(combinations),
             });
 
-            if (!response.ok)
-                throw new Error(`HTTP error! status: ${response.status}`);
-            const results = await response.json();
+            if (!response.ok) {
+                const errorData = await response.json();
+                this.modalMessage = errorData.message || "Gagal memvalidasi data. Silakan coba lagi.";
+                this.modalContent = {
+                    success: false,
+                    items: [],
+                    missingItems: combinations.map(
+                        (c) => `${this.getWilayahName(c.kd_wilayah)} - ${c.nama_komoditas} tidak ditemukan`
+                    ),
+                };
+                this.$dispatch("open-modal", "error-modal");
+                return;
+            }
+
+            const { message, data } = await response.json();
 
             const itemsWithInflasiId = [];
             const missingItems = [];
-            results.forEach((result) => {
+
+            data.forEach((result) => {
                 const combo = combinations.find(
                     (c) =>
                         c.kd_wilayah === result.kd_wilayah &&
                         c.kd_komoditas === result.kd_komoditas
                 );
+
                 if (result.inflasi_id) {
                     itemsWithInflasiId.push({
-                        ...combo,
+                        bulan: combo.bulan,
+                        tahun: combo.tahun,
+                        kd_wilayah: result.kd_wilayah,
+                        kd_komoditas: result.kd_komoditas,
+                        kd_level: combo.kd_level,
+                        nama_kd_level: namaKdLevel, // Add for display purposes
+                        nama_komoditas: result.nama_komoditas,
+                        nama_wilayah: result.nama_wilayah,
                         inflasi_id: result.inflasi_id,
+                        nilai_inflasi: result.nilai_inflasi || "0.00",
+                        andil: result.andil || "-",
                         bulan_tahun_id: result.bulan_tahun_id,
-                        inflasi: result.inflasi || "0.00",
-                        nama_wilayah: this.getWilayahName(result.kd_wilayah),
                     });
                 } else {
                     missingItems.push(
-                        `${result.nama_wilayah} - ${result.nama_komoditas} tidak ditemukan`
+                        `${result.nama_wilayah || this.getWilayahName(result.kd_wilayah)} - ${combo?.nama_komoditas || 'Unknown'} tidak ditemukan`
                     );
                 }
             });
@@ -368,13 +387,21 @@ Alpine.data("webData", () => ({
                 items: itemsWithInflasiId,
                 missingItems: missingItems,
             };
+            this.modalMessage = message; // Display API message
             this.$dispatch("open-modal", "confirm-add");
         } catch (error) {
-            // console.error("Error fetching inflasi_ids:", error);
-            this.modalMessage = "Gagal memvalidasi data. Silakan coba lagi.";
+            this.modalMessage = error.message || "Gagal memvalidasi data. Silakan coba lagi.";
+            this.modalContent = {
+                success: false,
+                items: [],
+                missingItems: combinations.map(
+                    (c) => `${this.getWilayahName(c.kd_wilayah)} - ${c.nama_komoditas} tidak ditemukan`
+                ),
+            };
             this.$dispatch("open-modal", "error-modal");
         }
     },
+
 
     confirmAddToTable() {
         this.tableData = [...this.tableData, ...this.modalContent.items];
@@ -414,19 +441,17 @@ Alpine.data("webData", () => ({
             });
 
             const result = await response.json();
-            if (result.success) {
+
+            if (response.ok) { // 200 status
                 this.modalMessage = result.message;
                 this.$dispatch("open-modal", "success-modal");
                 this.tableData = [];
             } else {
-                this.modalMessage =
-                    result.message || "Gagal mengkonfirmasi rekonsiliasi.";
+                this.modalMessage = result.message || "Gagal mengkonfirmasi rekonsiliasi.";
                 this.$dispatch("open-modal", "error-modal");
             }
         } catch (error) {
-            // console.error("Rekonsiliasi error:", error);
-            this.modalMessage =
-                "Terjadi kesalahan saat mengkonfirmasi rekonsiliasi.";
+            this.modalMessage = "Terjadi kesalahan saat mengkonfirmasi rekonsiliasi.";
             this.$dispatch("open-modal", "error-modal");
         }
     },

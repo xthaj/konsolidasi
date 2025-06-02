@@ -399,7 +399,7 @@ class RekonsiliasiController extends Controller
             }
 
             // Step 12: Apply commodity filter
-            if ($kd_komoditas) {
+            if (!is_null($kd_komoditas)) {
                 $rekonQuery->whereHas('inflasi', function ($query) use ($kd_komoditas) {
                     $query->where('kd_komoditas', $kd_komoditas);
                 });
@@ -947,7 +947,7 @@ class RekonsiliasiController extends Controller
             }
 
             $rekonsiliasi->update([
-                'user_id' => $user->id,
+                'user_id' => $user->user_id,
                 'alasan' => $validated['alasan'],
                 'detail' => $validated['detail'],
                 'media' => $validated['media'],

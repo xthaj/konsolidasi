@@ -61,9 +61,8 @@
         <span data-tooltip-target="tooltip" data-tooltip-placement="bottom" class="material-symbols-rounded">
             info
         </span>
-        <!-- <button  type="button" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">Default tooltip</button> -->
 
-        <div id="tooltip" role="tooltip" class="absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip dark:bg-gray-700">
+        <div id="tooltip" role="tooltip" class="absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-gray-900 rounded-lg shadow-xs opacity-0 tooltip">
             <ul>
                 <li>1. Gunakan kode komoditas tanpa padding (contoh: 0, bukan 000)</li>
                 <li>2. Untuk kode wilayah nasional, gunakan 0 (jangan dikosongkan). Proses berhenti saat kode wilayah kosong.</li>
@@ -204,7 +203,7 @@
     </div>
 
     <!-- Delete Form with Checkbox -->
-    <form action="{{ route('data.hapus') }}" method="POST" x-data="{ loading: false, isChecked: false }" @submit="console.log('Form submitting'); loading = true">
+    <form action="{{ route('data.hapus') }}" method="POST" x-data="{ loading: false, isChecked: false }" @submit="loading = true">
         @csrf
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
 

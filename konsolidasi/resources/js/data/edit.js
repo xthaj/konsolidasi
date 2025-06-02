@@ -307,44 +307,46 @@ Alpine.data("webData", () => ({
         return "";
     },
 
-    async fetchData() {
-        if (!this.checkFormValidity()) {
-            return;
-        }
+async fetchData() {
+    if (!this.checkFormValidity()) { 
+        return;
+    }
+    try {
+        const params = new URLSearchParams({
+            bulan: this.bulan,
+            tahun: this.tahun,
+            kd_level: this.selectedKdLevel,
+            kd_wilayah: this.kd_wilayah,
+            kd_komoditas: this.selectedKomoditas,
+            sort: this.sort,
+            direction: this.direction,
+        });
+        const response = await fetch(`/api/data/edit?${params.toString()}`);
+        const result = await response.json(); 
 
-        try {
-            const params = new URLSearchParams({
-                bulan: this.bulan,
-                tahun: this.tahun,
-                kd_level: this.selectedKdLevel,
-                kd_wilayah: this.kd_wilayah,
-                kd_komoditas: this.selectedKomoditas,
-                sort: this.sort,
-                direction: this.direction,
-            });
-
-            const response = await fetch(`/api/data/edit?${params.toString()}`);
-            const result = await response.json();
-
-            if (!response.ok) {
-                throw new Error(
-                    result.message || `HTTP error! status: ${response.status}`
-                );
-            }
-
+        if (!response.ok) {
+            this.message = result.message || "Terjadi kegagalan.";
+            this.data = {
+                inflasi: [], 
+                title: result.data.title,
+                kd_level: this.selectedKdLevel, 
+                kd_wilayah: this.kd_wilayah,  
+            }; 
+        } else {
             this.message = result.message;
             this.data = {
-                inflasi: result.data.inflasi,
+                inflasi: result.data.inflasi || [], 
                 title: result.data.title,
-                kd_level: this.selectedKdLevel,
-                kd_wilayah: result.data.kd_wilayah || this.kd_wilayah, // Use API-provided kd_wilayah if available
-            };
-        } catch (error) {
-            console.error("Failed to fetch data:", error);
-            this.message = error.message || "Gagal memuat data.";
-            this.data.inflasi = [];
+                kd_level: this.selectedKdLevel, 
+                kd_wilayah: this.kd_wilayah,  
+            }; 
         }
-    },
+    } catch (error) {
+        console.error("Failed to fetch data:", error);
+        this.message = error.message || "Gagal memuat data.";
+        this.data = { inflasi: [], title: null, kd_level: null, kd_wilayah: null };
+    }
+},
 
     openDeleteModal(id, komoditas) {
         this.modalData = { id, komoditas };

@@ -55,13 +55,13 @@ Alpine.data("webData", () => ({
                 this.modalMessage = result.message || "Gagal menambah alasan.";
                 this.$dispatch("open-modal", "error-modal");
                 return;
+            } else {
+                this.modalMessage =
+                    result.message || "Alasan berhasil ditambahkan!";
+                this.$dispatch("open-modal", "success-modal");
+                this.$dispatch("close");
+                await this.fetchAlasan();
             }
-
-            this.modalMessage =
-                result.message || "Alasan berhasil ditambahkan!";
-            this.$dispatch("open-modal", "success-modal");
-            this.$dispatch("close");
-            await this.fetchAlasan();
         } catch (error) {
             this.modalMessage = "Terjadi kesalahan saat menambah alasan.";
             this.$dispatch("open-modal", "error-modal");
@@ -93,12 +93,12 @@ Alpine.data("webData", () => ({
                         result.message || "Gagal menghapus alasan.";
                     this.$dispatch("open-modal", "error-modal");
                     return;
+                } else {
+                    this.modalMessage =
+                        result.message || "Alasan berhasil dihapus!";
+                    this.$dispatch("open-modal", "success-modal");
+                    await this.fetchAlasan();
                 }
-
-                this.modalMessage =
-                    result.message || "Alasan berhasil dihapus!";
-                this.$dispatch("open-modal", "success-modal");
-                await this.fetchAlasan();
             } catch (error) {
                 this.modalMessage = "Terjadi kesalahan saat menghapus alasan.";
                 this.$dispatch("open-modal", "error-modal");

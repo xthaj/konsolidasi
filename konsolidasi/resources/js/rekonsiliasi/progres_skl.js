@@ -5,7 +5,6 @@ window.Alpine = Alpine;
 Alpine.data("webData", () => ({
     loading: true,
     modalMessage: "",
-    status: "no_filters",
     message: "Silakan pilih filter untuk menampilkan data.",
     data: { rekonsiliasi: null, title: null },
     bulan: "",
@@ -133,7 +132,6 @@ Alpine.data("webData", () => ({
             await this.fetchData();
         } catch (error) {
             console.error("Failed to load data:", error);
-            this.status = "error";
             this.message = "Gagal memuat data awal.";
             this.data.rekonsiliasi = [];
         } finally {
@@ -214,28 +212,19 @@ Alpine.data("webData", () => ({
             const response = await fetch(`/api/rekonsiliasi/progres?${params}`);
             const result = await response.json();
 
-            if (
-                !response.ok ||
-                result.status === "validation_error" ||
-                result.status === "unauthorized"
-            ) {
-                this.errorMessage = result.message;
-                this.data = {
-                    rekonsiliasi: [],
-                    title: result.data?.title || "Rekonsiliasi",
-                };
-                this.status = result.status;
+            if (!response.ok) {
+                this.data.rekonsiliasi = [];
+                this.modalMessage = result.message;
+                this.$dispatch("open-modal", "error-modal");
                 return;
+            } else {
+                this.data.rekonsiliasi = result.data.rekonsiliasi || [];
+                this.data.title = result.data.title || "Rekonsiliasi";
+                this.message = result.message;
             }
-
-            this.data.rekonsiliasi = result.data.rekonsiliasi || [];
-            this.data.title = result.data.title || "Rekonsiliasi";
-            this.status = result.status;
-            this.message = result.message;
         } catch (error) {
             console.error("Fetch error:", error);
             this.errorMessage = "Gagal memuat data.";
-            this.status = "error";
         }
     },
 
@@ -320,15 +309,15 @@ Alpine.data("webData", () => ({
             );
 
             const result = await response.json();
-            if (result.status === "success") {
+            if (!response.ok) {
+                this.modalMessage =
+                    result.message || "Gagal memperbarui data.";
+                this.$dispatch("open-modal", "error-modal");
+            } else {
                 this.modalMessage = result.message;
                 this.$dispatch("close");
                 this.fetchData();
                 this.$dispatch("open-modal", "success-modal");
-            } else {
-                this.modalMessage =
-                    result.message || "Gagal mengkonfirmasi rekonsiliasi.";
-                this.$dispatch("open-modal", "error-modal");
             }
         } catch (error) {
             this.modalMessage =

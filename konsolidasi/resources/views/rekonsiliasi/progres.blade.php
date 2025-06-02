@@ -90,8 +90,8 @@
                     <label class="block mb-2 text-sm font-medium text-gray-900">Status<span class="text-red-500 ml-1">*</span></label>
                     <select name="status_rekon" x-model="status_rekon" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                         <option value="00" :selected="status_rekon == '00'">Semua Status</option>
-                        <option value="01" :selected="status_rekon == '01'">Sudah diisi</option>
-                        <option value="02" :selected="status_rekon == '02'">Belum diisi</option>
+                        <option value="02" :selected="status_rekon == '02'">Sudah diisi</option>
+                        <option value="01" :selected="status_rekon == '01'">Belum diisi</option>
                     </select>
                 </div>
 
@@ -114,7 +114,7 @@
                 <div class="space-y-2 text-sm text-gray-700 dark:text-gray-300">
                     <div>
                         <span class="font-medium">Level Harga:</span>
-                        <span class="font-semibold text-gray-900 dark:text-white" x-text="
+                        <span class="font-semibold text-gray-900 " x-text="
             modalData.kd_level === '01' ? 'Harga Konsumen Kota' :
             modalData.kd_level === '02' ? 'Harga Konsumen Desa' :
             modalData.kd_level === '03' ? 'Harga Perdagangan Besar' :
@@ -124,27 +124,27 @@
                     </div>
                     <div>
                         <span class="font-medium">Komoditas:</span>
-                        <span class="font-semibold text-gray-900 dark:text-white" x-text="modalData.nama_komoditas"></span>
+                        <span class="font-semibold text-gray-900 " x-text="modalData.nama_komoditas"></span>
                     </div>
                     <div>
                         <span class="font-medium">Wilayah:</span>
-                        <span class="font-semibold text-gray-900 dark:text-white" x-text="modalData.nama_wilayah"></span>
+                        <span class="font-semibold text-gray-900 " x-text="modalData.nama_wilayah"></span>
                     </div>
                     <div>
                         <span class="font-medium">Periode:</span>
-                        <span class="font-semibold text-gray-900 dark:text-white" x-text="`${activeBulan}/${activeTahun}`"></span>
+                        <span class="font-semibold text-gray-900 " x-text="`${activeBulan}/${activeTahun}`"></span>
                     </div>
                 </div>
 
 
                 <div class="flex justify-between items-center mb-2 mt-6">
-                    <label class="text-sm font-medium text-gray-900 dark:text-white">Alasan</label>
+                    <label class="text-sm font-medium text-gray-900 ">Alasan</label>
                 </div>
-                <div class="bg-white rounded-lg shadow-sm border border-gray-300 dark:bg-gray-700 dark:border-gray-600">
+                <div class="bg-white rounded-lg shadow-sm border border-gray-300  dark:border-gray-600">
                     <div class="p-3">
                         <div class="relative">
                             <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
-                                <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                                <svg class="w-4 h-4 text-gray-500 " aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
                                     <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z" />
                                 </svg>
                             </div>
@@ -173,28 +173,28 @@
                 </div>
 
                 <div>
-                    <label for="detail" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Detail</label>
+                    <label for="detail" class="block mb-2 text-sm font-medium text-gray-900 ">Detail</label>
                     <textarea
                         id="detail"
                         rows="6"
                         x-model="detail"
                         @input="detail.length > 500 ? detail = detail.slice(0, 500) : null"
-                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5  dark:border-gray-600 dark:placeholder-gray-400  dark:focus:ring-blue-500 dark:focus:border-blue-500"
                         placeholder="Kenaikan harga karena permintaan yang mulai meningkat menjelang akhir tahun. Sebelumnya ..."
                         required
                         maxlength="500"></textarea>
                     <div class="mt-2 text-sm flex justify-between">
                         <p x-text="detail.length > 500 ? 'Maksimum 500 karakter tercapai' : ''" class="text-red-500"></p>
-                        <p x-text="`${detail.length}/500`" class="text-gray-500 dark:text-gray-400"></p>
+                        <p x-text="`${detail.length}/500`" class="text-gray-500 "></p>
                     </div>
                 </div>
                 <div>
-                    <label for="link_terkait" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Link media</label>
+                    <label for="link_terkait" class="block mb-2 text-sm font-medium text-gray-900 ">Link media</label>
                     <input
                         type="text"
                         id="link_terkait"
                         x-model="linkTerkait"
-                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" />
+                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5  dark:border-gray-600 dark:placeholder-gray-400  dark:focus:ring-blue-500 dark:focus:border-blue-500" />
                 </div>
                 <div class="mt-6 flex justify-end gap-3">
                     <x-secondary-button x-on:click="$dispatch('close-modal', 'edit-rekonsiliasi')">Batal</x-secondary-button>
@@ -238,7 +238,7 @@
 
     <!-- Success Modal -->
     <x-modal name="success-modal" title="Berhasil" maxWidth="md">
-        <div class="text-gray-900 dark:text-white">
+        <div class="text-gray-900 ">
             <p x-text="modalMessage"></p>
             <div class="mt-4 flex justify-end">
                 <x-primary-button type="button" x-on:click="$dispatch('close')">Tutup</x-primary-button>
@@ -248,7 +248,7 @@
 
     <!-- Error Modal -->
     <x-modal name="error-modal" title="Kesalahan" maxWidth="md">
-        <div class="text-gray-900 dark:text-white">
+        <div class="text-gray-900 ">
             <p x-text="modalMessage"></p>
             <div class="mt-4 flex justify-end">
                 <x-primary-button type="button" x-on:click="$dispatch('close')">Tutup</x-primary-button>
@@ -271,7 +271,7 @@
         <div class="bg-white md:overflow-hidden shadow-sm sm:rounded-lg">
             <div class="relative overflow-x-auto shadow-md sm:rounded-lg md:max-h-[90vh] overflow-y-auto">
                 <table class="w-full text-sm text-left rtl:text-right text-gray-500">
-                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400 sticky top-0 z-10">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50   sticky top-0 z-10">
                         <tr>
                             <th scope="col" class="px-6 py-3">No</th>
                             <!-- <th scope="col" class="px-6 py-3">Kode Wilayah</th> -->

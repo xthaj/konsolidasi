@@ -6,7 +6,7 @@
 
     <!-- Success Modal -->
     <x-modal name="success-modal" title="Berhasil" maxWidth="md">
-        <div class="text-gray-900 dark:text-white">
+        <div class="text-gray-900 ">
             <p x-text="modalMessage"></p>
             <div class="mt-4 flex justify-end">
                 <x-primary-button type="button" x-on:click="$dispatch('close')">Tutup</x-primary-button>
@@ -16,7 +16,7 @@
 
     <!-- Error Modal -->
     <x-modal name="error-modal" title="Kesalahan" maxWidth="md">
-        <div class="text-gray-900 dark:text-white">
+        <div class="text-gray-900 ">
             <p x-text="modalMessage"></p>
             <div class="mt-4 flex justify-end">
                 <x-primary-button type="button" x-on:click="$dispatch('close')">Tutup</x-primary-button>
@@ -61,15 +61,15 @@
 
         <!-- Efek Section -->
         <div class="mt-6">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Efek</h2>
+            <h2 class="text-lg font-semibold text-gray-900 ">Efek</h2>
             <div class="mt-2">
                 <span class="block text-sm font-medium text-gray-800 dark:text-gray-300">Pusat</span>
-                <ul class="list-disc list-outside ml-5 mt-1 text-xs text-gray-600 dark:text-gray-400">
+                <ul class="list-disc list-outside ml-5 mt-1 text-xs text-gray-600 ">
                     <li>Default bulan tahun untuk tiap halaman</li>
                     <li>Penambahan komoditas rekonsiliasi hanya di bulan tahun aktif</li>
                 </ul>
                 <span class="block text-sm font-medium text-gray-800 dark:text-gray-300 mt-3">Satuan Kerja Lainnya</span>
-                <ul class="list-disc list-outside ml-5 mt-1 text-xs text-gray-600 dark:text-gray-400">
+                <ul class="list-disc list-outside ml-5 mt-1 text-xs text-gray-600 ">
                     <li>Hanya dapat melihat & mengisi rekonsiliasi di bulan tahun aktif</li>
                 </ul>
             </div>

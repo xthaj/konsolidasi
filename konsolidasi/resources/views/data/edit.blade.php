@@ -228,7 +228,7 @@
         <div class="bg-white shadow-sm sm:rounded-lg">
             <div class="relative overflow-x-auto sm:rounded-lg md:max-h-[90vh] overflow-y-auto">
                 <!-- Table for kd_level === '00' -->
-                <table x-show="data.kd_level === '00'" class="w-full text-sm text-left rtl:text-right text-gray-500">
+                <table x-show="data.kd_level == '00'" class="w-full text-sm text-left rtl:text-right text-gray-500">
                     <colgroup>
                         <col span="2">
                     </colgroup>
@@ -273,29 +273,27 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <template x-if="data.inflasi?.length">
-                            <template x-for="item in data.inflasi" :key="item.kd_komoditas">
-                                <tr class="bg-white border-b border-gray-200">
-                                    <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap" x-text="item.kd_komoditas"></th>
-                                    <td class="px-6 py-4" x-text="item.nama_komoditas"></td>
-                                    <td class="px-6 py-4 text-right bg-gray-50" x-text="item.inflasi_05 || '-'"></td>
-                                    <td class="px-6 py-4 text-right bg-gray-50" x-text="item.andil_05 || '-'"></td>
-                                    <td class="px-6 py-4 text-right" x-text="item.inflasi_04 || '-'"></td>
-                                    <td class="px-6 py-4 text-right" x-text="item.andil_04 || '-'"></td>
-                                    <td class="px-6 py-4 text-right bg-gray-50" x-text="item.inflasi_03 || '-'"></td>
-                                    <td class="px-6 py-4 text-right bg-gray-50" x-text="item.andil_03 || '-'"></td>
-                                    <td class="px-6 py-4 text-right" x-text="item.inflasi_02 || '-'"></td>
-                                    <td class="px-6 py-4 text-right" x-text="item.andil_02 || '-'"></td>
-                                    <td class="px-6 py-4 text-right bg-gray-50" x-text="item.inflasi_01 || '-'"></td>
-                                    <td class="px-6 py-4 text-right bg-gray-50" x-text="item.andil_01 || '-'"></td>
-                                </tr>
-                            </template>
+                        <template x-for="item in data.inflasi" :key="item.kd_komoditas">
+                            <tr class="bg-white border-b  border-gray-200 hover:bg-gray-50">
+                                <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap" x-text="item.kd_komoditas"></th>
+                                <td class="px-6 py-4" x-text="item.nama_komoditas"></td>
+                                <td class="px-6 py-4 text-right bg-gray-50" x-text="item.inflasi_05 || '-'"></td>
+                                <td class="px-6 py-4 text-right bg-gray-50" x-text="item.andil_05 || '-'"></td>
+                                <td class="px-6 py-4 text-right" x-text="item.inflasi_04 || '-'"></td>
+                                <td class="px-6 py-4 text-right" x-text="item.andil_04 || '-'"></td>
+                                <td class="px-6 py-4 text-right bg-gray-50" x-text="item.inflasi_03 || '-'"></td>
+                                <td class="px-6 py-4 text-right bg-gray-50" x-text="item.andil_03 || '-'"></td>
+                                <td class="px-6 py-4 text-right" x-text="item.inflasi_02 || '-'"></td>
+                                <td class="px-6 py-4 text-right" x-text="item.andil_02 || '-'"></td>
+                                <td class="px-6 py-4 text-right bg-gray-50" x-text="item.inflasi_01 || '-'"></td>
+                                <td class="px-6 py-4 text-right bg-gray-50" x-text="item.andil_01 || '-'"></td>
+                            </tr>
                         </template>
                     </tbody>
                 </table>
 
                 <!-- Table for kd_level !== '00' -->
-                <table x-show="data.kd_level !== '00'" class="w-full text-sm text-left rtl:text-right text-gray-500">
+                <table x-show="data.kd_level != '00'" class="w-full text-sm text-left rtl:text-right text-gray-500">
                     <thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0 z-10 shadow-sm">
                         <tr>
                             <th scope="col" class="px-6 py-3">Kode Komoditas</th>
@@ -306,29 +304,27 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <template>
-                            <template x-for="item in data.inflasi" :key="item.kd_komoditas">
-                                <tr class="bg-white border-b border-gray-200">
-                                    <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap" x-text="item.kd_komoditas"></th>
-                                    <td class="px-6 py-4" x-text="item.nama_komoditas"></td>
-                                    <td class="px-6 py-4 text-right" x-text="item.nilai_inflasi"></td>
-                                    <td class="px-6 py-4 text-right" x-show="data.kd_wilayah === '0'" x-text="item.andil"></td>
-                                    <td class="px-6 py-4 text-right">
-                                        <button
-                                            x-show="item.inflasi_id"
-                                            @click="openEditModal(item.inflasi_id, item.nilai_inflasi, item.andil)"
-                                            class="font-medium text-blue-600 hover:underline mr-3">
-                                            Edit
-                                        </button>
-                                        <button
-                                            x-show="item.inflasi_id"
-                                            @click="openDeleteModal(item.inflasi_id, item.nama_komoditas)"
-                                            class="font-medium text-red-600 hover:underline">
-                                            Hapus
-                                        </button>
-                                    </td>
-                                </tr>
-                            </template>
+                        <template x-for="item in data.inflasi" :key="item.kd_komoditas">
+                            <tr class="bg-white border-b  border-gray-200 hover:bg-gray-50">
+                                <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap" x-text="item.kd_komoditas"></th>
+                                <td class="px-6 py-4" x-text="item.nama_komoditas"></td>
+                                <td class="px-6 py-4 text-right" x-text="item.nilai_inflasi"></td>
+                                <td class="px-6 py-4 text-right" x-show="data.kd_wilayah === '0'" x-text="item.andil"></td>
+                                <td class="px-6 py-4 text-right">
+                                    <button
+                                        x-show="item.inflasi_id"
+                                        @click="openEditModal(item.inflasi_id, item.nilai_inflasi, item.andil)"
+                                        class="font-medium text-blue-600 hover:underline mr-3">
+                                        Edit
+                                    </button>
+                                    <button
+                                        x-show="item.inflasi_id"
+                                        @click="openDeleteModal(item.inflasi_id, item.nama_komoditas)"
+                                        class="font-medium text-red-600 hover:underline">
+                                        Hapus
+                                    </button>
+                                </td>
+                            </tr>
                         </template>
                     </tbody>
                 </table>

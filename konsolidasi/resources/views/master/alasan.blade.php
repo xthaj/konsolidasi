@@ -5,7 +5,7 @@
 
     <!-- Success Modal -->
     <x-modal name="success-modal" title="Berhasil" maxWidth="md">
-        <div class="text-gray-900 dark:text-white">
+        <div class="text-gray-900 ">
             <p x-text="modalMessage"></p>
             <div class="mt-4 flex justify-end">
                 <x-primary-button
@@ -47,7 +47,7 @@
 
     <!-- Error Modal -->
     <x-modal name="error-modal" title="Gagal" maxWidth="md">
-        <div class="text-gray-900 dark:text-white">
+        <div class="text-gray-900 ">
             <p x-text="modalMessage"></p>
             <div class="mt-4 flex justify-end">
                 <x-primary-button
@@ -66,12 +66,12 @@
     </div>
 
     <div class="relative overflow-x-auto shadow-md sm:rounded-lg">
-        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+        <table class="w-full text-sm text-left text-gray-500 ">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50  ">
                 <tr>
                     <th scope="col" class="px-6 py-3">No</th>
                     <th scope="col" class="px-6 py-3">Alasan</th>
-                    <th scope="col" class="px-6 py-3 text-right">Aksi</th>
+                    <th scope="col" class="px-6 py-3">Aksi</th>
                 </tr>
             </thead>
             <tbody>
@@ -79,8 +79,8 @@
                     <tr class="bg-white border-b border-gray-200">
                         <td class="px-6 py-4" x-text="index + 1"></td>
                         <td class="px-6 py-4" x-text="alasan.keterangan"></td>
-                        <td class="px-6 py-4 text-right">
-                            <button @click="deleteAlasan(alasan.alasan_id)" class="font-medium text-red-600 dark:text-red-500 hover:underline">Hapus</button>
+                        <td class="px-6 py-4">
+                            <button @click="deleteAlasan(alasan.alasan_id)" class="font-medium text-red-600  hover:underline">Hapus</button>
                         </td>
                     </tr>
                 </template>

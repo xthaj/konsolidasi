@@ -5,20 +5,17 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\VisualisasiController;
 use App\Http\Controllers\RekonsiliasiController;
 use App\Http\Controllers\Auth\RegisteredUserController;
-use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\KomoditasController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AlasanController;
 use App\Http\Controllers\BulanTahunController;
-use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Log;
-use App\Http\Middleware\isPusat;
-use App\Models\BulanTahun;
-use App\Models\Wilayah;
-use Illuminate\Support\Facades\Cache;
 use App\Http\Controllers\InflasiController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WilayahController;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Log;
+use App\Http\Middleware\isPusat;
+use Illuminate\Support\Facades\Cache;
 
 
 Route::get('/dashboard', [DashboardController::class, 'index'])
@@ -81,7 +78,7 @@ Route::get('/rekonsiliasi/progres-skl', [RekonsiliasiController::class, 'progres
 
 Route::get('/api/rekonsiliasi/progres', [RekonsiliasiController::class, 'apiProgres']);
 
-Route::post('/rekonsiliasi/confirm', [DataController::class, 'confirmRekonsiliasi'])->name('rekonsiliasi.confirm');
+Route::post('/rekonsiliasi/confirm', [RekonsiliasiController::class, 'confirmRekonsiliasi'])->name('rekonsiliasi.confirm');
 Route::put('/rekonsiliasi/update/{id}', [RekonsiliasiController::class, 'update'])->name('rekonsiliasi.update');
 Route::delete('/rekonsiliasi/{id}', [RekonsiliasiController::class, 'destroy'])->name('rekon.destroy');
 
@@ -115,7 +112,7 @@ Route::get('/bulan-tahun', [BulanTahunController::class, 'get']);
 
 Route::get('/rekonsiliasi/user-provinsi', [UserController::class, 'getProvinsi'])->name('rekon.get_provinsi')->middleware('auth');
 
-Route::post('/api/inflasi-id', [DataController::class, 'findInflasiId']);
+Route::post('/api/inflasi-id', [InflasiController::class, 'findInflasiId']);
 Route::put('/api/data/inflasi/{id}', [InflasiController::class, 'update'])->name('inflasi.update');
 
 // Unused

@@ -209,13 +209,12 @@ Alpine.data("webData", () => ({
                 };
                 this.message = result.message || "Gagal memuat data.";
                 return;
+            } else {
+                this.selectedKdLevel = this.pendingKdLevel;
+                this.data.rekonsiliasi = result.data.rekonsiliasi || [];
+                this.data.title = result.data.title || "Pembahasan Rekonsiliasi";
+                this.message = result.message || "Data berhasil dimuat.";
             }
-
-            this.selectedKdLevel = this.pendingKdLevel;
-            this.data.rekonsiliasi = result.data.rekonsiliasi || [];
-            this.data.title = result.data.title || "Pembahasan Rekonsiliasi";
-            this.message = result.message || "Data berhasil dimuat.";
-
             const title =
                 this.kdLevelTitles[this.selectedKdLevel] ||
                 "Pembahasan Rekonsiliasi";

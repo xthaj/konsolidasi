@@ -12,7 +12,7 @@ class Rekonsiliasi extends Model
 
     protected $table = 'rekonsiliasi';
     protected $primaryKey = 'rekonsiliasi_id';
-    protected $fillable = ['inflasi_id', 'user_id', 'terakhir_diedit', 'alasan', 'detail', 'media', 'bulan_tahun_id'];
+    protected $fillable = ['inflasi_id', 'user_id', 'alasan', 'detail', 'media', 'bulan_tahun_id'];
 
     public function inflasi()
     {

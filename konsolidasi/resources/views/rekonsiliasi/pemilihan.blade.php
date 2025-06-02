@@ -5,7 +5,7 @@
 
     <!-- Success Modal -->
     <x-modal name="success-modal" title="Berhasil" maxWidth="md">
-        <div class="text-gray-900 dark:text-white">
+        <div class="text-gray-900 ">
             <p x-text="modalMessage"></p>
             <div class="mt-4 flex justify-end">
                 <x-primary-button type="button" x-on:click="$dispatch('close')">Tutup</x-primary-button>
@@ -15,7 +15,7 @@
 
     <!-- Error Modal -->
     <x-modal name="error-modal" title="Kesalahan" maxWidth="md">
-        <div class="text-gray-900 dark:text-white">
+        <div class="text-gray-900 ">
             <p x-text="modalMessage"></p>
             <div class="mt-4 flex justify-end">
                 <x-primary-button type="button" x-on:click="$dispatch('close')">Tutup</x-primary-button>
@@ -61,7 +61,7 @@
                     <div class="flex items-center justify-between">
                         <div>
                             <h3 class="font-medium">1. Tambah ke Tabel</h3>
-                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            <p class="text-xs text-gray-500  mt-1">
                                 Pilih provinsi, kabupaten/kota, dan komoditas, lalu tambahkan ke tabel untuk ditinjau. Komoditas rekonsiliasi <b>belum</b> tersimpan.
                             </p>
                         </div>
@@ -75,11 +75,11 @@
                 </div>
             </li>
             <li>
-                <div class="w-full p-4 border rounded-lg" :class="tableData.length > 0 ? 'text-blue-700 bg-blue-100 border-blue-300 dark:bg-gray-800 dark:border-blue-800 dark:text-blue-400' : 'text-gray-900 bg-gray-100 border-gray-300 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400'">
+                <div class="w-full p-4 border rounded-lg" :class="tableData.length > 0 ? 'text-blue-700 bg-blue-100 border-blue-300 dark:bg-gray-800 dark:border-blue-800 dark:text-blue-400' : 'text-gray-900 bg-gray-100 border-gray-300 dark:bg-gray-800 dark:border-gray-700 '">
                     <div class="flex items-center justify-between">
                         <div>
                             <h3 class="font-medium">2. Konfirmasi Komoditas</h3>
-                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            <p class="text-xs text-gray-500  mt-1">
                                 Klik konfirmasi untuk menyelesaikan pemilihan komoditas rekonsiliasi.
                             </p>
                         </div>
@@ -106,7 +106,7 @@
                     <label class="block mb-2 text-sm font-medium text-gray-900">Tahun</label>
                     <select name="tahun" required class="bg-gray-200 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5 cursor-not-allowed" disabled>
                         <template x-for="year in tahunOptions" :key="year">
-                            <option :value="year" :selected="year === tahun" x-text="year"></option>
+                            <option :value="year" :selected="year == tahun" x-text="year"></option>
                         </template>
                     </select>
                 </div>
@@ -126,17 +126,17 @@
 
             <!-- Provinsi -->
             <div class="flex justify-between items-center mb-2">
-                <label class="text-sm font-medium text-gray-900 dark:text-white">Provinsi</label>
+                <label class="text-sm font-medium text-gray-900 ">Provinsi</label>
                 <div class="flex items-center p-2 rounded-sm hover:bg-gray-100 dark:hover:bg-gray-600">
                     <input type="checkbox" id="select-all-provinces" :checked="selectAllProvincesChecked" @click="selectAllProvinces($event.target.checked)" class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded-sm">
                     <label for="select-all-provinces" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">Pilih Semua</label>
                 </div>
             </div>
-            <div class="bg-white rounded-lg shadow-sm border border-gray-300 dark:bg-gray-700 dark:border-gray-600">
+            <div class="bg-white rounded-lg shadow-sm border border-gray-300  dark:border-gray-600">
                 <div class="p-3">
                     <div class="relative">
                         <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
-                            <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                            <svg class="w-4 h-4 text-gray-500 " aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
                                 <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z" />
                             </svg>
                         </div>
@@ -158,17 +158,17 @@
             <!-- Kabupaten/Kota -->
             <div x-show="selectedKdLevel === '01'" class="mb-4">
                 <div class="flex justify-between items-center mb-2">
-                    <label class="text-sm font-medium text-gray-900 dark:text-white">Kabupaten/Kota</label>
+                    <label class="text-sm font-medium text-gray-900 ">Kabupaten/Kota</label>
                     <div class="flex items-center p-2 rounded-sm hover:bg-gray-100 dark:hover:bg-gray-600">
                         <input type="checkbox" id="select-all-kabkots" :checked="selectAllKabkotsChecked" @click="selectAllKabkots($event.target.checked)" class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded-sm">
                         <label for="select-all-kabkots" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">Pilih Semua</label>
                     </div>
                 </div>
-                <div class="bg-white rounded-lg shadow-sm border border-gray-300 dark:bg-gray-700 dark:border-gray-600">
+                <div class="bg-white rounded-lg shadow-sm border border-gray-300  dark:border-gray-600">
                     <div class="p-3">
                         <div class="relative">
                             <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
-                                <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                                <svg class="w-4 h-4 text-gray-500 " aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
                                     <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z" />
                                 </svg>
                             </div>
@@ -191,17 +191,17 @@
             <!-- Komoditas -->
             <div>
                 <div class="flex justify-between items-center mb-2">
-                    <label class="text-sm font-medium text-gray-900 dark:text-white">Komoditas</label>
+                    <label class="text-sm font-medium text-gray-900 ">Komoditas</label>
                     <div class="flex items-center p-2 rounded-sm hover:bg-gray-100 dark:hover:bg-gray-600">
                         <input type="checkbox" id="select-all-komoditas" :checked="selectAllKomoditasChecked" @click="selectAllKomoditas($event.target.checked)" class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded-sm">
                         <label for="select-all-komoditas" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">Pilih Semua</label>
                     </div>
                 </div>
-                <div class="bg-white rounded-lg shadow-sm border border-gray-300 dark:bg-gray-700 dark:border-gray-600">
+                <div class="bg-white rounded-lg shadow-sm border border-gray-300  dark:border-gray-600">
                     <div class="p-3">
                         <div class="relative">
                             <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
-                                <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                                <svg class="w-4 h-4 text-gray-500 " aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
                                     <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z" />
                                 </svg>
                             </div>
@@ -242,18 +242,18 @@
     </x-slot>
 
     <!-- Main Content -->
-    <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-        <div class="relative overflow-x-auto">
-            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400 sticky top-0 z-10">
+    <div class="bg-white shadow-sm sm:rounded-lg">
+        <div class="relative overflow-x-auto sm:rounded-lg md:max-h-[90vh] overflow-y-auto">
+            <table class="w-full text-sm text-left text-gray-500 ">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0 z-10 shadow-sm">
                     <tr>
                         <th scope="col" class="px-6 py-3">No</th>
                         <th scope="col" class="px-6 py-3">Kode Wilayah</th>
-                        <th scope="col" class="px-6 py-3">Wilayah</th>
+                        <th scope="col" class="px-6 py-3">Nama Wilayah</th>
                         <th scope="col" class="px-6 py-3">Kode Komoditas</th>
-                        <th scope="col" class="px-6 py-3">Komoditas</th>
+                        <th scope="col" class="px-6 py-3">Nama Komoditas</th>
                         <th scope="col" class="px-6 py-3">Level Harga</th>
-                        <th scope="col" class="px-6 py-3">Inflasi/RH</th>
+                        <th scope="col" class="px-6 py-3">Inflasi</th>
                         <th scope="col" class="px-6 py-3"><span class="sr-only">Hapus</span></th>
                     </tr>
                 </thead>
@@ -265,10 +265,10 @@
                             <td class="px-6 py-4" x-text="item.nama_wilayah"></td>
                             <td class="px-6 py-4" x-text="item.kd_komoditas"></td>
                             <td class="px-6 py-4" x-text="item.nama_komoditas"></td>
-                            <td class="px-6 py-4" x-text="item.level_harga"></td>
-                            <td class="px-6 py-4" x-text="(item.inflasi < 1 && item.inflasi > -1 && item.inflasi !== 0 ? (item.inflasi > 0 ? '0' : '-0') : '') + Math.abs(item.inflasi).toFixed(2).replace(/^0+/, '') + '%'"></td>
+                            <td class="px-6 py-4" x-text="item.nama_kd_level"></td>
+                            <td class="px-6 py-4" x-text="item.nilai_inflasi === '-' ? '-' : (parseFloat(item.nilai_inflasi) < 1 && parseFloat(item.nilai_inflasi) > -1 && parseFloat(item.nilai_inflasi) !== 0 ? (parseFloat(item.nilai_inflasi) > 0 ? '0' : '-0') : '') + Math.abs(parseFloat(item.nilai_inflasi)).toFixed(2).replace(/^0+/, '') + '%'"></td>
                             <td class="px-6 py-4 text-right">
-                                <button @click="removeRow(index)" class="font-medium text-red-600 dark:text-red-500 hover:underline">Hapus</button>
+                                <button @click="removeRow(index)" class="font-medium text-red-600  hover:underline">Hapus</button>
                             </td>
                         </tr>
                     </template>

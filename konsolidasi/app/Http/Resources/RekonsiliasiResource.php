@@ -29,7 +29,6 @@ class RekonsiliasiResource extends JsonResource
             'alasan' => $this->alasan,
             'detail' => $this->detail,
             'media' => $this->media,
-            'terakhir_diedit' => $this->terakhir_diedit,
             'user' => $this->user ? [
                 'user_id' => $this->user->user_id,
                 'nama_lengkap' => $this->user->nama_lengkap,
