@@ -9,6 +9,10 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use App\Http\Resources\KomoditasResource;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Validation\Rule;
+// ModelNotFoundException
 
 class KomoditasController extends Controller
 {
@@ -38,9 +42,8 @@ class KomoditasController extends Controller
             ]);
 
             // Find the last kd_komoditas, cast to integer, and increment
-            $lastKomoditas = Komoditas::orderBy(DB::raw('CAST(kd_komoditas AS INT)'), 'desc')->first();
-            $lastNumber = $lastKomoditas ? (int) $lastKomoditas->kd_komoditas : -1; // Start at -1 to get 0 for first entry
-            $newKdKomoditas = $lastNumber + 1;
+            $lastKdKomoditas = Komoditas::max(DB::raw('CAST(kd_komoditas AS UNSIGNED)')) ?? 0;
+            $newKdKomoditas = $lastKdKomoditas + 1;
 
             // Create the new komoditas
             $komoditas = Komoditas::create([
@@ -59,22 +62,16 @@ class KomoditasController extends Controller
                 'data' => new KomoditasResource($komoditas), // Return the created resource
             ], 201);
         } catch (ValidationException $e) {
-            Log::error('Validation failed', [
-                'errors' => $e->errors(),
-                'request_data' => $request->all(),
-            ]);
-
-            $errorMessage = $e->errors()['nama_komoditas'][0] ?? 'Validasi gagal.';
+            Log::warning('Validation failed in storeKomoditas', ['errors' => $e->errors()]);
             return response()->json([
-                'message' => $errorMessage,
+                'message' => 'Validasi gagal: ' . implode(', ', array_merge(...array_values($e->errors()))),
                 'data' => null,
             ], 422);
         } catch (\Exception $e) {
-            Log::error('Error creating komoditas', [
+            Log::error('Error in storeKomoditas', [
                 'message' => $e->getMessage(),
                 'stack' => $e->getTraceAsString(),
             ]);
-
             return response()->json([
                 'message' => 'Gagal menambahkan komoditas: ' . $e->getMessage(),
                 'data' => null,
@@ -97,19 +94,34 @@ class KomoditasController extends Controller
             'timestamp' => now(),
         ]);
 
-        $komoditas = Komoditas::find($kd_komoditas);
-        if (!$komoditas) {
-            Log::warning('Komoditas not found', ['kd_komoditas' => $kd_komoditas]);
-            return response()->json([
-                'message' => 'Komoditas tidak ditemukan.',
-                'data' => null,
-            ], 404);
-        }
-
         try {
+            $komoditas = Komoditas::find($kd_komoditas);
+            if (!$komoditas) {
+                Log::warning('Komoditas not found', ['kd_komoditas' => $kd_komoditas]);
+                return response()->json([
+                    'message' => 'Komoditas tidak ditemukan.',
+                    'data' => null,
+                ], 404);
+            }
+
             $validated = $request->validate([
-                'nama_komoditas' => 'required|string|max:255',
+                'nama_komoditas' => [
+                    'required',
+                    'string',
+                    'max:255',
+                    Rule::unique('komoditas', 'nama_komoditas')->ignore($kd_komoditas, 'kd_komoditas'),
+                ],
+            ], [
+                'nama_komoditas.max' => 'Nama komoditas tidak boleh melebihi 255 karakter.',
+                'nama_komoditas.unique' => 'Nama komoditas sudah ada.',
             ]);
+
+            if ($komoditas->nama_komoditas === $validated['nama_komoditas']) {
+                return response()->json([
+                    'message' => 'Tidak ada perubahan pada data komoditas.',
+                    'data' => new KomoditasResource($komoditas),
+                ], 200);
+            }
 
             $komoditas->update([
                 'nama_komoditas' => $validated['nama_komoditas'],
@@ -124,22 +136,16 @@ class KomoditasController extends Controller
                 'data' => null,
             ], 200);
         } catch (ValidationException $e) {
-            Log::error('Validation failed', [
-                'errors' => $e->errors(),
-                'request_data' => $request->all(),
-            ]);
-
-            $errorMessage = $e->errors()['nama_komoditas'][0] ?? 'Validasi gagal.';
+            Log::warning('Validation failed in updateKomoditas', ['errors' => $e->errors()]);
             return response()->json([
-                'message' => $errorMessage,
+                'message' => 'Validasi gagal: ' . implode(', ', array_merge(...array_values($e->errors()))),
                 'data' => null,
             ], 422);
         } catch (\Exception $e) {
-            Log::error('Error updating komoditas', [
+            Log::error('Error in updateKomoditas', [
                 'message' => $e->getMessage(),
                 'stack' => $e->getTraceAsString(),
             ]);
-
             return response()->json([
                 'message' => 'Gagal memperbarui komoditas: ' . $e->getMessage(),
                 'data' => null,
@@ -147,29 +153,32 @@ class KomoditasController extends Controller
         }
     }
 
+
     /**
      * Delete a komoditas.
      *
      * @param string $kd_komoditas
      * @return \Illuminate\Http\JsonResponse
      */
-    public function destroy($kd_komoditas)
+    public function destroy($kd_komoditas): JsonResponse
     {
         Log::info('Starting deleteKomoditas', [
             'kd_komoditas' => $kd_komoditas,
             'timestamp' => now(),
         ]);
 
-        $komoditas = Komoditas::find($kd_komoditas);
-        if (!$komoditas) {
-            Log::warning('Komoditas not found for deletion', ['kd_komoditas' => $kd_komoditas]);
-            return response()->json([
-                'message' => 'Komoditas tidak ditemukan.',
-                'data' => null,
-            ], 404);
-        }
-
         try {
+            $komoditas = Komoditas::findOrFail($kd_komoditas);
+
+            // add here: Check for dependencies
+            if (DB::table('inflasi')->where('kd_komoditas', $kd_komoditas)->exists()) {
+                Log::warning('Cannot delete komoditas due to dependencies', ['kd_komoditas' => $kd_komoditas]);
+                return response()->json([
+                    'message' => 'Komoditas tidak dapat dihapus karena terkait dengan data inflasi.',
+                    'data' => null,
+                ], 422);
+            }
+
             $komoditas->delete();
             $this->clearKomoditasCache();
 
@@ -179,13 +188,17 @@ class KomoditasController extends Controller
                 'message' => 'Komoditas berhasil dihapus.',
                 'data' => null,
             ], 200);
+        } catch (ModelNotFoundException $e) {
+            Log::warning('Komoditas not found in deleteKomoditas', ['kd_komoditas' => $kd_komoditas]);
+            return response()->json([
+                'message' => 'Komoditas tidak ditemukan.',
+                'data' => null,
+            ], 404);
         } catch (\Exception $e) {
-            Log::error('Error deleting komoditas', [
+            Log::error('Error in deleteKomoditas', [
                 'message' => $e->getMessage(),
                 'stack' => $e->getTraceAsString(),
-                'kd_komoditas' => $kd_komoditas,
             ]);
-
             return response()->json([
                 'message' => 'Gagal menghapus komoditas: ' . $e->getMessage(),
                 'data' => null,
@@ -198,33 +211,40 @@ class KomoditasController extends Controller
      *
      * @return void
      */
-    private function clearKomoditasCache()
+    private function clearKomoditasCache(): void
     {
         Cache::forget('komoditas_data');
-        Log::info('Cache cleared for komoditas_data');
+        Log::info('Cache cleared for komoditas_data', ['timestamp' => now()]);
     }
 
-    public function getAllKomoditas()
+    public function getAllKomoditas(): JsonResponse
     {
         try {
-            Log::info('Komoditas data NOT fetched from database', ['timestamp' => now()]);
-            $data = Cache::rememberForever('komoditas_data', function () {
+            $data = Cache::remember('komoditas_data', now()->addHours(24), function () {
                 Log::info('Komoditas data fetched from database', ['timestamp' => now()]);
-                return Komoditas::all();
+                return Komoditas::orderBy('nama_komoditas', 'asc')->get();
             });
 
+            // edit here: Handle empty result
+            if ($data->isEmpty()) {
+                return response()->json([
+                    'message' => 'Tidak ada data komoditas tersedia.',
+                    'data' => []
+                ], 200);
+            }
+
             return response()->json([
-                'message' => 'Komoditas data retrieved successfully',
+                'message' => 'Data komoditas berhasil diambil.',
                 'data' => KomoditasResource::collection($data)
             ], 200);
         } catch (\Exception $e) {
-            Log::error('Error fetching komoditas data', [
-                'error' => $e->getMessage(),
-                'timestamp' => now()
+            Log::error('Error in getAllKomoditas', [
+                'message' => $e->getMessage(),
+                'stack' => $e->getTraceAsString(),
             ]);
-
             return response()->json([
-                'message' => 'Failed to retrieve komoditas data: ' . $e->getMessage()
+                'message' => 'Gagal mengambil data komoditas: ' . $e->getMessage(),
+                'data' => []
             ], 500);
         }
     }

@@ -4,14 +4,22 @@ namespace App\Http\Controllers;
 
 use App\Http\Resources\AlasanResource;
 use App\Models\Alasan;
+use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+// JsonResponse
 
 
 class AlasanController extends Controller
 {
+    public function index(): View
+    {
+        return view('master.alasan');
+    }
+
     /**
      * Store a new alasan.
      *
@@ -74,23 +82,23 @@ class AlasanController extends Controller
      * @param string $id
      * @return \Illuminate\Http\JsonResponse
      */
-    public function destroy($id)
+    public function destroy($id): JsonResponse
     {
         Log::info('Starting deleteAlasan', [
             'id' => $id,
             'timestamp' => now(),
         ]);
 
-        $alasan = Alasan::find($id);
-        if (!$alasan) {
-            Log::warning('Alasan not found for deletion', ['id' => $id]);
-            return response()->json([
-                'message' => 'Alasan tidak ditemukan.',
-                'data' => null,
-            ], 404);
-        }
-
         try {
+            $alasan = Alasan::find($id);
+            if (!$alasan) {
+                Log::warning('Alasan not found for deletion', ['id' => $id]);
+                return response()->json([
+                    'message' => 'Alasan tidak ditemukan.',
+                    'data' => null,
+                ], 404);
+            }
+
             $alasan->delete();
             $this->clearAlasanCache();
 
@@ -122,13 +130,12 @@ class AlasanController extends Controller
     private function clearAlasanCache()
     {
         Cache::forget('alasan_data');
-        Log::info('Cache cleared for alasan_data');
+        Log::info('Cache cleared for alasan_data', ['timestamp' => now()]);
     }
 
-    public function getAllAlasan()
+    public function getAllAlasan(): JsonResponse
     {
         try {
-            Log::info('Alasan data NOT fetched from database', ['timestamp' => now()]);
             $data = Cache::rememberForever('alasan_data', function () {
                 Log::info('Alasan data fetched from database', ['timestamp' => now()]);
                 return Alasan::all();
@@ -148,10 +155,5 @@ class AlasanController extends Controller
                 'message' => 'Failed to retrieve alasan data: ' . $e->getMessage()
             ], 500);
         }
-    }
-
-    public function index()
-    {
-        return view('master.alasan');
     }
 }

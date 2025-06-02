@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Resources\BulanTahunResource;
 use App\Models\BulanTahun;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -18,122 +19,109 @@ class BulanTahunController extends Controller
         return view('pengaturan.index');
     }
 
-    public function update(Request $request)
+    /**
+     * Update the active BulanTahun period.
+     */
+    public function update(Request $request): JsonResponse
     {
-        Log::info('Starting updateBulanTahun', [
+        Log::info('Attempting to update BulanTahun', [
             'request_data' => $request->all(),
-            'timestamp' => now()
+            'timestamp' => now(),
         ]);
 
-        // Validate request
         try {
             $validated = $request->validate([
-                'bulan' => 'required|string|in:01,02,03,04,05,06,07,08,09,10,11,12',
-                'tahun' => 'required|digits:4',
+                'bulan' => 'required|integer|between:1,12', // edit here: Use integer, remove ltrim
+                'tahun' => 'required|integer|digits:4|min:2000|max:2100',
+            ], [
+                'bulan.between' => 'Bulan harus antara 1 dan 12.',
+                'tahun.digits' => 'Tahun harus terdiri dari 4 digit.',
+                'tahun.min' => 'Tahun tidak boleh kurang dari 2000.',
+                'tahun.max' => 'Tahun tidak boleh lebih dari 2100.',
             ]);
-            Log::info('Request validated successfully', $validated);
-        } catch (ValidationException $e) {
-            Log::error('Validation failed', [
-                'errors' => $e->errors(),
-                'request_data' => $request->all(),
-                'timestamp' => now()
-            ]);
-            return response()->json([
-                'message' => 'Validation failed: ' . implode(', ', array_merge(...array_values($e->errors())))
-            ], 422);
-        }
 
-        $bulan = ltrim($validated['bulan'], '0');
-        $tahun = $validated['tahun'];
+            $bulan = $validated['bulan'];
+            $tahun = $validated['tahun'];
 
-        // Check for existing record
-        $existing = BulanTahun::where('bulan', $bulan)->where('tahun', $tahun)->first();
-        Log::info('Checked for existing record', [
-            'bulan' => $bulan,
-            'tahun' => $tahun,
-            'existing' => $existing ? $existing->toArray() : null,
-            'timestamp' => now()
-        ]);
-
-        // Check current active record
-        $currentActive = BulanTahun::where('aktif', 1)->first();
-        Log::info('Fetched current active record', [
-            'current_active' => $currentActive ? $currentActive->toArray() : null,
-            'timestamp' => now()
-        ]);
-
-        if ($existing && $existing->aktif == 1) {
-            Log::warning('Attempted to update already active period', [
-                'bulan' => $bulan,
-                'tahun' => $tahun,
-                'timestamp' => now()
-            ]);
-            return response()->json([
-                'message' => 'Bulan dan tahun ini sudah aktif'
-            ], 422);
-        }
-
-        try {
-            // Start transaction
-            DB::beginTransaction();
-
-            // Deactivate current active record
-            BulanTahun::where('aktif', 1)->update(['aktif' => 0]);
-            Log::info('Deactivated current active record', ['timestamp' => now()]);
-
-            // Update or create record
-            if ($existing) {
-                $existing->update(['aktif' => 1]);
-                Log::info('Updated existing record to active', [
-                    'record' => $existing->toArray(),
-                    'timestamp' => now()
-                ]);
-            } else {
-                $newRecord = BulanTahun::create([
+            // add here: Check for existing record
+            $existing = BulanTahun::where('bulan', $bulan)->where('tahun', $tahun)->first();
+            if ($existing && $existing->aktif == 1) {
+                Log::warning('Attempted to activate already active period', [
                     'bulan' => $bulan,
                     'tahun' => $tahun,
-                    'aktif' => 1,
+                    'timestamp' => now(),
                 ]);
-                Log::info('Created new active record', [
-                    'record' => $newRecord->toArray(),
-                    'timestamp' => now()
-                ]);
+                return response()->json([
+                    'message' => 'Bulan dan tahun ini sudah aktif.',
+                    'data' => null,
+                ], 422);
             }
 
-            // Clear cache
-            Cache::forget('bt_aktif');
-            Log::info('Cache cleared for bt_aktif', ['timestamp' => now()]);
+            return DB::transaction(function () use ($bulan, $tahun, $existing) {
+                // Deactivate current active record
+                BulanTahun::where('aktif', 1)->update(['aktif' => 0]);
+                Log::info('Deactivated current active BulanTahun', ['timestamp' => now()]);
 
-            DB::commit();
+                // Update or create record
+                if ($existing) {
+                    $existing->update(['aktif' => 1]);
+                    Log::info('Activated existing BulanTahun', [
+                        'record' => $existing->toArray(),
+                        'timestamp' => now(),
+                    ]);
+                    $updatedRecord = $existing;
+                } else {
+                    $updatedRecord = BulanTahun::create([
+                        'bulan' => $bulan,
+                        'tahun' => $tahun,
+                        'aktif' => 1,
+                    ]);
+                    Log::info('Created new active BulanTahun', [
+                        'record' => $updatedRecord->toArray(),
+                        'timestamp' => now(),
+                    ]);
+                }
 
-            return response()->json([
-                'message' => 'Bulan dan tahun berhasil diperbarui',
-                'data' => [
-                    'bulan' => $validated['bulan'],
-                    'tahun' => $tahun
-                ]
-            ], 200);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Error during update process', [
-                'error' => $e->getMessage(),
-                'bulan' => $bulan,
-                'tahun' => $tahun,
-                'timestamp' => now()
+                // Clear cache
+                $this->clearBulanTahunCache();
+
+                return response()->json([
+                    'message' => 'Bulan dan tahun berhasil diperbarui.',
+                    'data' => null,
+                ], 200);
+            });
+        } catch (ValidationException $e) {
+            Log::warning('Validation failed in updateBulanTahun', [
+                'errors' => $e->errors(),
+                'request_data' => $request->all(),
+                'timestamp' => now(),
             ]);
             return response()->json([
-                'message' => 'Failed to update bulan and tahun: ' . $e->getMessage()
+                'message' => 'Validasi gagal: ' . implode(', ', array_merge(...array_values($e->errors()))),
+                'data' => null,
+            ], 422);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error in updateBulanTahun', [
+                'message' => $e->getMessage(),
+                'stack' => $e->getTraceAsString(),
+                'timestamp' => now(),
+            ]);
+            return response()->json([
+                'message' => 'Gagal memperbarui bulan dan tahun: ' . $e->getMessage(),
+                'data' => null,
             ], 500);
         }
     }
 
-    public function get()
+    /**
+     * Fetch the active BulanTahun and available years.
+     */
+    public function get(): JsonResponse
     {
         try {
-            Log::info('BT aktif data NOT fetched from database', ['timestamp' => now()]);
-
-            $data = Cache::remember('bt_aktif', now()->addWeek(), function () {
-                Log::info('BT aktif fetched from database', ['timestamp' => now()]);
+            $data = Cache::remember('bt_aktif', now()->addHours(24), function () {
+                Log::info('BulanTahun aktif fetched from database', ['timestamp' => now()]);
 
                 $btAktif = BulanTahun::where('aktif', 1)->first();
                 $minTahun = BulanTahun::min('tahun') ?? now()->year;
@@ -141,22 +129,44 @@ class BulanTahunController extends Controller
 
                 return [
                     'bt_aktif' => $btAktif,
-                    'tahun' => range($minTahun - 2, $maxTahun + 2),
+                    'tahun' => range(max($minTahun - 2, 2000), $maxTahun + 2), // edit here: Prevent negative years
                 ];
             });
 
+            // edit here: Handle no active BulanTahun
+            if (!$data['bt_aktif']) {
+                return response()->json([
+                    'message' => 'Tidak ada periode aktif tersedia.',
+                    'data' => [
+                        'bt_aktif' => null,
+                        'tahun' => $data['tahun'],
+                    ],
+                ], 200);
+            }
+
             return response()->json([
-                'message' => 'Bulan dan tahun aktif retrieved successfully',
-                'data' => BulanTahunResource::make($data)
+                'message' => 'Data bulan dan tahun aktif berhasil diambil.',
+                'data' => BulanTahunResource::make($data), // edit here: Use resource
             ], 200);
         } catch (\Exception $e) {
-            Log::error('Error fetching bulan tahun data', [
-                'error' => $e->getMessage(),
-                'timestamp' => now()
+            Log::error('Error in getBulanTahun', [
+                'message' => $e->getMessage(),
+                'stack' => $e->getTraceAsString(),
+                'timestamp' => now(),
             ]);
             return response()->json([
-                'message' => 'Failed to retrieve bulan tahun data: ' . $e->getMessage()
+                'message' => 'Gagal mengambil data bulan dan tahun: ' . $e->getMessage(),
+                'data' => null,
             ], 500);
         }
+    }
+
+    /**
+     * Clear the BulanTahun cache.
+     */
+    private function clearBulanTahunCache(): void
+    {
+        Cache::forget('bt_aktif');
+        Log::info('Cache cleared for bt_aktif', ['timestamp' => now()]);
     }
 }

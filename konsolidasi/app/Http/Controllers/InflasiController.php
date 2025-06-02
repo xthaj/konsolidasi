@@ -19,18 +19,14 @@ use App\Imports\DataImport;
 use App\Models\BulanTahun;
 use App\Imports\FinalImport;
 use App\Models\Wilayah;
-
-// InflasiAllLevelResource
-// InflasiResource
-// Wilayah
-
-
-
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class InflasiController extends Controller
 {
-    // create/upload: upload data, hapus data sebulan
 
+    /**
+     * Render the create/upload view.
+     */
     public function create(): View
     {
         return view('data.create');
@@ -38,28 +34,20 @@ class InflasiController extends Controller
 
     /**
      * Delete Inflasi data for a specific period and level.
-     *
-     * Validates the request, finds the BulanTahun record, and deletes Inflasi records
-     * matching the bulan_tahun_id and kd_level. Rekonsiliasi records are automatically
-     * deleted via cascade. Returns a success message with the number of deleted rows or
-     * an error message, including a title for the period and level.
-     *
-     * @param Request $request The HTTP request containing bulan, tahun, and level.
-     * @return \Illuminate\Http\RedirectResponse
      */
     public function hapus(Request $request)
     {
         Log::info('Hapus method started', $request->all());
 
-        $request->merge(['bulan' => (int) $request->bulan]);
-
-        $request->validate([
-            'bulan' => 'required|integer|between:1,12',
-            'tahun' => 'required|integer|min:2000|max:2100',
-            'level' => 'required|string|in:01,02,03,04,05',
-        ]);
-
         try {
+            $request->merge(['bulan' => (int) $request->bulan]);
+
+            $request->validate([
+                'bulan' => 'required|integer|between:1,12',
+                'tahun' => 'required|integer|min:2000|max:2100',
+                'level' => 'required|string|in:01,02,03,04,05',
+            ]);
+
             $bulanTahun = BulanTahun::where('bulan', $request->bulan)
                 ->where('tahun', $request->tahun)
                 ->first();
@@ -68,7 +56,8 @@ class InflasiController extends Controller
             $title = "Data " . BulanTahun::getBulanName($request->bulan) . " Tahun {$request->tahun} level " . LevelHarga::getLevelHargaNameComplete($request->level);
 
             if (!$bulanTahun) {
-                return redirect()->back()->withErrors(["$title gagal dihapus: Tidak ada data tersedia untuk periode tersebut."]);
+                Log::warning('BulanTahun not found', ['bulan' => $request->bulan, 'tahun' => $request->tahun]);
+                return redirect()->back()->withErrors(["$title gagal dihapus: Periode tidak ditemukan."]);
             }
 
             //hapus rekon cuz fk? no need bcs cascade on delete
@@ -81,7 +70,11 @@ class InflasiController extends Controller
             } else {
                 return redirect()->back()->withErrors(["$title gagal dihapus: Tidak ada data untuk dihapus."]);
             }
+        } catch (ValidationException  $e) {
+            Log::warning('Validation failed in hapus', ['errors' => $e->errors()]);
+            return redirect()->back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
+            Log::error('Error in hapus', ['message' => $e->getMessage()]);
             return redirect()->back()->withErrors(["$title gagal dihapus: Error menghapus data: {$e->getMessage()}"]);
         }
     }
@@ -96,50 +89,59 @@ class InflasiController extends Controller
         ]);
 
         // Validation rules
-        $rules = [
-            'file' => 'required|file|mimes:xlsx|max:5120', // 5MB
-            'bulan' => 'required|integer|between:1,12',
-            'tahun' => 'required|integer|min:2000|max:3000',
-            'level' => 'required|string|in:01,02,03,04,05',
-        ];
-
-        // Custom validation messages
-        $messages = [
-            'file.required' => 'File Excel wajib diunggah.',
-            'file.file' => 'File harus berupa dokumen.',
-            'file.mimes' => 'Format file harus xlsx.',
-            'file.max' => 'Ukuran file tidak boleh lebih dari 5MB.',
-            'bulan.required' => 'Bulan wajib diisi.',
-            'bulan.integer' => 'Bulan harus berupa angka.',
-            'bulan.between' => 'Bulan tidak valid.',
-            'tahun.required' => 'Tahun wajib diisi.',
-            'tahun.integer' => 'Tahun harus berupa angka.',
-            'tahun.min' => 'Tahun tidak valid.',
-            'tahun.max' => 'Tahun tidak valid.',
-            'level.required' => 'Level harga wajib dipilih.',
-            'level.string' => 'Level harga tidak valid.',
-            'level.in' => 'Level harga harus salah satu dari: 01, 02, 03, 04, atau 05.',
-        ];
-
-        // Validate request
         try {
-            $validated = $request->validate($rules, $messages);
-        } catch (ValidationException $e) {
-            // Log validation errors
-            Log::error('Validation failed', [
-                'errors' => $e->errors(),
-                'request' => $request->all(),
-            ]);
+            $rules = [
+                'file' => 'required|file|mimes:xlsx|max:5120', // 5MB
+                'bulan' => 'required|integer|between:1,12',
+                'tahun' => 'required|integer|min:2000|max:3000',
+                'level' => 'required|string|in:01,02,03,04,05',
+            ];
 
-            // Return back with errors
-            return redirect()->back()->withErrors($e->errors())->withInput();
-        }
+            // Custom validation messages
+            $messages = [
+                'file.required' => 'File Excel wajib diunggah.',
+                'file.file' => 'File harus berupa dokumen.',
+                'file.mimes' => 'Format file harus xlsx.',
+                'file.max' => 'Ukuran file tidak boleh lebih dari 5MB.',
+                'bulan.required' => 'Bulan wajib diisi.',
+                'bulan.integer' => 'Bulan harus berupa angka.',
+                'bulan.between' => 'Bulan tidak valid.',
+                'tahun.required' => 'Tahun wajib diisi.',
+                'tahun.integer' => 'Tahun harus berupa angka.',
+                'tahun.min' => 'Tahun tidak valid.',
+                'tahun.max' => 'Tahun tidak valid.',
+                'level.required' => 'Level harga wajib dipilih.',
+                'level.string' => 'Level harga tidak valid.',
+                'level.in' => 'Level harga harus salah satu dari: 01, 02, 03, 04, atau 05.',
+            ];
 
-        // Set PHP runtime limits
-        ini_set('memory_limit', '512M');
-        ini_set('max_execution_time', 300);
+            // Validate request
+            try {
+                $validated = $request->validate($rules, $messages);
+            } catch (ValidationException $e) {
+                // Log validation errors
+                Log::error('Validation failed', [
+                    'errors' => $e->errors(),
+                    'request' => $request->all(),
+                ]);
 
-        try {
+                // Return back with errors
+                return redirect()->back()->withErrors($e->errors())->withInput();
+            }
+
+            // Set PHP runtime limits
+            ini_set('memory_limit', '512M');
+            ini_set('max_execution_time', 300);
+
+            $bulanTahun = BulanTahun::where('bulan', $validated['bulan'])
+                ->where('tahun', $validated['tahun'])
+                ->first();
+
+            if (!$bulanTahun) {
+                Log::warning('BulanTahun not found for upload', ['bulan' => $validated['bulan'], 'tahun' => $validated['tahun']]);
+                return redirect()->back()->withErrors(['bulan' => 'Periode tidak ditemukan untuk bulan dan tahun yang dipilih.']);
+            }
+
             // Verify file is valid
             if (!$request->file('file')->isValid()) {
                 Log::error('File upload failed', [
@@ -155,13 +157,11 @@ class InflasiController extends Controller
 
             // Handle import results
             return $this->handleImportResult($import, $summary, $validated);
+        } catch (ValidationException $e) {
+            Log::error('Validation failed in upload', ['errors' => $e->errors()]);
+            return redirect()->back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
-            // Log import errors
-            Log::error('Import failed', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
+            Log::error('Import failed in upload', ['message' => $e->getMessage()]);
             return redirect()->back()->withErrors(['file' => 'Error importing data: ' . $e->getMessage()]);
         }
     }
@@ -171,12 +171,6 @@ class InflasiController extends Controller
      *
      * Displays a success message with the import summary, including inserted, updated,
      * created, and skipped Rekonsiliasi counts. If errors exist, calls handleImportErrors.
-     *
-     * @param DataImport $import The import instance.
-     * @param array $summary The import summary from getSummary().
-     * @param \Illuminate\Support\MessageBag $errors The import errors from getErrors().
-     * @param array $validated The validated request data.
-     * @return \Illuminate\Http\RedirectResponse
      */
     private function handleImportResult(DataImport $import, array $summary, array $validated)
     {
@@ -189,16 +183,6 @@ class InflasiController extends Controller
         $tahun = $validated['tahun'];
         $rekonsiliasi_created = $summary['rekonsiliasi_created']; // Added Rekonsiliasi count
         $skipped_rekonsiliasi = $summary['skipped_rekonsiliasi'] ?? 0; // Extract skipped count
-
-        // Log the summary for debugging
-        Log::debug('Import summary', [
-            'inserted' => $inserted,
-            'updated' => $updated,
-            'failed_row' => $failedRow,
-            'errors' => $errors,
-            'rekonsiliasi_created' => $rekonsiliasi_created,
-            'skipped_rekonsiliasi' => $skipped_rekonsiliasi,
-        ]);
 
         // Title prefix
         $title = "Data " . BulanTahun::getBulanName($bulan) . " Tahun {$tahun} level " . LevelHarga::getLevelHargaNameComplete($levelHarga);
@@ -253,7 +237,9 @@ class InflasiController extends Controller
         return redirect()->back()->withErrors(['file' => $errorMessage]);
     }
 
-    // finalisasi
+    /**
+     * Render the finalization view.
+     */
 
     public function finalisasi()
     {
@@ -263,66 +249,54 @@ class InflasiController extends Controller
     /**
      * Handles the upload of an Excel file for final inflation data import.
      *
-     * Validates the request, processes the file using FinalImport, and returns
-     * a response with the import results or errors.
-     *
-     * @param Request $request The HTTP request containing the file and parameters.
-     * @return \Illuminate\Http\RedirectResponse
      */
     public function final_upload(Request $request)
     {
         // Log the entire request for debugging
-        Log::debug('Final upload request received', [
-            'request' => $request->all(),
-            'has_file' => $request->hasFile('file'),
-            'file' => $request->file('file') ? $request->file('file')->getClientOriginalName() : 'No file',
-        ]);
+        Log::debug('Final upload request received');
 
-        // Validation rules
-        $rules = [
-            'file' => 'required|file|mimes:xlsx,xls|max:5120', // 5MB
-            'bulan' => 'required|integer|between:1,12',
-            'tahun' => 'required|integer|min:2000|max:3000',
-            'level' => 'required|string|in:01,02,03,04,05',
-        ];
-
-        // Custom validation messages
-        $messages = [
-            'file.required' => 'File Excel wajib diunggah.',
-            'file.file' => 'File harus berupa dokumen.',
-            'file.mimes' => 'Format file harus xlsx atau xls.',
-            'file.max' => 'Ukuran file tidak boleh lebih dari 5MB.',
-            'bulan.required' => 'Bulan wajib diisi.',
-            'bulan.integer' => 'Bulan harus berupa angka.',
-            'bulan.between' => 'Bulan tidak valid.',
-            'tahun.required' => 'Tahun wajib diisi.',
-            'tahun.integer' => 'Tahun harus berupa angka.',
-            'tahun.min' => 'Tahun tidak valid.',
-            'tahun.max' => 'Tahun tidak valid.',
-            'level.required' => 'Level harga wajib dipilih.',
-            'level.string' => 'Level harga tidak valid.',
-            'level.in' => 'Level harga harus salah satu dari: 01, 02, 03, 04, atau 05.',
-        ];
-
-        // Validate request
         try {
+            $rules = [
+                'file' => 'required|file|mimes:xlsx,xls|max:5120', // 5MB
+                'bulan' => 'required|integer|between:1,12',
+                'tahun' => 'required|integer|min:2000|max:3000',
+                'level' => 'required|string|in:01,02,03,04,05',
+            ];
+
+            // Custom validation messages
+            $messages = [
+                'file.required' => 'File Excel wajib diunggah.',
+                'file.file' => 'File harus berupa dokumen.',
+                'file.mimes' => 'Format file harus xlsx atau xls.',
+                'file.max' => 'Ukuran file tidak boleh lebih dari 5MB.',
+                'bulan.required' => 'Bulan wajib diisi.',
+                'bulan.integer' => 'Bulan harus berupa angka.',
+                'bulan.between' => 'Bulan tidak valid.',
+                'tahun.required' => 'Tahun wajib diisi.',
+                'tahun.integer' => 'Tahun harus berupa angka.',
+                'tahun.min' => 'Tahun tidak valid.',
+                'tahun.max' => 'Tahun tidak valid.',
+                'level.required' => 'Level harga wajib dipilih.',
+                'level.string' => 'Level harga tidak valid.',
+                'level.in' => 'Level harga harus salah satu dari: 01, 02, 03, 04, atau 05.',
+            ];
+
+            // Validate request
+
             $validated = $request->validate($rules, $messages);
-        } catch (ValidationException $e) {
-            // Log validation errors
-            Log::error('Validation failed', [
-                'errors' => $e->errors(),
-                'request' => $request->all(),
-            ]);
 
-            // Return back with errors
-            return redirect()->back()->withErrors($e->errors())->withInput();
-        }
+            $bulanTahun = BulanTahun::where('bulan', $validated['bulan'])
+                ->where('tahun', $validated['tahun'])
+                ->first();
+            if (!$bulanTahun) {
+                Log::warning('Bulan tidak ditemukan untuk final_upload', ['bulan' => $validated['bulan'], 'tahun' => $validated['tahun']]);
+                return redirect()->back()->withErrors(['bulan' => 'Periode tidak ditemukan untuk bulan dan tahun yang dipilih.']);
+            }
 
-        // Set PHP runtime limits
-        ini_set('memory_limit', '512M');
-        ini_set('max_execution_time', 300);
+            // Set PHP runtime limits
+            ini_set('memory_limit', '512M');
+            ini_set('max_execution_time', 300);
 
-        try {
             // Verify file is valid
             if (!$request->file('file')->isValid()) {
                 Log::error('File upload failed', [
@@ -338,13 +312,11 @@ class InflasiController extends Controller
 
             // Handle import results
             return $this->handleFinalImportResult($import, $summary, $validated);
+        } catch (ValidationException $e) {
+            Log::error('Validation failed in final_upload', ['errors' => $e->errors()]);
+            return redirect()->back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
-            // Log import errors
-            Log::error('Import failed', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
+            Log::error('Import failed in final_upload', ['message' => $e->getMessage()]);
             return redirect()->back()->withErrors(['file' => 'Error importing data: ' . $e->getMessage()]);
         }
     }
@@ -424,6 +396,9 @@ class InflasiController extends Controller
         return redirect()->back()->withErrors(['file' => $errorMessage]);
     }
 
+    /**
+     * Update an Inflasi record.
+     */
     public function update(Request $request, $id)
     {
         try {
@@ -436,6 +411,7 @@ class InflasiController extends Controller
             if ($validator->fails()) {
                 return response()->json([
                     'message' => $validator->errors()->first(),
+                    'data' => null
                 ], 422);
             }
 
@@ -461,18 +437,27 @@ class InflasiController extends Controller
 
             return response()->json([
                 'message' => 'Data inflasi berhasil diperbarui',
+                'data' => null
             ], 200);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
+            DB::rollBack();
             return response()->json([
                 'message' => 'Data inflasi tidak ditemukan.',
+                'data' => null
             ], 404);
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('Error in update', ['message' => $e->getMessage()]);
             return response()->json([
                 'message' => 'Gagal memperbarui data: ' . $e->getMessage(),
+                'data' => null
             ], 500);
         }
     }
+
+    /**
+     * Export report to Excel.
+     */
 
     public function export_final(Request $request)
     {
@@ -538,82 +523,83 @@ class InflasiController extends Controller
     public function fetchEditData(Request $request)
     {
         // Fallback to active BulanTahun if bulan or tahun is missing
-        if (!$request->filled('bulan') || !$request->filled('tahun')) {
-            $aktifBulanTahun = BulanTahun::where('aktif', 1)->first();
-            if ($aktifBulanTahun) {
-                $request->merge([
-                    'bulan' => $aktifBulanTahun->bulan,
-                    'tahun' => $aktifBulanTahun->tahun,
-                ]);
+        try {
+            if (!$request->filled('bulan') || !$request->filled('tahun')) {
+                $aktifBulanTahun = BulanTahun::where('aktif', 1)->first();
+                if ($aktifBulanTahun) {
+                    $request->merge([
+                        'bulan' => $aktifBulanTahun->bulan,
+                        'tahun' => $aktifBulanTahun->tahun,
+                    ]);
+                }
             }
-        }
 
-        // Extract request parameters with defaults
-        $bulan = $request->input('bulan');
-        $tahun = $request->input('tahun');
-        $kd_level = $request->input('kd_level', '01');
-        $kd_wilayah = $request->input('kd_wilayah', '0');
-        $kd_komoditas = $request->input('kd_komoditas', '');
-        $sortColumn = $request->input('sort', 'kd_komoditas');
-        $sortDirection = $request->input('direction', 'asc');
+            // Extract request parameters with defaults
+            $bulan = $request->input('bulan');
+            $tahun = $request->input('tahun');
+            $kd_level = $request->input('kd_level', '01');
+            $kd_wilayah = $request->input('kd_wilayah', '0');
+            $kd_komoditas = $request->input('kd_komoditas', '');
+            $sortColumn = $request->input('sort', 'kd_komoditas');
+            $sortDirection = $request->input('direction', 'asc');
 
-        // Validate request
-        $validator = Validator::make($request->all(), [
-            'bulan' => 'required|integer|min:1|max:12',
-            'tahun' => 'required|integer',
-            'kd_level' => 'required|in:00,01,02,03,04,05',
-            'kd_wilayah' => 'required|string',
-            'kd_komoditas' => 'nullable|string',
-            'sort' => 'in:kd_komoditas,nilai_inflasi',
-            'direction' => 'in:asc,desc',
-        ]);
+            // Validate request
+            $validator = Validator::make($request->all(), [
+                'bulan' => 'required|integer|min:1|max:12',
+                'tahun' => 'required|integer',
+                'kd_level' => 'required|in:00,01,02,03,04,05',
+                'kd_wilayah' => 'required|string',
+                'kd_komoditas' => 'nullable|string',
+                'sort' => 'in:kd_komoditas,nilai_inflasi',
+                'direction' => 'in:asc,desc',
+            ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => $validator->errors()->first(),
-            ], 422);
-        }
+            if ($validator->fails()) {
+                return response()->json([
+                    'message' => $validator->errors()->first(),
+                ], 422);
+            }
 
-        // Merge defaults back into request
-        $request->merge([
-            'kd_level' => $kd_level,
-            'kd_wilayah' => $kd_wilayah,
-        ]);
+            // Merge defaults back into request
+            $request->merge([
+                'kd_level' => $kd_level,
+                'kd_wilayah' => $kd_wilayah,
+            ]);
 
-        // Initialize response
-        $response = [
-            'message' => 'Data ditemukan.',
-            'data' => [
-                'inflasi' => [],
-                'title' => $this->generateTableTitle($request),
-            ],
-        ];
-
-        // Fetch BulanTahun record
-        $bulanTahun = BulanTahun::where('bulan', $bulan)
-            ->where('tahun', $tahun)
-            ->first();
-
-        if (!$bulanTahun) {
-            return response()->json([
-                'message' => 'Tidak ada data tersedia untuk bulan dan tahun yang dipilih.',
+            // Initialize response
+            $response = [
+                'message' => 'Data ditemukan.',
                 'data' => [
                     'inflasi' => [],
                     'title' => $this->generateTableTitle($request),
                 ],
-            ], 404);
-        }
+            ];
 
-        // Case: kd_level is '00' (all price levels)
-        if ($kd_level === '00') {
-            $query = Komoditas::query()
-                ->leftJoin('inflasi', function ($join) use ($bulanTahun, $kd_wilayah) {
-                    $join->on('komoditas.kd_komoditas', '=', 'inflasi.kd_komoditas')
-                        ->where('inflasi.bulan_tahun_id', $bulanTahun->bulan_tahun_id)
-                        ->where('inflasi.kd_wilayah', $kd_wilayah);
-                })
-                ->select('komoditas.kd_komoditas', 'komoditas.nama_komoditas')
-                ->selectRaw("
+            // Fetch BulanTahun record
+            $bulanTahun = BulanTahun::where('bulan', $bulan)
+                ->where('tahun', $tahun)
+                ->first();
+
+            if (!$bulanTahun) {
+                return response()->json([
+                    'message' => 'Tidak ada data tersedia untuk bulan dan tahun yang dipilih.',
+                    'data' => [
+                        'inflasi' => [],
+                        'title' => $this->generateTableTitle($request),
+                    ],
+                ], 404);
+            }
+
+            // Case: kd_level is '00' (all price levels)
+            if ($kd_level === '00') {
+                $query = Komoditas::query()
+                    ->leftJoin('inflasi', function ($join) use ($bulanTahun, $kd_wilayah) {
+                        $join->on('komoditas.kd_komoditas', '=', 'inflasi.kd_komoditas')
+                            ->where('inflasi.bulan_tahun_id', $bulanTahun->bulan_tahun_id)
+                            ->where('inflasi.kd_wilayah', $kd_wilayah);
+                    })
+                    ->select('komoditas.kd_komoditas', 'komoditas.nama_komoditas')
+                    ->selectRaw("
                 MAX(CASE WHEN inflasi.kd_level = '01' THEN inflasi.nilai_inflasi END) as inflasi_01,
                 MAX(CASE WHEN inflasi.kd_level = '01' THEN inflasi.andil END) as andil_01,
                 MAX(CASE WHEN inflasi.kd_level = '02' THEN inflasi.nilai_inflasi END) as inflasi_02,
@@ -625,55 +611,63 @@ class InflasiController extends Controller
                 MAX(CASE WHEN inflasi.kd_level = '05' THEN inflasi.nilai_inflasi END) as inflasi_05,
                 MAX(CASE WHEN inflasi.kd_level = '05' THEN inflasi.andil END) as andil_05
             ")
-                ->groupBy('komoditas.kd_komoditas', 'komoditas.nama_komoditas');
+                    ->groupBy('komoditas.kd_komoditas', 'komoditas.nama_komoditas');
 
-            if ($kd_komoditas) {
-                $query->where('komoditas.kd_komoditas', $kd_komoditas);
+                if ($kd_komoditas) {
+                    $query->where('komoditas.kd_komoditas', $kd_komoditas);
+                }
+
+                $inflasi = $query->get();
+            } else {
+                // Specific kd_level
+                $query = Komoditas::query()
+                    ->leftJoin('inflasi', function ($join) use ($bulanTahun, $kd_level, $kd_wilayah) {
+                        $join->on('komoditas.kd_komoditas', '=', 'inflasi.kd_komoditas')
+                            ->where('inflasi.bulan_tahun_id', $bulanTahun->bulan_tahun_id)
+                            ->where('inflasi.kd_level', $kd_level)
+                            ->where('inflasi.kd_wilayah', $kd_wilayah);
+                    })
+                    ->select(
+                        'komoditas.kd_komoditas',
+                        'komoditas.nama_komoditas',
+                        'inflasi.inflasi_id',
+                        'inflasi.nilai_inflasi',
+                        'inflasi.andil',
+                        'inflasi.kd_wilayah'
+                    );
+
+                if (!is_null($kd_komoditas) && $kd_komoditas !== '') {
+                    $query->where('komoditas.kd_komoditas', $kd_komoditas);
+                }
+
+                $query->orderBy($sortColumn, $sortDirection);
+                $inflasi = $query->get();
             }
 
-            $inflasi = $query->get();
-        } else {
-            // Specific kd_level
-            $query = Komoditas::query()
-                ->leftJoin('inflasi', function ($join) use ($bulanTahun, $kd_level, $kd_wilayah) {
-                    $join->on('komoditas.kd_komoditas', '=', 'inflasi.kd_komoditas')
-                        ->where('inflasi.bulan_tahun_id', $bulanTahun->bulan_tahun_id)
-                        ->where('inflasi.kd_level', $kd_level)
-                        ->where('inflasi.kd_wilayah', $kd_wilayah);
-                })
-                ->select(
-                    'komoditas.kd_komoditas',
-                    'komoditas.nama_komoditas',
-                    'inflasi.inflasi_id',
-                    'inflasi.nilai_inflasi',
-                    'inflasi.andil',
-                    'inflasi.kd_wilayah'
-                );
-
-            if (!is_null($kd_komoditas) && $kd_komoditas !== '') {
-                $query->where('komoditas.kd_komoditas', $kd_komoditas);
+            if ($inflasi->isEmpty()) {
+                return response()->json([
+                    'message' => 'Tidak ada data inflasi tersedia untuk filter tersebut.',
+                    'data' => [
+                        'inflasi' => [],
+                        'title' => $this->generateTableTitle($request),
+                    ],
+                ], 200);
             }
 
-            $query->orderBy($sortColumn, $sortDirection);
-            $inflasi = $query->get();
-        }
+            // Transform data based on kd_level
+            $response['data']['inflasi'] = $kd_level === '00'
+                ? InflasiAllLevelResource::collection($inflasi)
+                : InflasiResource::collection($inflasi);
 
-        if ($inflasi->isEmpty()) {
+            return response()->json($response, 200);
+        } catch (\Exception $e) {
+            // Handle unexpected errors
+            Log::error('Error in fetchEditData', ['message' => $e->getMessage()]);
             return response()->json([
-                'message' => 'Tidak ada data inflasi tersedia untuk filter tersebut.',
-                'data' => [
-                    'inflasi' => [],
-                    'title' => $this->generateTableTitle($request),
-                ],
-            ], 200);
+                'message' => 'Gagal memuat data: ' . $e->getMessage(),
+                'data' => ['inflasi' => [], 'title' => 'Inflasi']
+            ], 500);
         }
-
-        // Transform data based on kd_level
-        $response['data']['inflasi'] = $kd_level === '00'
-            ? InflasiAllLevelResource::collection($inflasi)
-            : InflasiResource::collection($inflasi);
-
-        return response()->json($response, 200);
     }
 
     /**
@@ -681,62 +675,164 @@ class InflasiController extends Controller
      */
     private function generateTableTitle(Request $request): string
     {
-        $bulan = $request->bulan;
-        $tahun = $request->tahun;
-        $kd_level = $request->kd_level;
-        $kd_wilayah = $request->kd_wilayah;
+        try {
+            $bulan = $request->bulan;
+            $tahun = $request->tahun;
+            $kd_level = $request->kd_level;
+            $kd_wilayah = $request->kd_wilayah;
 
-        log::info('Generating table title', [
-            'bulan' => $bulan,
-            'tahun' => $tahun,
-            'kd_level' => $kd_level,
-            'kd_wilayah' => $kd_wilayah,
-        ]);
+            log::info('Generating table title', [
+                'bulan' => $bulan,
+                'tahun' => $tahun,
+                'kd_level' => $kd_level,
+                'kd_wilayah' => $kd_wilayah,
+            ]);
 
-        // Default title
-        $title = 'Inflasi';
+            // Default title
+            $title = 'Inflasi';
 
-        // Wilayah
-        $wilayah = Wilayah::getWilayahName($kd_wilayah);
+            // Wilayah
+            $wilayah = Wilayah::getWilayahName($kd_wilayah);
 
-        // Level Harga
-        $levelHarga = LevelHarga::getLevelHargaNameComplete($kd_level);
+            // Level Harga
+            $levelHarga = LevelHarga::getLevelHargaNameComplete($kd_level);
 
-        // Month and Year
-        $monthName = BulanTahun::getBulanName($bulan);
+            // Month and Year
+            $monthName = BulanTahun::getBulanName($bulan);
 
-        $title = "Inflasi {$wilayah} {$levelHarga} {$monthName} {$tahun} (dalam persen)";
+            $title = "Inflasi {$wilayah} {$levelHarga} {$monthName} {$tahun} (dalam persen)";
 
-        return $title;
+            return $title;
+        } catch (\Exception $e) {
+            Log::error('Error in generateTableTitle', ['message' => $e->getMessage()]);
+            return 'Inflasi';
+        }
     }
 
-    // singles
 
+    /**
+     * Delete a single Inflasi record.
+     */
     public function delete($id)
     {
         try {
             // Find the Inflasi record or fail with a 404
             $inflasi = Inflasi::findOrFail($id);
-
-            // Delete the Inflasi record
             $inflasi->delete();
+
             return response()->json([
-                'status' => 'success',
                 'message' => 'Data inflasi berhasil dihapus.',
-                'data' => null,
+                'data' => null
             ], 200);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            // Handle case where Inflasi record is not found
+        } catch (ModelNotFoundException $e) {
             return response()->json([
-                'status' => 'error',
                 'message' => 'Data inflasi tidak ditemukan.',
-                'data' => null,
+                'data' => null
             ], 404);
         } catch (\Exception $e) {
+            Log::error('Error in delete', ['message' => $e->getMessage()]);
             return response()->json([
-                'status' => 'error',
-                'message' => 'Gagal menghapus data inflasi. Silakan coba lagi.',
-                'data' => null,
+                'message' => 'Gagal menghapus data inflasi: ' . $e->getMessage(),
+                'data' => null
+            ], 500);
+        }
+    }
+
+    public function findInflasiId(Request $request)
+    {
+        try {
+            // Validate input
+            $combinations = $request->json()->all();
+
+            if (!is_array($combinations) || empty($combinations)) {
+                return response()->json([
+                    'message' => 'Harap masukkan kombinasi data yang valid.',
+                    'data' => []
+                ], 400);
+            }
+
+            $results = [];
+            $allFound = true;
+
+            // Process each combination
+            foreach ($combinations as $combo) {
+                $bulan = $combo['bulan'] ?? null;
+                $tahun = $combo['tahun'] ?? null;
+                $kd_level = $combo['kd_level'] ?? null;
+                $kd_wilayah = $combo['kd_wilayah'] ?? null;
+                $kd_komoditas = $combo['kd_komoditas'] ?? null;
+
+                // Get names from model methods
+                $level_harga = LevelHarga::getLevelHargaNameComplete($kd_level) ?? 'Unknown Level Harga';
+                $nama_wilayah = Wilayah::getWilayahName($kd_wilayah) ?? 'Unknown Wilayah';
+                $nama_komoditas = Komoditas::getKomoditasName($kd_komoditas) ?? $combo['nama_komoditas'] ?? 'Unknown Komoditas';
+
+                // Check for missing parameters (explicitly allow "0" as valid)
+                if (
+                    !isset($bulan) || $bulan === '' || !isset($tahun) || $tahun === '' ||
+                    !isset($kd_level) || $kd_level === '' || !isset($kd_wilayah) || $kd_wilayah === '' ||
+                    !isset($kd_komoditas) || $kd_komoditas === ''
+                ) {
+                    $allFound = false;
+                    return response()->json([
+                        'message' => "Inflasi level harga {$level_harga} wilayah {$nama_wilayah} komoditas {$nama_komoditas} tidak ditemukan.",
+                        'data' => []
+                    ], 404);
+                }
+
+                // Find BulanTahun record
+                $bulanTahun = BulanTahun::where('bulan', $bulan)
+                    ->where('tahun', $tahun)
+                    ->first();
+
+                if (!$bulanTahun) {
+                    $allFound = false;
+                    return response()->json([
+                        'message' => "Inflasi level harga {$level_harga} wilayah {$nama_wilayah} komoditas {$nama_komoditas} tidak ditemukan.",
+                        'data' => []
+                    ], 404);
+                }
+
+                // Find Inflasi record
+                $inflasi = Inflasi::where('bulan_tahun_id', $bulanTahun->bulan_tahun_id)
+                    ->where('kd_level', $kd_level)
+                    ->where('kd_wilayah', $kd_wilayah)
+                    ->where('kd_komoditas', $kd_komoditas)
+                    ->first();
+
+                if (!$inflasi) {
+                    $allFound = false;
+                    return response()->json([
+                        'message' => "Inflasi level harga {$level_harga} wilayah {$nama_wilayah} komoditas {$nama_komoditas} tidak ditemukan.",
+                        'data' => []
+                    ], 404);
+                }
+
+                // Prepare data for resource
+                $inflasi->nama_komoditas = $nama_komoditas; // Add nama_komoditas to model for resource
+                $results[] = new InflasiResource($inflasi);
+            }
+
+            // If all combinations are found, return success
+            if ($allFound) {
+                return response()->json([
+                    'message' => 'Data inflasi berhasil ditemukan.',
+                    'data' => $results
+                ], 200);
+            }
+
+            // Fallback (shouldn't reach here due to early returns)
+            return response()->json([
+                'message' => 'Beberapa data inflasi tidak ditemukan.',
+                'data' => []
+            ], 404);
+        } catch (\Exception $e) {
+            Log::error('Error in findInflasiId: ' . $e->getMessage(), [
+                'combinations' => $request->json()->all()
+            ]);
+            return response()->json([
+                'message' => 'Terjadi kesalahan server. Silakan coba lagi nanti.',
+                'data' => []
             ], 500);
         }
     }
