@@ -5,7 +5,7 @@ window.Alpine = Alpine;
 Alpine.data("webData", () => ({
     loading: true,
     alasanData: [],
-    newAlasan: { nama: "" },
+    newAlasan: { keterangan: "" },
     modalMessage: "",
     confirmMessage: "",
     confirmDetails: null,
@@ -31,11 +31,22 @@ Alpine.data("webData", () => ({
     },
 
     openAddAlasanModal() {
-        this.newAlasan = { nama: "" };
+        this.newAlasan = { keterangan: "" };
         this.$dispatch("open-modal", "add-alasan");
     },
 
     async addAlasan() {
+        if (!this.newAlasan.keterangan.trim()) {
+            this.modalMessage = "Alasan tidak boleh kosong.";
+            this.$dispatch("open-modal", "error-modal");
+            return;
+        }
+        if (this.newAlasan.keterangan.length > 200) {
+            this.modalMessage = "Alasan maksimal 200 karakter.";
+            this.$dispatch("open-modal", "error-modal");
+            return;
+        }
+
         try {
             const response = await fetch("/alasan", {
                 method: "POST",
@@ -59,7 +70,7 @@ Alpine.data("webData", () => ({
                 this.modalMessage =
                     result.message || "Alasan berhasil ditambahkan!";
                 this.$dispatch("open-modal", "success-modal");
-                this.$dispatch("close");
+                this.$dispatch("close-modal", "add-alasan");
                 await this.fetchAlasan();
             }
         } catch (error) {
@@ -106,16 +117,6 @@ Alpine.data("webData", () => ({
         };
 
         this.$dispatch("open-modal", "confirm-action");
-    },
-
-    executeConfirmAction() {
-        if (this.confirmAction) {
-            this.confirmAction();
-            this.confirmAction = null;
-            this.confirmMessage = "";
-            this.confirmDetails = null;
-        }
-        this.$dispatch("close");
     },
 }));
 

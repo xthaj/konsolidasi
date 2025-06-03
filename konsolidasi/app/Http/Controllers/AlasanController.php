@@ -35,13 +35,13 @@ class AlasanController extends Controller
 
         try {
             $validated = $request->validate([
-                'nama' => 'required|string|max:255',
+                'keterangan' => 'required|string|max:255',
             ], [
-                'nama.max' => 'Alasan tidak boleh melebihi 255 karakter.',
+                'keterangan.max' => 'Alasan tidak boleh melebihi 255 karakter.',
             ]);
 
             $alasan = Alasan::create([
-                'keterangan' => $validated['nama'],
+                'keterangan' => $validated['keterangan'],
             ]);
 
             $this->clearAlasanCache();
@@ -58,7 +58,7 @@ class AlasanController extends Controller
                 'request_data' => $request->all(),
             ]);
 
-            $errorMessage = $e->errors()['nama'][0] ?? 'Validasi gagal.';
+            $errorMessage = $e->errors()['keterangan'][0] ?? 'Validasi gagal.';
             return response()->json([
                 'message' => $errorMessage,
                 'data' => null,

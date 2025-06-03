@@ -22,7 +22,7 @@
         <div class="px-6 py-4">
             <div class="mb-4">
                 <label class="block mb-2 text-sm font-medium text-gray-900">Alasan</label>
-                <input maxlength="200" type="text" x-model="newAlasan.nama" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5" required>
+                <input maxlength="200" type="text" x-model="newAlasan.keterangan" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5" required>
             </div>
             <div class="mt-6 flex justify-end gap-3">
                 <x-secondary-button x-on:click="$dispatch('close')">Batal</x-secondary-button>
