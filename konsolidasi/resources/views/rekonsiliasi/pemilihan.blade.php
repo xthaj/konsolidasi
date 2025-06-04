@@ -57,7 +57,7 @@
     <x-slot name="sidebar">
         <ol class="space-y-4 w-full mb-6">
             <li>
-                <div class="w-full p-4 border rounded-lg" :class="tableData.length === 0 ? 'text-blue-700 bg-blue-100 border-blue-300 dark:bg-gray-800 dark:border-blue-800 dark:text-blue-400' : 'text-green-700 bg-green-50 border-green-300 dark:bg-gray-800 dark:border-green-800 dark:text-green-400'">
+                <div class="w-full p-4 border rounded-lg" :class="tableData.length === 0 ? 'text-blue-700 bg-blue-100 border-blue-300  ' : 'text-green-700 bg-green-50 border-green-300   '">
                     <div class="flex items-center justify-between">
                         <div>
                             <h3 class="font-medium">1. Tambah ke Tabel</h3>
@@ -75,7 +75,7 @@
                 </div>
             </li>
             <li>
-                <div class="w-full p-4 border rounded-lg" :class="tableData.length > 0 ? 'text-blue-700 bg-blue-100 border-blue-300 dark:bg-gray-800 dark:border-blue-800 dark:text-blue-400' : 'text-gray-900 bg-gray-100 border-gray-300 dark:bg-gray-800 dark:border-gray-700 '">
+                <div class="w-full p-4 border rounded-lg" :class="tableData.length > 0 ? 'text-blue-700 bg-blue-100 border-blue-300  ' : 'text-gray-900 bg-gray-100 border-gray-300  '">
                     <div class="flex items-center justify-between">
                         <div>
                             <h3 class="font-medium">2. Konfirmasi Komoditas</h3>
@@ -96,7 +96,7 @@
             <div class="flex gap-4">
                 <div class="w-1/2">
                     <label class="block mb-2 text-sm font-medium text-gray-900">Bulan</label>
-                    <select name="bulan" x-model="bulan" required class="bg-gray-200 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5 cursor-not-allowed" disabled>
+                    <select name="bulan" x-model="bulan" class="bg-gray-200 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5 cursor-not-allowed" disabled>
                         <template x-for="[nama, bln] in bulanOptions" :key="bln">
                             <option :value="bln" :selected="bulan == bln" x-text="nama"></option>
                         </template>
@@ -104,7 +104,7 @@
                 </div>
                 <div class="w-1/2">
                     <label class="block mb-2 text-sm font-medium text-gray-900">Tahun</label>
-                    <select name="tahun" required class="bg-gray-200 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5 cursor-not-allowed" disabled>
+                    <select name="tahun" class="bg-gray-200 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5 cursor-not-allowed" disabled>
                         <template x-for="year in tahunOptions" :key="year">
                             <option :value="year" :selected="year == tahun" x-text="year"></option>
                         </template>
@@ -127,12 +127,12 @@
             <!-- Provinsi -->
             <div class="flex justify-between items-center mb-2">
                 <label class="text-sm font-medium text-gray-900 ">Provinsi</label>
-                <div class="flex items-center p-2 rounded-sm hover:bg-gray-100 dark:hover:bg-gray-600">
+                <div class="flex items-center p-2 rounded-sm hover:bg-gray-100">
                     <input type="checkbox" id="select-all-provinces" :checked="selectAllProvincesChecked" @click="selectAllProvinces($event.target.checked)" class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded-sm">
-                    <label for="select-all-provinces" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">Pilih Semua</label>
+                    <label for="select-all-provinces" class="ms-2 text-sm font-medium text-gray-900">Pilih Semua</label>
                 </div>
             </div>
-            <div class="bg-white rounded-lg shadow-sm border border-gray-300  dark:border-gray-600">
+            <div class="bg-white rounded-lg shadow-sm border border-gray-300 ">
                 <div class="p-3">
                     <div class="relative">
                         <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
@@ -143,12 +143,12 @@
                         <input type="text" id="input-group-search-provinsi" @input="searchProvince($event.target.value)" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full ps-10 p-2.5" placeholder="Cari provinsi">
                     </div>
                 </div>
-                <ul class="max-h-48 px-3 pb-3 overflow-y-auto text-sm text-gray-700 dark:text-gray-200">
+                <ul class="max-h-48 px-3 pb-3 overflow-y-auto text-sm text-gray-700">
                     <template x-for="provinsi in filteredProvinces" :key="provinsi.kd_wilayah">
                         <li>
-                            <div class="flex items-center p-2 rounded-sm hover:bg-gray-100 dark:hover:bg-gray-600">
+                            <div class="flex items-center p-2 rounded-sm hover:bg-gray-100">
                                 <input type="checkbox" :id="'provinsi-' + provinsi.kd_wilayah" :checked="selectedProvinces.some(p => p.kd_wilayah === provinsi.kd_wilayah)" @click="toggleProvince(provinsi)" class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded-sm">
-                                <label :for="'provinsi-' + provinsi.kd_wilayah" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300" x-text="provinsi.nama_wilayah"></label>
+                                <label :for="'provinsi-' + provinsi.kd_wilayah" class="ms-2 text-sm font-medium text-gray-900" x-text="provinsi.nama_wilayah"></label>
                             </div>
                         </li>
                     </template>
@@ -159,12 +159,12 @@
             <div x-show="selectedKdLevel === '01'" class="mb-4">
                 <div class="flex justify-between items-center mb-2">
                     <label class="text-sm font-medium text-gray-900 ">Kabupaten/Kota</label>
-                    <div class="flex items-center p-2 rounded-sm hover:bg-gray-100 dark:hover:bg-gray-600">
+                    <div class="flex items-center p-2 rounded-sm hover:bg-gray-100">
                         <input type="checkbox" id="select-all-kabkots" :checked="selectAllKabkotsChecked" @click="selectAllKabkots($event.target.checked)" class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded-sm">
-                        <label for="select-all-kabkots" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">Pilih Semua</label>
+                        <label for="select-all-kabkots" class="ms-2 text-sm font-medium text-gray-900">Pilih Semua</label>
                     </div>
                 </div>
-                <div class="bg-white rounded-lg shadow-sm border border-gray-300  dark:border-gray-600">
+                <div class="bg-white rounded-lg shadow-sm border border-gray-300 ">
                     <div class="p-3">
                         <div class="relative">
                             <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
@@ -175,12 +175,12 @@
                             <input type="text" id="input-group-search-kabkot" @input="searchKabkot($event.target.value)" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full ps-10 p-2.5" placeholder="Cari kabupaten/kota">
                         </div>
                     </div>
-                    <ul class="max-h-48 px-3 pb-3 overflow-y-auto text-sm text-gray-700 dark:text-gray-200">
+                    <ul class="max-h-48 px-3 pb-3 overflow-y-auto text-sm text-gray-700">
                         <template x-for="kabkot in filteredKabkots" :key="kabkot.kd_wilayah">
                             <li>
-                                <div class="flex items-center p-2 rounded-sm hover:bg-gray-100 dark:hover:bg-gray-600">
+                                <div class="flex items-center p-2 rounded-sm hover:bg-gray-100">
                                     <input type="checkbox" :id="'kabkot-' + kabkot.kd_wilayah" :checked="selectedKabkots.some(k => k.kd_wilayah === kabkot.kd_wilayah)" @click="toggleKabkot(kabkot)" class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded-sm">
-                                    <label :for="'kabkot-' + kabkot.kd_wilayah" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300" x-text="kabkot.nama_wilayah"></label>
+                                    <label :for="'kabkot-' + kabkot.kd_wilayah" class="ms-2 text-sm font-medium text-gray-900" x-text="kabkot.nama_wilayah"></label>
                                 </div>
                             </li>
                         </template>
@@ -192,12 +192,12 @@
             <div>
                 <div class="flex justify-between items-center mb-2">
                     <label class="text-sm font-medium text-gray-900 ">Komoditas</label>
-                    <div class="flex items-center p-2 rounded-sm hover:bg-gray-100 dark:hover:bg-gray-600">
+                    <div class="flex items-center p-2 rounded-sm hover:bg-gray-100">
                         <input type="checkbox" id="select-all-komoditas" :checked="selectAllKomoditasChecked" @click="selectAllKomoditas($event.target.checked)" class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded-sm">
-                        <label for="select-all-komoditas" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">Pilih Semua</label>
+                        <label for="select-all-komoditas" class="ms-2 text-sm font-medium text-gray-900">Pilih Semua</label>
                     </div>
                 </div>
-                <div class="bg-white rounded-lg shadow-sm border border-gray-300  dark:border-gray-600">
+                <div class="bg-white rounded-lg shadow-sm border border-gray-300 ">
                     <div class="p-3">
                         <div class="relative">
                             <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
@@ -208,12 +208,12 @@
                             <input type="text" id="input-group-search-komoditas" @input="searchKomoditas($event.target.value)" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full ps-10 p-2.5" placeholder="Cari komoditas">
                         </div>
                     </div>
-                    <ul class="max-h-48 px-3 pb-3 overflow-y-auto text-sm text-gray-700 dark:text-gray-200">
+                    <ul class="max-h-48 px-3 pb-3 overflow-y-auto text-sm text-gray-700">
                         <template x-for="komoditas in filteredKomoditas" :key="komoditas.kd_komoditas">
                             <li>
-                                <div class="flex items-center p-2 rounded-sm hover:bg-gray-100 dark:hover:bg-gray-600">
+                                <div class="flex items-center p-2 rounded-sm hover:bg-gray-100">
                                     <input type="checkbox" :id="'komoditas-' + komoditas.kd_komoditas" :value="komoditas.kd_komoditas" x-model="selectedKomoditas" @change="updateSelectAllKomoditas()" class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded-sm">
-                                    <label :for="'komoditas-' + komoditas.kd_komoditas" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300" x-text="komoditas.nama_komoditas"></label>
+                                    <label :for="'komoditas-' + komoditas.kd_komoditas" class="ms-2 text-sm font-medium text-gray-900" x-text="komoditas.nama_komoditas"></label>
                                 </div>
                             </li>
                         </template>
@@ -266,7 +266,7 @@
                             <td class="px-6 py-4" x-text="item.kd_komoditas"></td>
                             <td class="px-6 py-4" x-text="item.nama_komoditas"></td>
                             <td class="px-6 py-4" x-text="item.nama_kd_level"></td>
-                            <td class="px-6 py-4" x-text="item.nilai_inflasi === '-' ? '-' : (parseFloat(item.nilai_inflasi) < 1 && parseFloat(item.nilai_inflasi) > -1 && parseFloat(item.nilai_inflasi) !== 0 ? (parseFloat(item.nilai_inflasi) > 0 ? '0' : '-0') : '') + Math.abs(parseFloat(item.nilai_inflasi)).toFixed(2).replace(/^0+/, '') + '%'"></td>
+                            <td x-text="formatInflasi(item.nilai_inflasi)"></td>
                             <td class="px-6 py-4 text-right">
                                 <button @click="removeRow(index)" class="font-medium text-red-600  hover:underline">Hapus</button>
                             </td>

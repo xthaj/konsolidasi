@@ -11,7 +11,7 @@
     Login
 </h1>
 
-<form @submit.prevent="submitLogin" class="space-y-4 md:space-y-6" x-data="webData">
+<form @submit.prevent="submitLogin" class="space-y-4 md:space-y-5" x-data="webData">
     @csrf
 
     <!-- Username -->
@@ -56,8 +56,17 @@
         <span>Masuk</span>
     </x-primary-button>
 
-    <p class="text-sm font-light text-gray-500">
-        Belum punya akun? <a href="{{ route('register') }}" class="font-medium text-primary-600 hover:underline">Daftar di sini</a>
-    </p>
 </form>
+
+<form action="{{ route('sso.login') }}" method="GET" class="w-full">
+    <button type="submit" class="mt-4 w-full justify-center border border-primary-600 text-primary-700 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-primary-700/50 font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-flex items-center me-2 mb-2 transition-colors duration-200 ease-in-out">
+        <img src="{{ asset('images/logo_bps.svg') }}" class="w-4 h-4 me-2" alt="BPS logo">
+        Login dengan SSO BPS
+    </button>
+</form>
+
+
+<p class="text-sm font-light text-gray-500">
+    Belum punya akun? <a href="{{ route('register') }}" class="font-medium text-primary-600 hover:underline">Daftar di sini</a>
+</p>
 @endsection

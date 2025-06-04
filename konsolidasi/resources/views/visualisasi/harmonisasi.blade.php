@@ -6,24 +6,7 @@
     <!-- Load eCharts via CDN -->
     <script src="https://cdn.jsdelivr.net/npm/echarts@latest/dist/echarts.min.js"></script>
 
-    <!-- Modals -->
-    <x-modal name="success-modal" title="Berhasil" maxWidth="md">
-        <div class="text-gray-900 ">
-            <p x-text="modalMessage"></p>
-            <div class="mt-4 flex justify-end">
-                <x-primary-button type="button" x-on:click="$dispatch('close')">Tutup</x-primary-button>
-            </div>
-        </div>
-    </x-modal>
 
-    <x-modal name="error-modal" title="Kesalahan" maxWidth="md">
-        <div class="text-gray-900 ">
-            <p x-text="modalMessage"></p>
-            <div class="mt-4 flex justify-end">
-                <x-primary-button type="button" x-on:click="$dispatch('close')">Tutup</x-primary-button>
-            </div>
-        </div>
-    </x-modal>
 
     <x-slot name="sidebar">
         <form id="filter-form" x-ref="filterForm" @submit.prevent="fetchData">
@@ -50,14 +33,14 @@
                 <p x-show="isActivePeriod" class="text-sm text-gray-500">Periode aktif</p>
 
                 <!-- Periode (Disabled) -->
-                <div>
+                <!-- <div>
                     <label class="block mb-2 text-sm font-medium text-gray-900 ">Periode</label>
                     <select class="bg-gray-100 border border-gray-300 text-gray-500 text-sm rounded-lg cursor-not-allowed block w-full p-2.5   " disabled>
                         <option>Month to month (MtM)</option>
                         <option>Year to date (YtD)</option>
                         <option>Year on year (YoY)</option>
                     </select>
-                </div>
+                </div> -->
 
                 <!-- Wilayah -->
                 <div>
@@ -89,9 +72,6 @@
                         </template>
                     </select>
                 </div>
-
-                <!-- Error Message Below Form -->
-                <div x-show="errorMessage" class="my-2 text-sm text-red-600" x-text="errorMessage"></div>
 
                 <x-primary-button type="submit" class="w-full">
                     Filter
@@ -128,7 +108,7 @@
             <!-- Line Chart -->
             <div class="bg-white p-4 rounded-lg shadow-md  col-span-10">
                 <h3 class="text-lg font-semibold mb-4" x-text="data?.chart_status?.['line']?.title || 'Tren Inflasi dan Andil'"></h3>
-                <div id="lineChart" class="chart-container w-full h-96"></div>
+                <div id="lineChart" class="chart-container w-full h-96 mx-auto"></div>
                 <button x-show="wilayahLevel === '1'" id="toggleAndilBtn" x-on:click="toggleAndil" class="block mx-auto mt-4 font-semibold underline">
                     <span x-text="showAndil ? 'Lihat Inflasi' : 'Lihat Andil'"></span>
                 </button>
@@ -175,19 +155,19 @@
             <!-- Horizontal Bar Chart -->
             <div x-show="wilayahLevel === '1'" class="bg-white p-4 rounded-lg shadow-md  col-span-10">
                 <h3 class="text-lg font-semibold mb-4" x-text="data?.chart_status?.horizontalBar?.title || 'Perbandingan Inflasi dan Andil Antartingkat Harga'"></h3>
-                <div id="horizontalBarChart" class="chart-container w-full h-96"></div>
+                <div id="horizontalBarChart" class="chart-container w-full h-96 mx-auto"></div>
             </div>
 
             <!-- Heatmap Chart -->
             <div x-show="wilayahLevel === '1'" class="bg-white p-4 rounded-lg shadow-md  col-span-10">
                 <h3 class="text-lg font-semibold mb-4" x-text="data?.chart_status?.heatmap?.title || 'Inflasi per Provinsi Antartingkat Harga'"></h3>
-                <div id="heatmapChart" class="chart-container w-full h-[550px]"></div>
+                <div id="heatmapChart" class="chart-container w-full h-[550px] mx-auto"></div>
             </div>
 
             <!-- Stacked Bar Chart -->
             <div x-show="wilayahLevel === '1'" class="bg-white p-4 rounded-lg shadow-md  col-span-10">
                 <h3 class="text-lg font-semibold mb-4" x-text="data?.chart_status?.stackedBar?.title || 'Distribusi Inflasi per Tingkat Harga'"></h3>
-                <div id="stackedBarChart" class="chart-container w-full h-96"></div>
+                <div id="stackedBarChart" class="chart-container w-full h-96 mx-auto"></div>
             </div>
 
             <!-- Harga Konsumen Kota -->
@@ -197,7 +177,7 @@
             <div x-show="wilayahLevel === '1'" class="bg-white p-4 rounded-lg shadow-md  col-span-10"" :class=" wilayahLevel==='1' ? 'md:col-span-5' : 'md:col-span-10'">
                 <h3 class=" text-lg font-semibold mb-4" x-text="data?.chart_status?.provHorizontalBar?.title || 'Inflasi per Provinsi'">
                 </h3>
-                <div id="provHorizontalBarChart_01" class="chart-container w-full h-[550px]"></div>
+                <div id="provHorizontalBarChart_01" class="chart-container w-full h-[550px] mx-auto"></div>
             </div>
             <div
                 class="bg-white p-4 rounded-lg shadow-md  col-span-10"
@@ -205,16 +185,16 @@
                 <h3
                     class="text-lg font-semibold mb-4"
                     x-text="data?.chart_status?.kabkotHorizontalBar?.title || 'Inflasi per Kabupaten/Kota'"></h3>
-                <div id="kabkotHorizontalBarChart_01" class="chart-container w-full h-[550px]"></div>
+                <div id="kabkotHorizontalBarChart_01" class="chart-container w-full h-[550px] mx-auto"></div>
             </div>
 
             <div x-show="wilayahLevel === '1'" class="bg-white p-4 rounded-lg shadow-md  col-span-10">
                 <h3 class="text-lg font-semibold mb-4" x-text="data?.chart_status?.provinsiChoropleth?.title || 'Peta Inflasi Provinsi'"></h3>
-                <div id="provinsiChoropleth_01" class="chart-container w-full h-[400px]"></div>
+                <div id="provinsiChoropleth_01" class="chart-container w-full h-[400px] mx-auto"></div>
             </div>
             <div class="bg-white p-4 rounded-lg shadow-md  col-span-10">
                 <h3 class="text-lg font-semibold mb-4" x-text="data?.chart_status?.[wilayahLevel === '1' ? 'kabkotChoropleth' : 'provinsiKabkotChoropleth']?.title || 'Peta Inflasi Kabupaten/Kota'"></h3>
-                <div id="kabkotChoropleth_01" class="chart-container w-full h-[400px]"></div>
+                <div id="kabkotChoropleth_01" class="chart-container w-full h-[400px] mx-auto"></div>
             </div>
         </div>
 
@@ -227,11 +207,11 @@
                 </div>
                 <div class="bg-white p-4 rounded-lg shadow-md  col-span-10">
                     <h3 class="text-lg font-semibold mb-4" x-text="data?.chart_status?.provHorizontalBar?.title || 'Inflasi per Provinsi'"></h3>
-                    <div id="provHorizontalBarChart_02" class="chart-container w-full h-[550px]"></div>
+                    <div id="provHorizontalBarChart_02" class="chart-container w-full h-[550px] mx-auto"></div>
                 </div>
                 <div class="bg-white p-4 rounded-lg shadow-md  col-span-10">
                     <h3 class="text-lg font-semibold mb-4" x-text="data?.chart_status?.provinsiChoropleth?.title || 'Peta Inflasi Provinsi'"></h3>
-                    <div id="provinsiChoropleth_02" class="chart-container w-full h-[400px]"></div>
+                    <div id="provinsiChoropleth_02" class="chart-container w-full h-[400px] mx-auto"></div>
                 </div>
 
                 <!-- Harga Perdagangan Besar -->
@@ -240,11 +220,11 @@
                 </div>
                 <div class="bg-white p-4 rounded-lg shadow-md  col-span-10">
                     <h3 class="text-lg font-semibold mb-4" x-text="data?.chart_status?.provHorizontalBar?.title || 'Inflasi per Provinsi'"></h3>
-                    <div id="provHorizontalBarChart_03" class="chart-container w-full h-[550px]"></div>
+                    <div id="provHorizontalBarChart_03" class="chart-container w-full h-[550px] mx-auto"></div>
                 </div>
                 <div class="bg-white p-4 rounded-lg shadow-md  col-span-10">
                     <h3 class="text-lg font-semibold mb-4" x-text="data?.chart_status?.provinsiChoropleth?.title || 'Peta Inflasi Provinsi'"></h3>
-                    <div id="provinsiChoropleth_03" class="chart-container w-full h-[400px]"></div>
+                    <div id="provinsiChoropleth_03" class="chart-container w-full h-[400px] mx-auto"></div>
                 </div>
 
                 <!-- Harga Produsen Desa -->
@@ -253,11 +233,11 @@
                 </div>
                 <div class="bg-white p-4 rounded-lg shadow-md  col-span-10">
                     <h3 class="text-lg font-semibold mb-4" x-text="data?.chart_status?.provHorizontalBar?.title || 'Inflasi per Provinsi'"></h3>
-                    <div id="provHorizontalBarChart_04" class="chart-container w-full h-[550px]"></div>
+                    <div id="provHorizontalBarChart_04" class="chart-container w-full h-[550px] mx-auto"></div>
                 </div>
                 <div class="bg-white p-4 rounded-lg shadow-md  col-span-10">
                     <h3 class="text-lg font-semibold mb-4" x-text="data?.chart_status?.provinsiChoropleth?.title || 'Peta Inflasi Provinsi'"></h3>
-                    <div id="provinsiChoropleth_04" class="chart-container w-full h-[400px]"></div>
+                    <div id="provinsiChoropleth_04" class="chart-container w-full h-[400px] mx-auto"></div>
                 </div>
 
                 <!-- Harga Produsen -->
@@ -266,13 +246,32 @@
                 </div>
                 <div class="bg-white p-4 rounded-lg shadow-md  col-span-10">
                     <h3 class="text-lg font-semibold mb-4" x-text="data?.chart_status?.provHorizontalBar?.title || 'Inflasi per Provinsi'"></h3>
-                    <div id="provHorizontalBarChart_05" class="chart-container w-full h-[550px]"></div>
+                    <div id="provHorizontalBarChart_05" class="chart-container w-full h-[550px] mx-auto"></div>
                 </div>
                 <div class="bg-white p-4 rounded-lg shadow-md  col-span-10">
                     <h3 class="text-lg font-semibold mb-4" x-text="data?.chart_status?.provinsiChoropleth?.title || 'Peta Inflasi Provinsi'"></h3>
-                    <div id="provinsiChoropleth_05" class="chart-container w-full h-[400px]"></div>
+                    <div id="provinsiChoropleth_05" class="chart-container w-full h-[400px] mx-auto"></div>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Modals -->
+    <x-modal name="success-modal" title="Berhasil" maxWidth="md">
+        <div class="text-gray-900 ">
+            <p x-text="modalMessage"></p>
+            <div class="mt-4 flex justify-end">
+                <x-primary-button type="button" x-on:click="$dispatch('close')">Tutup</x-primary-button>
+            </div>
+        </div>
+    </x-modal>
+
+    <x-modal name="error-modal" title="Kesalahan" maxWidth="md">
+        <div class="text-gray-900 ">
+            <p x-text="modalMessage"></p>
+            <div class="mt-4 flex justify-end">
+                <x-primary-button type="button" x-on:click="$dispatch('close')">Tutup</x-primary-button>
+            </div>
+        </div>
+    </x-modal>
 </x-two-panel-layout>

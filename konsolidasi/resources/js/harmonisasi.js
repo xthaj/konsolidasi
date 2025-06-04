@@ -191,13 +191,10 @@ Alpine.data("webData", () => ({
             await this.fetchData();
             this.loading = false;
 
-            window.addEventListener("resize", () => {
-                clearTimeout(window.resizeTimeout);
-                window.resizeTimeout = setTimeout(
-                    () => this.resizeCharts(),
-                    200
-                );
-            });
+            // Listen for sidebar toggle
+            window.addEventListener("sidebar-toggle", () => this.resizeCharts());
+            // Keep window resize for browser resizing
+            window.addEventListener("resize", () => this.resizeCharts());
         } catch (error) {
             console.error("Initialization failed:", error);
             this.modalMessage = "Gagal menginisialisasi aplikasi";
@@ -288,15 +285,16 @@ Alpine.data("webData", () => ({
             },
         ];
 
-        const resizeObserver = new ResizeObserver((entries) => {
+        if (this.resizeObserver) {
+            this.resizeObserver.disconnect();
+        }
+
+        this.resizeObserver = new ResizeObserver((entries) => {
             entries.forEach((entry) => {
                 const chartId = entry.target.id;
                 const chart = charts.get(chartId);
                 if (chart && !chart.isDisposed()) {
                     chart.resize();
-                    // console.log(`Resized ${chartId}`);
-                } else {
-                    // console.warn(`Chart ${chartId} not found or disposed`);
                 }
             });
         });
@@ -304,7 +302,6 @@ Alpine.data("webData", () => ({
         charts.forEach((chart, chartId) => {
             chart.dispose();
             charts.delete(chartId);
-            console.log(`Disposed chart ${chartId}`);
         });
 
         chartConfigs.forEach((config) => {
@@ -318,14 +315,12 @@ Alpine.data("webData", () => ({
                     textColor: "#000",
                     maskColor: "rgba(255, 255, 255, 0.8)",
                 });
-                resizeObserver.observe(chartDiv);
-                // console.log(`Initialized ${config.id}`);
-            } else if (!chartDiv) {
-                // console.log(`Chart element #${config.id} not found in DOM`);
-            } else {
-                // console.log(`Chart element #${config.id} is hidden`);
+                this.resizeObserver.observe(chartDiv);
             }
         });
+
+        // Initial resize after initialization
+        this.resizeCharts();
     },
 
     // Resize all charts
@@ -333,18 +328,17 @@ Alpine.data("webData", () => ({
         const paddingX = 32;
         charts.forEach((chart, chartId) => {
             const chartDiv = document.getElementById(chartId);
-            if (
-                chart &&
-                chartDiv &&
-                !chart.isDisposed() &&
-                chartDiv.offsetParent !== null
-            ) {
+            if (chart && chartDiv && !chart.isDisposed() && chartDiv.offsetParent !== null) {
+                // Force layout recalculation
+                chartDiv.style.display = 'none';
+                chartDiv.offsetHeight; // Trigger reflow
+                chartDiv.style.display = '';
+                
                 const container = chartDiv.parentElement;
                 const width = container.clientWidth - paddingX;
                 const height = chartDiv.clientHeight;
                 if (width > 0 && height > 0) {
                     chart.resize({ width, height });
-                    // console.log(`Resized ${chartId}: ${width}x${height}`);
                 }
             }
         });
@@ -430,9 +424,9 @@ Alpine.data("webData", () => ({
             });
 
             const response = await fetch(`/api/visualisasi?${params}`);
-            if (!response.ok) throw new Error(`API error: ${response.status}`);
             const result = await response.json();
 
+            if (!response.ok) throw new Error(`API error: ${response.status}`);
             if (result.data?.errors?.length > 0 || result.errors?.length > 0) { 
                 this.errors = result.errors || result.data?.errors || []; 
             } 

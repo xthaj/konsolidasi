@@ -111,7 +111,7 @@
     <x-modal name="edit-rekonsiliasi" focusable title="Edit Rekonsiliasi" x-cloak x-data="editRekonComponent()">
         <div class="px-6 py-4">
             <form class="space-y-4" @submit.prevent="submitEditRekon()">
-                <div class="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+                <div class="space-y-2 text-sm text-gray-700">
                     <div>
                         <span class="font-medium">Level Harga:</span>
                         <span class="font-semibold text-gray-900 " x-text="
@@ -140,7 +140,7 @@
                 <div class="flex justify-between items-center mb-2 mt-6">
                     <label class="text-sm font-medium text-gray-900 ">Alasan</label>
                 </div>
-                <div class="bg-white rounded-lg shadow-sm border border-gray-300  dark:border-gray-600">
+                <div class="bg-white rounded-lg shadow-sm border border-gray-300 ">
                     <div class="p-3">
                         <div class="relative">
                             <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
@@ -152,7 +152,7 @@
                         </div>
                     </div>
                     <!-- Existing checkbox list -->
-                    <ul class="max-h-48 px-3 pb-3 overflow-y-auto text-sm text-gray-700 dark:text-gray-200">
+                    <ul class="max-h-48 px-3 pb-3 overflow-y-auto text-sm text-gray-700">
                         <template x-for="alasan in filteredAlasan" :key="alasan.alasan_id">
                             <li>
                                 <div class="flex items-center p-2 rounded-sm hover:bg-gray-100 ">
@@ -163,7 +163,7 @@
                                         @change="selectedAlasan.includes(alasan.keterangan) ? selectedAlasan = selectedAlasan.filter(a => a !== alasan.keterangan) : selectedAlasan.push(alasan.keterangan)"
                                         :checked="selectedAlasan.includes(alasan.keterangan)"
                                         class="w-4 h-4 bg-gray-100 border-gray-300 rounded-sm">
-                                    <label :for="'alasan-' + alasan.alasan_id" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300" x-text="alasan.keterangan"></label>
+                                    <label :for="'alasan-' + alasan.alasan_id" class="ms-2 text-sm font-medium text-gray-900" x-text="alasan.keterangan"></label>
                                 </div>
                             </li>
                         </template>
@@ -179,7 +179,7 @@
                         rows="6"
                         x-model="detail"
                         @input="detail.length > 500 ? detail = detail.slice(0, 500) : null"
-                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5  dark:border-gray-600 dark:placeholder-gray-400  dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5  dark:placeholder-gray-400  dark:focus:ring-blue-500 dark:focus:border-blue-500"
                         placeholder="Kenaikan harga karena permintaan yang mulai meningkat menjelang akhir tahun. Sebelumnya ..."
                         required
                         maxlength="500"></textarea>
@@ -194,7 +194,7 @@
                         type="text"
                         id="link_terkait"
                         x-model="linkTerkait"
-                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5  dark:border-gray-600 dark:placeholder-gray-400  dark:focus:ring-blue-500 dark:focus:border-blue-500" />
+                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5  dark:placeholder-gray-400  dark:focus:ring-blue-500 dark:focus:border-blue-500" />
                 </div>
                 <div class="mt-6 flex justify-end gap-3">
                     <x-secondary-button x-on:click="$dispatch('close-modal', 'edit-rekonsiliasi')">Batal</x-secondary-button>
@@ -339,7 +339,7 @@
 
                             </tr>
                         </template>
-                        <tr x-show="!data.rekonsiliasi?.length && status === 'success'" class="bg-white dark:bg-gray-800">
+                        <tr x-show="!data.rekonsiliasi?.length && status === 'success'" class="bg-white ">
                             <td colspan="12" class="px-6 py-4 text-center">Tidak ada data untuk ditampilkan.</td>
                         </tr>
                     </tbody>

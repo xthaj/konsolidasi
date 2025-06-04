@@ -402,9 +402,11 @@ Alpine.data("webData", () => ({
         }
     },
 
-
     confirmAddToTable() {
-        this.tableData = [...this.tableData, ...this.modalContent.items];
+        const newItems = this.modalContent.items.filter(
+            item => !this.tableData.some(existing => existing.inflasi_id === item.inflasi_id)
+        );
+        this.tableData = [...this.tableData, ...newItems];
         this.$dispatch("close");
     },
 
@@ -463,6 +465,13 @@ Alpine.data("webData", () => ({
         );
         return wilayah ? wilayah.nama_wilayah : "Unknown";
     },
+
+    formatInflasi(value) {
+        if (value === '-' || value === null) return '-';
+        const num = parseFloat(value);
+        if (isNaN(num)) return '-';
+        return num.toFixed(2) + '%';
+    }
 }));
 
 Alpine.start();

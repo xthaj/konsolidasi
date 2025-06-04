@@ -106,7 +106,6 @@ Alpine.data("webData", () => ({
 
             // Update kd_wilayah
             this.updateKdWilayah();
-
             // Fetch initial data
             await this.fetchData();
         } catch (error) {

@@ -10,13 +10,19 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AlasanController;
 use App\Http\Controllers\BulanTahunController;
 use App\Http\Controllers\InflasiController;
+use App\Http\Controllers\SSOController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WilayahController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Log;
 use App\Http\Middleware\isPusat;
 use Illuminate\Support\Facades\Cache;
+// SSOController
 
+// sso
+Route::get('/sso/login', [SSOController::class, 'redirectToSSO'])->name('sso.login');
+Route::get('/sso/callback', [SSOController::class, 'handleSSOCallback'])->name('sso.callback');
+Route::get('/sso/logout', [SSOController::class, 'logoutSSO'])->name('sso.logout');
 
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth'])

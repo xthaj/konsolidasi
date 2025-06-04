@@ -58,12 +58,12 @@ default => $width,
             </div>
         </div>
         @endif
-        <ul class="h-48 px-3 pb-3 overflow-y-auto text-sm text-gray-700 dark:text-gray-200" aria-labelledby="{{ $id }}Button">
+        <ul class="h-48 px-3 pb-3 overflow-y-auto text-sm text-gray-700" aria-labelledby="{{ $id }}Button">
             <template x-for="item in {{ $items }}" :key="item.id">
                 <li>
-                    <div class="flex items-center p-2 rounded-sm hover:bg-gray-100 dark:hover:bg-gray-600">
+                    <div class="flex items-center p-2 rounded-sm hover:bg-gray-100">
                         <input type="checkbox" :id="item.id" :value="item.value" x-model="{{ $xModel }}" class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-primary-500 dark:focus:ring-primary-600 dark:ring-offset-gray-700 dark:focus:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500">
-                        <label :for="item.id" class="w-full ms-2 text-sm font-medium text-gray-900 rounded-sm dark:text-gray-300" x-text="item.label"></label>
+                        <label :for="item.id" class="w-full ms-2 text-sm font-medium text-gray-900 rounded-sm" x-text="item.label"></label>
                     </div>
                 </li>
             </template>

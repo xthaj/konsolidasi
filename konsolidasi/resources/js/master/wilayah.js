@@ -5,12 +5,6 @@ window.Alpine = Alpine;
 Alpine.data("webData", () => ({
     loading: true,
     wilayahData: [],
-    newWilayah: { nama_wilayah: "" },
-    editWilayah: { kd_wilayah: "", nama_wilayah: "" },
-    modalMessage: "",
-    confirmMessage: "",
-    confirmDetails: null,
-    confirmAction: null,
 
     async init() {
         this.loading = true;
