@@ -130,8 +130,8 @@
                     <div id="dropdownLogout" class="z-15 hidden font-normal bg-white divide-y divide-gray-100 rounded-lg shadow-sm w-44">
                         <div class="px-4 py-3">
                             <span class="block text-sm text-gray-900 ">{{ auth()->user()->nama_lengkap }}</span>
-                            <span class="block text-sm  text-gray-500 truncate ">{{ auth()->user()->wilayah_nama_display }}</span>
-                            <span class="block text-sm  text-gray-500 truncate ">{{ auth()->user()->level_nama }}</span>
+                            <span class="block text-sm  text-gray-500">{{ auth()->user()->wilayah_nama_display }}</span>
+                            <span class="block text-sm  text-gray-500">{{ auth()->user()->level_nama }}</span>
                         </div>
 
                         <ul class="py-2 text-sm text-gray-700">

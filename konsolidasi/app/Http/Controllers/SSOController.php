@@ -46,16 +46,37 @@ class SSOController extends Controller
             // Dump the user data to inspect it
             dd($ssoUser);
 
+            // Get the username from SSO
+            $username = $ssoUser->getUsername();
+
+            // Check if the username exists in the database
+            $user = User::where('username', $username)->first();
+
             // Save user data to session or database
-            Session::put('sso_user', [
-                'name' => $ssoUser->getName(),
-                'email' => $ssoUser->getEmail(),
-                'username' => $ssoUser->getUsername(),
-                'nip' => $ssoUser->getNip(),
-            ]);
+            // Session::put('sso_user', [
+            //     'name' => $ssoUser->getName(),
+            //     'username' => $ssoUser->getUsername(),
+            // ]);
+
+            if (!$user) {
+                // Username not found in the database, reject the login
+                Session::forget('oauth2state');
+                return redirect()->route('login')->withErrors([
+                    'sso' => 'Akun SSO tidak terdaftar di aplikasi ini. Silakan hubungi administrator.'
+                ]);
+            }
+
+            // Log the user in
+            Auth::login($user);
+
+            // Regenerate session to prevent session fixation <- what
+            $request->session()->regenerate();
+
+            // Clear the OAuth state
+            Session::forget('oauth2state');
 
             // Redirect to a protected page
-            return redirect('/dashboard');
+            return redirect()->intended(route('dashboard'));
         } catch (Exception $e) {
             // Dump the exception if something goes wrong
             dd($e);

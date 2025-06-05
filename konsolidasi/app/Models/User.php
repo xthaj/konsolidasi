@@ -61,10 +61,10 @@ class User extends Authenticatable
      *
      * @return string
      */
-    public function getAuthIdentifierName()
-    {
-        return 'username';
-    }
+    // public function getAuthIdentifierName()
+    // {
+    //     return 'username';
+    // }
 
     /**
      * Check if the user is at the pusat level (Admin or Operator).

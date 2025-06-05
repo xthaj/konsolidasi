@@ -52,6 +52,14 @@
         </div>
     </template>
 
+    <!-- Display SSO Errors -->
+    @if ($errors->has('sso'))
+    <div class="relative flex items-center gap-2 p-4 text-sm text-red-800 border border-red-300 rounded-lg bg-red-50" role="alert">
+        <span class="material-symbols-rounded text-red-800 text-base">warning</span>
+        <p class="text-sm">{{ $errors->first('sso') }}</p>
+    </div>
+    @endif
+
     <x-primary-button class="w-full justify-center">
         <span>Masuk</span>
     </x-primary-button>
@@ -64,6 +72,9 @@
         Login dengan SSO BPS
     </button>
 </form>
+
+
+
 
 
 <p class="text-sm font-light text-gray-500">

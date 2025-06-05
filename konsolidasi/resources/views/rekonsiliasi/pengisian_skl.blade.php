@@ -9,18 +9,25 @@
 
 
                 <!-- Level Harga -->
+                @if (auth()->user()->isProvinsi())
                 <div>
                     <label class="block mb-2 text-sm font-medium text-gray-900">Level Harga<span class="text-red-500 ml-1">*</span></label>
                     <select name="kd_level" x-model="selectedKdLevel" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                         <option value="01" :selected="selectedKdLevel == '01'">Harga Konsumen Kota</option>
-                        @if (auth()->user()->isProvinsi())
                         <option value="02" :selected="selectedKdLevel == '02'">Harga Konsumen Desa</option>
                         <option value="03" :selected="selectedKdLevel == '03'">Harga Perdagangan Besar</option>
                         <option value="04" :selected="selectedKdLevel == '04'">Harga Produsen Desa</option>
                         <option value="05" :selected="selectedKdLevel == '05'">Harga Produsen</option>
-                        @endif
                     </select>
                 </div>
+                @else
+                <div>
+                    <label class="block mb-2 text-sm font-medium text-gray-900">Level Harga</label>
+                    <select name="kd_level" x-model="selectedKdLevel" disabled class="cursor-not-allowed bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
+                        <option value="01" selected :selected="selectedKdLevel == '01'">Harga Konsumen Kota</option>
+                    </select>
+                </div>
+                @endif
 
                 <!-- Wilayah Selection -->
                 @if (auth()->user()->isProvinsi())
@@ -48,14 +55,14 @@
                 </div>
                 @else
                 <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-900">Level Wilayah<span class="text-red-500 ml-1">*</span></label>
-                    <select name="level_wilayah" x-model="wilayahLevel" disabled class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
+                    <label class="block mb-2 text-sm font-medium text-gray-900">Level Wilayah</label>
+                    <select name="level_wilayah" x-model="wilayahLevel" disabled class="cursor-not-allowed bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                         <option value="kabkot" selected>Kabupaten/Kota</option>
                     </select>
                 </div>
                 <div x-show="selectedKdLevel === '01'" class="mt-4">
                     <label class="block mb-2 text-sm font-medium text-gray-900">Kabupaten/Kota</label>
-                    <select x-model="selectedKabkot" disabled class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
+                    <select x-model="selectedKabkot" disabled class="cursor-not-allowed bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                         <option value="{{ auth()->user()->kd_wilayah }}" x-text="kabkots.find(k => k.kd_wilayah === '{{ auth()->user()->kd_wilayah }}')?.nama_wilayah || 'Pilih Kabupaten/Kota'" selected></option>
                     </select>
                 </div>
@@ -71,14 +78,14 @@
                     <select name="kd_komoditas" x-model="selectedKomoditas" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                         <option value="">Semua Komoditas</option>
                         <template x-for="komoditi in komoditas" :key="komoditi.kd_komoditas">
-                            <option :value="komoditi.kd_komoditas" x-text="komoditi.nama_komoditas" :selected="komoditi.kd_komoditas == selectedKomoditas"></option>
+                            <option :value="komoditi.kd_komoditas" x-text="komoditi.nama_komoditas"></option>
                         </template>
                     </select>
                 </div>
 
                 <!-- Status -->
                 <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-900">Status<span class="text-red-500 ml-1">*</span></label>
+                    <label class="block mb-2 text-sm font-medium text-gray-900">Status</label>
                     <select name="status_rekon" x-model="status_rekon" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                         <option value="00" :selected="status_rekon == '00'">Semua Status</option>
                         <option value="01" :selected="status_rekon == '01'">Sudah diisi</option>
