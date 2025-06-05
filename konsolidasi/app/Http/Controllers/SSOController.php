@@ -46,7 +46,7 @@ class SSOController extends Controller
             // Dump the user data to inspect it
             dd($ssoUser);
 
-            // Save user data to session or database (customize this)
+            // Save user data to session or database
             Session::put('sso_user', [
                 'name' => $ssoUser->getName(),
                 'email' => $ssoUser->getEmail(),
@@ -54,7 +54,7 @@ class SSOController extends Controller
                 'nip' => $ssoUser->getNip(),
             ]);
 
-            // Redirect to a protected page (e.g., dashboard)
+            // Redirect to a protected page
             return redirect('/dashboard');
         } catch (Exception $e) {
             // Dump the exception if something goes wrong

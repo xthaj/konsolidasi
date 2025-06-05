@@ -4,11 +4,16 @@ window.Alpine = Alpine;
 
 Alpine.data("webData", () => ({
     loading: true,
-    modalMessage: "",
-    message: "Silakan pilih filter untuk menampilkan data.",
+    loadingButton: false,
+
+    modalMessage: "", 
     data: { rekonsiliasi: null, title: null },
+
     bulan: "",
     tahun: "",
+    activeBulan: "",
+    activeTahun: "",
+    tahunOptions: [],
     bulanOptions: [
         ["Januari", 1],
         ["Februari", 2],
@@ -23,17 +28,19 @@ Alpine.data("webData", () => ({
         ["November", 11],
         ["Desember", 12],
     ],
+
     provinces: [],
     kabkots: [],
     komoditas: [],
     selectedProvince: "",
     selectedKabkot: "",
     selectedKomoditas: "",
-    selectedKdLevel: "01",
-    wilayahLevel: "kabkot",
+    selectedKdLevel: "",
+    wilayahLevel: "",
     kd_wilayah: "",
     status_rekon: "00",
-    isProvinsi: false,
+    isPusat: false,
+    message: "",
     errorMessage: "",
     modalData: {
         rekonsiliasi_id: "",
@@ -54,19 +61,11 @@ Alpine.data("webData", () => ({
         this.loading = true;
         try {
             const [
-                userResponse,
                 wilayahResponse,
                 komoditasResponse,
                 bulanTahunResponse,
                 alasanResponse,
             ] = await Promise.all([
-                fetch("/rekonsiliasi/user-provinsi").then((res) => {
-                    if (!res.ok)
-                        throw new Error(
-                            `User API error! status: ${res.status}`
-                        );
-                    return res.json();
-                }),
                 fetch("/segmented-wilayah").then((res) => {
                     if (!res.ok)
                         throw new Error(
@@ -97,19 +96,6 @@ Alpine.data("webData", () => ({
                 }),
             ]);
 
-            // Process user data
-            if (!userResponse.success) {
-                throw new Error("Failed to fetch user data");
-            }
-            const userData = userResponse.data;
-            this.isProvinsi = userData.is_provinsi;
-            this.kd_wilayah = userData.kd_wilayah;
-            this.wilayahLevel = userData.wilayah_level;
-            this.selectedProvince = userData.kd_wilayah;
-            this.selectedKabkot = userData.is_provinsi
-                ? ""
-                : userData.kd_wilayah;
-
             // Process wilayah data
             this.provinces = wilayahResponse.data.provinces || [];
             this.kabkots = wilayahResponse.data.kabkots || [];
@@ -117,21 +103,31 @@ Alpine.data("webData", () => ({
             // Process komoditas data
             this.komoditas = komoditasResponse.data || [];
 
-            // Process bulan and tahun data (restrict to active period)
+            // Process bulan and tahun data
             const aktifData = bulanTahunResponse.data.bt_aktif;
             this.bulan = aktifData.bulan;
             this.tahun = aktifData.tahun;
+            this.activeBulan = this.bulan;
+            this.activeTahun = this.tahun;
+            this.tahunOptions =
+                bulanTahunResponse.data.tahun ||
+                (aktifData ? [aktifData.tahun] : []);
 
-            // Process alasan data
             this.alasan = alasanResponse.data || [];
             this.filteredAlasan = [...this.alasan];
 
-            // Set default values
+            // Set default values for form fields
+            this.selectedKdLevel = "01";
+            this.wilayahLevel = "semua-provinsi";
+            this.kd_wilayah = "0";
             this.selectedKomoditas = "";
+            this.isPusat = true;
+            this.selectedProvince = "";
+            this.selectedKabkot = "";
+
             this.updateKdWilayah();
             await this.fetchData();
         } catch (error) {
-            console.error("Failed to load data:", error);
             this.message = "Gagal memuat data awal.";
             this.data.rekonsiliasi = [];
         } finally {
@@ -140,7 +136,10 @@ Alpine.data("webData", () => ({
     },
 
     get isActivePeriod() {
-        return true; // Always true since only active period is allowed
+        return (
+            +this.bulan === +this.activeBulan &&
+            +this.tahun === +this.activeTahun
+        );
     },
 
     get filteredKabkots() {
@@ -151,48 +150,67 @@ Alpine.data("webData", () => ({
     },
 
     updateWilayahOptions() {
-        if (!this.isProvinsi) return; // Kabkot users cannot change wilayahLevel
+        this.selectedProvince = "";
         this.selectedKabkot = "";
         this.updateKdWilayah();
     },
 
     updateKdWilayah() {
-        this.kd_wilayah = !this.isProvinsi
-            ? this.selectedKabkot
-            : this.wilayahLevel === "provinsi"
-            ? this.selectedProvince
-            : this.wilayahLevel === "kabkot" &&
-              this.selectedKabkot &&
-              this.selectedKdLevel === "01"
-            ? this.selectedKabkot
-            : "";
+        this.kd_wilayah =
+            // If user selected "all provinces" or "all kabkot", set code to "0"
+            this.wilayahLevel === "semua" ||
+            this.wilayahLevel === "semua-provinsi" ||
+            this.wilayahLevel === "semua-kabkot"
+                ? "0"
+                : // Else, if user selected a specific province, use that province code
+                this.wilayahLevel === "provinsi" && this.selectedProvince
+                ? this.selectedProvince
+                : // Else, if user selected a specific kabkot AND the selected level is "01", use that kabkot code
+                this.wilayahLevel === "kabkot" &&
+                  this.selectedKabkot &&
+                  this.selectedKdLevel === "01"
+                ? this.selectedKabkot
+                : // If none of the conditions match, leave it as an empty string
+                  "";
     },
 
     checkFormValidity() {
+        // if (
+        //     !this.bulan ||
+        //     !this.tahun ||
+        //     !this.selectedKdLevel ||
+        //     !this.status ||
+        //     !this.wilayahLevel
+        // ) {
+        //     this.errorMessage =
+        //         "Harap isi bulan, tahun, level harga, status, dan level wilayah.";
+        //     return false;
+        // }
         if (
-            !this.bulan ||
-            !this.tahun ||
-            !this.selectedKdLevel ||
-            !this.wilayahLevel ||
-            !this.kd_wilayah
+            this.wilayahLevel === "semua" ||
+            this.wilayahLevel === "semua-provinsi" ||
+            this.wilayahLevel === "semua-kabkot"
         ) {
-            this.errorMessage = "Harap lengkapi semua field yang diperlukan.";
-            return false;
+            if (!this.isPusat) {
+                this.errorMessage =
+                    "Hanya pengguna pusat yang dapat mengakses semua provinsi atau kabupaten/kota.";
+                return false;
+            }
+            return true;
         }
-        if (this.wilayahLevel === "kabkot" && this.selectedKdLevel !== "01") {
-            this.errorMessage =
-                "Data kabupaten/kota hanya tersedia untuk Harga Konsumen Kota.";
-            return false;
+        if (this.wilayahLevel === "provinsi" && this.selectedProvince) {
+            return true;
         }
         if (
             this.wilayahLevel === "kabkot" &&
-            !this.selectedKabkot &&
-            this.isProvinsi
+            this.selectedProvince &&
+            this.selectedKabkot &&
+            this.selectedKdLevel === "01"
         ) {
-            this.errorMessage = "Harap pilih kabupaten/kota.";
-            return false;
+            return true;
         }
-        return true;
+
+        return false;
     },
 
     async fetchData() {
@@ -209,22 +227,24 @@ Alpine.data("webData", () => ({
                 kd_komoditas: this.selectedKomoditas,
                 status_rekon: this.status_rekon,
             });
-            const response = await fetch(`/api/rekonsiliasi/progres?${params}`);
+            const response = await fetch(`/api/rekonsiliasi/pengisian?${params}`);
             const result = await response.json();
 
             if (!response.ok) {
-                this.data.rekonsiliasi = [];
-                this.modalMessage = result.message;
-                this.$dispatch("open-modal", "error-modal");
-                return;
+                throw new Error(
+                    result.message || `HTTP error! status: ${response.status}`
+                );
             } else {
-                this.data.rekonsiliasi = result.data.rekonsiliasi || [];
-                this.data.title = result.data.title || "Rekonsiliasi";
                 this.message = result.message;
+                this.data = {
+                    rekonsiliasi: result.data.rekonsiliasi || [],
+                    title: result.data.title || "Rekonsiliasi",
+                }
             }
         } catch (error) {
-            console.error("Fetch error:", error);
-            this.errorMessage = "Gagal memuat data.";
+            console.error("Failed to fetch data:", error);
+            this.message = error.message || "Gagal memuat data.";
+            this.data.rekonsiliasi = [];
         }
     },
 
@@ -250,6 +270,16 @@ Alpine.data("webData", () => ({
         this.detail = detail || "";
         this.linkTerkait = sumber || "";
         this.$dispatch("open-modal", "edit-rekonsiliasi");
+    },
+
+    openDeleteModal(rekonsiliasi_id, nama_komoditas, nama_wilayah, kd_level) {
+        this.modalData = {
+            rekonsiliasi_id,
+            nama_komoditas,
+            nama_wilayah,
+            kd_level,
+        };
+        this.$dispatch("open-modal", "delete-rekonsiliasi");
     },
 
     async submitEditRekon() {
@@ -309,19 +339,49 @@ Alpine.data("webData", () => ({
             );
 
             const result = await response.json();
+
             if (!response.ok) {
                 this.modalMessage =
                     result.message || "Gagal memperbarui data.";
                 this.$dispatch("open-modal", "error-modal");
             } else {
                 this.modalMessage = result.message;
-                this.$dispatch("close");
+                this.$dispatch("close-modal", "edit-rekonsiliasi");
                 this.fetchData();
                 this.$dispatch("open-modal", "success-modal");
             }
         } catch (error) {
             this.modalMessage =
-                "Terjadi kesalahan saat mengkonfirmasi rekonsiliasi.";
+                "Terjadi kesalahan saat memperbarui rekonsiliasi.";
+            this.$dispatch("open-modal", "error-modal");
+        }
+    },
+
+    async confirmDelete(id) {
+        try {
+            const response = await fetch(`/rekonsiliasi/${id}`, {
+                method: "DELETE",
+                headers: {
+                    "X-CSRF-TOKEN": document.querySelector(
+                        'meta[name="csrf-token"]'
+                    ).content,
+                    "Content-Type": "application/json",
+                },
+            });
+            const result = await response.json();
+            if (response.ok) {
+                this.modalMessage = result.message;
+                this.$dispatch("close");
+                this.$dispatch("open-modal", "success-modal");
+                this.fetchData();
+            } else {
+                this.modalMessage =
+                    result.message || "Gagal menghapus rekonsiliasi.";
+                this.$dispatch("open-modal", "error-modal");
+            }
+        } catch (error) {
+            this.modalMessage =
+                "Terjadi kesalahan saat menghapus rekonsiliasi.";
             this.$dispatch("open-modal", "error-modal");
         }
     },

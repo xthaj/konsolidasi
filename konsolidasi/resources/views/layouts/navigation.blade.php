@@ -16,7 +16,7 @@
             request()->routeIs('master.wilayah') => 'Master Wilayah',
             request()->routeIs('master.alasan') => 'Master Alasan',
             request()->routeIs('rekon.pemilihan') => 'Pemilihan Komoditas',
-            request()->routeIs('rekon.progres') => 'Pengisian Rekonsiliasi',
+            request()->routeIs('rekon.pengisian') => 'Pengisian Rekonsiliasi',
             request()->routeIs('rekon.pembahasan') => 'Pembahasan Rekonsiliasi',
             request()->routeIs('profile.edit', 'user.index') => 'User',
             request()->routeIs('pengaturan') => 'Pengaturan',
@@ -99,10 +99,10 @@
                         <ul class="py-2 text-sm text-gray-700">
                             @if (auth()->user()->isPusat())
                             <li><a href="{{ route('rekon.pemilihan') }}" class="block px-4 py-2 hover:bg-gray-100">Pemilihan</a></li>
-                            <li><a href="{{ route('rekon.progres') }}" class="block px-4 py-2 hover:bg-gray-100">Pengisian</a></li>
+                            <li><a href="{{ route('rekon.pengisian') }}" class="block px-4 py-2 hover:bg-gray-100">Pengisian</a></li>
                             <li><a href="{{ route('rekon.pembahasan') }}" class="block px-4 py-2 hover:bg-gray-100">Pembahasan</a></li>
                             @else
-                            <li><a href="{{ route('rekon.progres-skl') }}" class="block px-4 py-2 hover:bg-gray-100">Pengisian</a></li>
+                            <li><a href="{{ route('rekon.pengisian-skl') }}" class="block px-4 py-2 hover:bg-gray-100">Pengisian</a></li>
                             @endif
                         </ul>
                     </div>

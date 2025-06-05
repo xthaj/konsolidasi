@@ -1,6 +1,6 @@
 <x-two-panel-layout>
     @section('vite')
-    @vite(['resources/css/app.css', 'resources/js/rekonsiliasi/progres_skl.js'])
+    @vite(['resources/css/app.css', 'resources/js/rekonsiliasi/pengisian_skl.js'])
     @endsection
 
     <x-slot name="sidebar">
@@ -162,7 +162,7 @@
                         rows="6"
                         x-model="detail"
                         @input="detail.length > 500 ? detail = detail.slice(0, 500) : null"
-                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5  dark:placeholder-gray-400  dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5  "
                         placeholder="Kenaikan harga karena permintaan yang mulai meningkat menjelang akhir tahun. Sebelumnya ..."
                         required
                         maxlength="500"></textarea>
@@ -177,7 +177,7 @@
                         type="text"
                         id="link_terkait"
                         x-model="linkTerkait"
-                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5  dark:placeholder-gray-400  dark:focus:ring-blue-500 dark:focus:border-blue-500" />
+                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5  " />
                 </div>
                 <div class="mt-6 flex justify-end gap-3">
                     <x-secondary-button x-on:click="$dispatch('close-modal', 'edit-rekonsiliasi')">Batal</x-secondary-button>
@@ -269,7 +269,7 @@
                                 <td class="px-6 py-4 text-left" x-show="isActivePeriod">
                                     <button
                                         @click="openEditRekonModal(item.rekonsiliasi_id, item.nama_komoditas, item.kd_level, item.alasan || '', item.detail || '', item.sumber || '', item.nama_wilayah)"
-                                        class="font-medium text-indigo-600 dark:text-indigo-500 hover:underline">
+                                        class="font-medium text-indigo-600 hover:underline">
                                         Edit
                                     </button>
                                 </td>

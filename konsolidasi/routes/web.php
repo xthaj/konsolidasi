@@ -79,10 +79,10 @@ Route::get('/rekonsiliasi/pembahasan', [RekonsiliasiController::class, 'pembahas
 Route::get('/api/rekonsiliasi/pembahasan', [RekonsiliasiController::class, 'fetchPembahasanData']);
 Route::patch('/api/rekonsiliasi/{id}/pembahasan', [RekonsiliasiController::class, 'updatePembahasan']);
 
-Route::get('/rekonsiliasi/progres', [RekonsiliasiController::class, 'progres'])->name('rekon.progres');
-Route::get('/rekonsiliasi/progres-skl', [RekonsiliasiController::class, 'progres_skl'])->name('rekon.progres-skl');
+Route::get('/rekonsiliasi/pengisian', [RekonsiliasiController::class, 'pengisian'])->name('rekon.pengisian');
+Route::get('/rekonsiliasi/pengisian-skl', [RekonsiliasiController::class, 'pengisian_skl'])->name('rekon.pengisian-skl');
 
-Route::get('/api/rekonsiliasi/progres', [RekonsiliasiController::class, 'apiProgres']);
+Route::get('/api/rekonsiliasi/pengisian', [RekonsiliasiController::class, 'apipengisian']);
 
 Route::post('/rekonsiliasi/confirm', [RekonsiliasiController::class, 'confirmRekonsiliasi'])->name('rekonsiliasi.confirm');
 Route::put('/rekonsiliasi/update/{id}', [RekonsiliasiController::class, 'update'])->name('rekonsiliasi.update');

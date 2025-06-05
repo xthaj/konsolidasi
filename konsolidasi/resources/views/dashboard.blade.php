@@ -20,7 +20,7 @@
         <main>
             <div class="bg-white py-8 px-4 mx-auto max-w-screen-xl text-center lg:py-16 lg:px-12">
                 @if ($percentage >= 0)
-                <a href="{{ route('rekon.progres') }}" class="inline-flex justify-between items-center py-1 px-1 pr-4 mb-7 text-sm text-gray-700 bg-gray-100 rounded-full  hover:bg-gray-200 " role="alert">
+                <a href="{{ route('rekon.pengisian') }}" class="inline-flex justify-between items-center py-1 px-1 pr-4 mb-7 text-sm text-gray-700 bg-gray-100 rounded-full  hover:bg-gray-200 " role="alert">
                     <span class="text-xs bg-primary-600 rounded-full text-white px-4 py-1.5 mr-3">{{ $activeMonthYear }}</span>
                     <span class="text-sm font-medium">Cek Rekonsiliasi</span>
                     <span class="material-symbols-rounded">
@@ -58,7 +58,7 @@
                             <x-primary-button
                                 type="button"
                                 class="inline-flex justify-center items-center px-5 py-3 text-base"
-                                onclick="window.location.href='{{ route('rekon.progres') }}'">
+                                onclick="window.location.href='{{ route('rekon.pengisian') }}'">
                                 Lihat Rekonsiliasi
                             </x-primary-button>
                             @else
@@ -74,7 +74,7 @@
                         <div class="flex flex-col my-8 lg:mb-16 space-y-4 sm:flex-row sm:space-y-0 sm:space-x-4">
                             <x-primary-button
                                 type="button"
-                                onclick="window.location.href='{{ route('rekon.progres') }}'">
+                                onclick="window.location.href='{{ route('rekon.pengisian') }}'">
                                 Lihat Rekonsiliasi
                             </x-primary-button>
                         </div>

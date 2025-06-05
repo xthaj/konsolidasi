@@ -1,6 +1,6 @@
 <x-two-panel-layout>
     @section('vite')
-    @vite(['resources/css/app.css', 'resources/js/rekonsiliasi/progres.js'])
+    @vite(['resources/css/app.css', 'resources/js/rekonsiliasi/pengisian.js'])
     @endsection
 
     <x-slot name="sidebar">
@@ -100,8 +100,8 @@
 
                 <!-- Submit Button -->
                 <x-primary-button type="submit" x-bind:disabled="!checkFormValidity()" class="w-full">
-                    <span x-show="!loading">Filter</span>
-                    <span x-show="loading">Loading...</span>
+                    <span x-show="!loadingButton">Filter</span>
+                    <span x-show="loadingButton">Loading...</span>
                 </x-primary-button>
             </div>
         </form>
@@ -179,7 +179,7 @@
                         rows="6"
                         x-model="detail"
                         @input="detail.length > 500 ? detail = detail.slice(0, 500) : null"
-                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5  dark:placeholder-gray-400  dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5  "
                         placeholder="Kenaikan harga karena permintaan yang mulai meningkat menjelang akhir tahun. Sebelumnya ..."
                         required
                         maxlength="500"></textarea>
@@ -194,7 +194,7 @@
                         type="text"
                         id="link_terkait"
                         x-model="linkTerkait"
-                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5  dark:placeholder-gray-400  dark:focus:ring-blue-500 dark:focus:border-blue-500" />
+                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5  " />
                 </div>
                 <div class="mt-6 flex justify-end gap-3">
                     <x-secondary-button x-on:click="$dispatch('close-modal', 'edit-rekonsiliasi')">Batal</x-secondary-button>

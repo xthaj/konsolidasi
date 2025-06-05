@@ -217,15 +217,15 @@ class RekonsiliasiController extends Controller
         }
     }
 
-    // Progres
-    public function progres(Request $request): View
+    // pengisian
+    public function pengisian(Request $request): View
     {
-        return view('rekonsiliasi.progres');
+        return view('rekonsiliasi.pengisian');
     }
 
-    public function progres_skl(Request $request): View
+    public function pengisian_skl(Request $request): View
     {
-        return view('rekonsiliasi.progres_skl');
+        return view('rekonsiliasi.pengisian_skl');
     }
 
     /**
@@ -234,9 +234,9 @@ class RekonsiliasiController extends Controller
      * @param Request $request HTTP request with input parameters.
      * @return \Illuminate\Http\JsonResponse JSON response with status, message, and data.
      */
-    public function apiProgres(Request $request)
+    public function apipengisian(Request $request)
     {
-        Log::info('RekonsiliasiController@apiProgres called', ['request' => $request->all()]);
+        Log::info('RekonsiliasiController@apipengisian called', ['request' => $request->all()]);
         return $this->fetchRekonsiliasiData($request, true); // JsonResponse mode
     }
 

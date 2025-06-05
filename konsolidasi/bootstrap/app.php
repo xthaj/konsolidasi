@@ -50,7 +50,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Exclude /rekonsiliasi/update/* from CSRF protection
         $middleware->validateCsrfTokens(except: [
             '/rekonsiliasi/update/*',
-            '/rekonsiliasi/progres',
+            '/rekonsiliasi/pengisian',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
