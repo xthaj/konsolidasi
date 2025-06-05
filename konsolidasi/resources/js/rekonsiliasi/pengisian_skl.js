@@ -60,41 +60,11 @@ Alpine.data("webData", () => ({
                 bulanTahunResponse,
                 alasanResponse,
             ] = await Promise.all([
-                fetch("/rekonsiliasi/user-provinsi").then((res) => {
-                    if (!res.ok)
-                        throw new Error(
-                            `User API error! status: ${res.status}`
-                        );
-                    return res.json();
-                }),
-                fetch("/segmented-wilayah").then((res) => {
-                    if (!res.ok)
-                        throw new Error(
-                            `Wilayah API error! status: ${res.status}`
-                        );
-                    return res.json();
-                }),
-                fetch("/all-komoditas").then((res) => {
-                    if (!res.ok)
-                        throw new Error(
-                            `Komoditas API error! status: ${res.status}`
-                        );
-                    return res.json();
-                }),
-                fetch("/bulan-tahun").then((res) => {
-                    if (!res.ok)
-                        throw new Error(
-                            `BulanTahun API error! status: ${res.status}`
-                        );
-                    return res.json();
-                }),
-                fetch("/all-alasan").then((res) => {
-                    if (!res.ok)
-                        throw new Error(
-                            `Alasan API error! status: ${res.status}`
-                        );
-                    return res.json();
-                }),
+                this.fetchWrapper("/rekonsiliasi/user-provinsi", {}, "User data berhasil dimuat", false),
+                this.fetchWrapper("/segmented-wilayah", {}, "Data wilayah berhasil dimuat", false),
+                this.fetchWrapper("/all-komoditas", {}, "Data komoditas berhasil dimuat", false),
+                this.fetchWrapper("/bulan-tahun", {}, "Data bulan dan tahun berhasil dimuat", false),
+                this.fetchWrapper("/all-alasan", {}, "Data alasan berhasil dimuat", false),
             ]);
 
             // Process user data
@@ -139,8 +109,43 @@ Alpine.data("webData", () => ({
         }
     },
 
+    async fetchWrapper(url, options = {}, successMessage = "Operasi berhasil", showSuccessModal = false) {
+        try {
+            const response = await fetch(url, {
+                method: "GET",
+                ...options,
+                headers: {
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                    ...(options.method && options.method !== "GET" ? {
+                        "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]')?.content
+                    } : {}),
+                    ...options.headers,
+                },
+            });
+            const result = await response.json();
+
+            if (!response.ok) {
+                this.modalMessage = result.message || "Terjadi kesalahan saat memproses permintaan.";
+                this.$dispatch("open-modal", "error-modal");
+                throw new Error(this.modalMessage);
+            }
+
+            if (showSuccessModal) {
+                this.modalMessage = result.message || successMessage;
+                this.$dispatch("open-modal", "success-modal");
+            }
+            return result;
+        } catch (error) {
+            console.error(`Fetch error at ${url}:`, error);
+            this.modalMessage = result.message || "Terjadi kesalahan saat memproses permintaan.";
+            this.$dispatch("open-modal", "error-modal");
+            throw error;
+        }
+    },
+
     get isActivePeriod() {
-        return true; // Always true since only active period is allowed
+        return true; // Always true, only active period is allowed
     },
 
     get filteredKabkots() {
@@ -209,22 +214,21 @@ Alpine.data("webData", () => ({
                 kd_komoditas: this.selectedKomoditas,
                 status_rekon: this.status_rekon,
             });
-            const response = await fetch(`/api/rekonsiliasi/pengisian?${params}`);
-            const result = await response.json();
+            
+            const result = await this.fetchWrapper(
+                `/api/rekonsiliasi/pengisian?${params}`,
+                {},
+                "Data rekonsiliasi berhasil dimuat",
+                false 
+            );
 
-            if (!response.ok) {
-                this.data.rekonsiliasi = [];
-                this.modalMessage = result.message;
-                this.$dispatch("open-modal", "error-modal");
-                return;
-            } else {
-                this.data.rekonsiliasi = result.data.rekonsiliasi || [];
-                this.data.title = result.data.title || "Rekonsiliasi";
-                this.message = result.message;
-            }
+            this.data.rekonsiliasi = result.data.rekonsiliasi || [];
+            this.data.title = result.data.title || "Rekonsiliasi";
+            this.message = result.message;
         } catch (error) {
             console.error("Fetch error:", error);
-            this.errorMessage = "Gagal memuat data.";
+            this.errorMessage = this.modalMessage || "Gagal memuat data."; // EDIT HERE: Use modalMessage
+            this.data.rekonsiliasi = [];
         }
     },
 
@@ -253,11 +257,13 @@ Alpine.data("webData", () => ({
     },
 
     async submitEditRekon() {
-        if (
-            !Array.isArray(this.selectedAlasan) ||
-            this.selectedAlasan.length === 0
-        ) {
-            this.modalMessage = "Isi minimal 1 alasan.";
+        if (this.selectedAlasan.length === 0) {
+            this.modalMessage = "Pilih minimal satu alasan.";
+            this.$dispatch("open-modal", "error-modal");
+            return;
+        }
+        if (this.selectedAlasan.join(", ").length > 500) {
+            this.modalMessage = "Terlalu banyak alasan yang dipilih.";
             this.$dispatch("open-modal", "error-modal");
             return;
         }
@@ -294,35 +300,20 @@ Alpine.data("webData", () => ({
         };
 
         try {
-            const response = await fetch(
+            const result = await this.fetchWrapper(
                 `/rekonsiliasi/update/${this.modalData.rekonsiliasi_id}`,
                 {
                     method: "PUT",
-                    headers: {
-                        "X-CSRF-TOKEN": document.querySelector(
-                            'meta[name="csrf-token"]'
-                        ).content,
-                        "Content-Type": "application/json",
-                    },
                     body: JSON.stringify(data),
-                }
+                },
+                "Data rekonsiliasi berhasil diperbarui",
+                true
             );
 
-            const result = await response.json();
-            if (!response.ok) {
-                this.modalMessage =
-                    result.message || "Gagal memperbarui data.";
-                this.$dispatch("open-modal", "error-modal");
-            } else {
-                this.modalMessage = result.message;
-                this.$dispatch("close");
-                this.fetchData();
-                this.$dispatch("open-modal", "success-modal");
-            }
+            this.$dispatch("close-modal", "edit-rekonsiliasi");
+            this.fetchData();
         } catch (error) {
-            this.modalMessage =
-                "Terjadi kesalahan saat mengkonfirmasi rekonsiliasi.";
-            this.$dispatch("open-modal", "error-modal");
+            console.error("Submit error:", error);
         }
     },
 

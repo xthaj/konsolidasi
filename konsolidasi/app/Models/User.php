@@ -163,7 +163,7 @@ class User extends Authenticatable
     public function getWilayahNamaDisplayAttribute(): string
     {
         if (!$this->wilayah) {
-            return '-'; // or return null if you prefer
+            return '-';
         }
 
         return Str::lower($this->wilayah->nama_wilayah) === 'nasional'

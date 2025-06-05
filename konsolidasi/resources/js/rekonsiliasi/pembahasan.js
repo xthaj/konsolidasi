@@ -47,33 +47,49 @@ Alpine.data("webData", () => ({
         "05": "HP",
     },
 
+    async fetchWrapper(url, options = {}, successMessage = "Operasi berhasil", showSuccessModal = false) {
+        try {
+            const response = await fetch(url, {
+                method: "GET",
+                ...options,
+                headers: {
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                    ...(options.method && options.method !== "GET" ? {
+                        "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]')?.content
+                    } : {}),
+                    ...options.headers,
+                },
+            });
+            const result = await response.json();
+
+            if (!response.ok) {
+                this.modalMessage = result.message || "Terjadi kesalahan saat memproses permintaan.";
+                this.$dispatch("open-modal", "error-modal");
+                throw new Error(this.modalMessage);
+            }
+
+            if (showSuccessModal) {
+                this.modalMessage = result.message || successMessage;
+                this.$dispatch("open-modal", "success-modal");
+            }
+            return result;
+        } catch (error) {
+            console.error(`Fetch error at ${url}:`, error);
+            this.modalMessage = result.message || "Terjadi kesalahan saat memproses permintaan.";
+            this.$dispatch("open-modal", "error-modal");
+            throw error;
+        }
+    },
+
     async init() {
         this.loading = true;
         try {
-            const [wilayahResponse, komoditasResponse, bulanTahunResponse] =
-                await Promise.all([
-                    fetch("/segmented-wilayah").then((res) => {
-                        if (!res.ok)
-                            throw new Error(
-                                `Wilayah API error! status: ${res.status}`
-                            );
-                        return res.json();
-                    }),
-                    fetch("/all-komoditas").then((res) => {
-                        if (!res.ok)
-                            throw new Error(
-                                `Komoditas API error! status: ${res.status}`
-                            );
-                        return res.json();
-                    }),
-                    fetch("/bulan-tahun").then((res) => {
-                        if (!res.ok)
-                            throw new Error(
-                                `BulanTahun API error! status: ${res.status}`
-                            );
-                        return res.json();
-                    }),
-                ]);
+            const [wilayahResponse, komoditasResponse, bulanTahunResponse] = await Promise.all([
+                this.fetchWrapper("/segmented-wilayah", {}, "Data wilayah berhasil dimuat", false),
+                this.fetchWrapper("/all-komoditas", {}, "Data komoditas berhasil dimuat", false),
+                this.fetchWrapper("/bulan-tahun", {}, "Data bulan dan tahun berhasil dimuat", false),
+            ]);
 
             this.provinces = wilayahResponse.data.provinces || [];
             this.kabkots = wilayahResponse.data.kabkots || [];
@@ -196,62 +212,42 @@ Alpine.data("webData", () => ({
                 kd_komoditas: this.selectedKomoditas,
                 status_rekon: this.status_rekon,
             });
-            const response = await fetch(
-                `/api/rekonsiliasi/pembahasan?${params}`
-            );
-            const result = await response.json();
 
-            if (!response.ok) {
-                this.errorMessage = result.message || "Gagal memuat data.";
-                this.data = {
-                    rekonsiliasi: [],
-                    title: result.data?.title || "Pembahasan Rekonsiliasi",
-                };
-                this.message = result.message || "Gagal memuat data.";
-                return;
-            } else {
-                this.selectedKdLevel = this.pendingKdLevel;
-                this.data.rekonsiliasi = result.data.rekonsiliasi || [];
-                this.data.title = result.data.title || "Pembahasan Rekonsiliasi";
-                this.message = result.message || "Data berhasil dimuat.";
-            }
+            const result = await this.fetchWrapper(
+                `/api/rekonsiliasi/pembahasan?${params}`,
+                {},
+                "Data berhasil dimuat",
+                false
+            );
+
+            this.selectedKdLevel = this.pendingKdLevel;
+            this.data.rekonsiliasi = result.data.rekonsiliasi || [];
+            this.data.title = result.data.title || "Pembahasan Rekonsiliasi";
+            this.message = result.message || "Data berhasil dimuat.";
+            
             const title =
                 this.kdLevelTitles[this.selectedKdLevel] ||
                 "Pembahasan Rekonsiliasi";
             this.setPageTitle(title);
         } catch (error) {
             console.error("Fetch error:", error);
-            this.errorMessage = "Gagal memuat data.";
-            this.message = "Gagal memuat data.";
             this.data.rekonsiliasi = [];
-            this.data.title = "Pembahasan Rekonsiliasi";
         }
     },
 
     async togglePembahasan(rekonsiliasiId, checked) {
         try {
-            const response = await fetch(
+            const result = await this.fetchWrapper(
                 `/api/rekonsiliasi/${rekonsiliasiId}/pembahasan`,
                 {
                     method: "PATCH",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Accept: "application/json",
-                        "X-CSRF-TOKEN": document.querySelector(
-                            'meta[name="csrf-token"]'
-                        )?.content,
-                    },
                     body: JSON.stringify({
                         pembahasan: checked ? 1 : 0,
                     }),
-                }
+                },
+                "Data inflasi berhasil diperbarui",
+                false
             );
-
-            if (!response.ok) {
-                throw new Error(
-                    `Failed to update pembahasan: ${response.statusText}`
-                );
-            }
 
             this.data.rekonsiliasi = this.data.rekonsiliasi.map((item) => {
                 if (item.rekonsiliasi_id === rekonsiliasiId) {
@@ -262,10 +258,7 @@ Alpine.data("webData", () => ({
 
             return true;
         } catch (error) {
-            console.error("Error updating pembahasan:", error);
-            this.modalMessage =
-                "Gagal memperbarui status pembahasan. Silakan coba lagi.";
-            this.$dispatch("open-modal", "error-modal");
+            console.error("Failed to update data:", error);
             return false;
         }
     },

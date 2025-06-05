@@ -43,6 +43,43 @@ Alpine.data("webData", () => ({
     modalMessage: "",
     hasUnconfirmedChanges: false,
 
+    async fetchWrapper(url, options = {}, successMessage = "Operasi berhasil", showSuccessModal = false) {
+        try {
+            const response = await fetch(url, {
+                method: "GET",
+                ...options,
+                headers: {
+                    Accept: "application/json",
+                    ...(options.method && options.method !== "GET" && !options.body?.constructor?.name === "FormData" ? {
+                        "Content-Type": "application/json",
+                        "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]')?.content
+                    } : options.method && options.method !== "GET" ? {
+                        "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]')?.content
+                    } : {}),
+                    ...options.headers,
+                },
+            });
+            const result = await response.json();
+
+            if (!response.ok) {
+                this.modalMessage = result.message || "Terjadi kesalahan saat memproses permintaan.";
+                this.$dispatch("open-modal", "error-modal");
+                throw new Error(this.modalMessage);
+            }
+
+            if (showSuccessModal) {
+                this.modalMessage = result.message || successMessage;
+                this.$dispatch("open-modal", "success-modal");
+            }
+            return result;
+        } catch (error) {
+            console.error(`Fetch error at ${url}:`, error);
+            this.modalMessage = result?.message || "Terjadi kesalahan saat memproses permintaan.";
+            this.$dispatch("open-modal", "error-modal");
+            throw error;
+        }
+    },
+
     // Computed Properties
     get isActivePeriod() {
         return (
@@ -57,15 +94,9 @@ Alpine.data("webData", () => ({
         try {
             const [wilayahResponse, komoditasResponse, bulanTahunResponse] =
                 await Promise.all([
-                    fetch("/segmented-wilayah").then((res) =>
-                        this.handleApiResponse(res, "Wilayah")
-                    ),
-                    fetch("/all-komoditas").then((res) =>
-                        this.handleApiResponse(res, "Komoditas")
-                    ),
-                    fetch("/bulan-tahun").then((res) =>
-                        this.handleApiResponse(res, "BulanTahun")
-                    ),
+                    this.fetchWrapper("/segmented-wilayah", {}, "Data wilayah berhasil dimuat", false),
+                    this.fetchWrapper("/all-komoditas", {}, "Data komoditas berhasil dimuat", false),
+                    this.fetchWrapper("/bulan-tahun", {}, "Data bulan dan tahun berhasil dimuat", false),
                 ]);
 
             // Process Data
@@ -320,35 +351,17 @@ Alpine.data("webData", () => ({
         }
 
         try {
-            const csrfToken = document
-                .querySelector('meta[name="csrf-token"]')
-                .getAttribute("content");
-
-            const response = await fetch("/api/inflasi-id", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Accept: "application/json",
-                    "X-CSRF-TOKEN": csrfToken,
+            const result = await this.fetchWrapper(
+                "/api/inflasi-id",
+                {
+                    method: "POST",
+                    body: JSON.stringify(combinations),
                 },
-                body: JSON.stringify(combinations),
-            });
+                "Data berhasil divalidasi",
+                true // Show success modal if no missing items
+            );
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                this.modalMessage = errorData.message || "Gagal memvalidasi data. Silakan coba lagi.";
-                this.modalContent = {
-                    success: false,
-                    items: [],
-                    missingItems: combinations.map(
-                        (c) => `${this.getWilayahName(c.kd_wilayah)} - ${c.nama_komoditas} tidak ditemukan`
-                    ),
-                };
-                this.$dispatch("open-modal", "error-modal");
-                return;
-            }
-
-            const { message, data } = await response.json();
+            const { message, data } = result;
 
             const itemsWithInflasiId = [];
             const missingItems = [];
@@ -390,7 +403,6 @@ Alpine.data("webData", () => ({
             this.modalMessage = message; // Display API message
             this.$dispatch("open-modal", "confirm-add");
         } catch (error) {
-            this.modalMessage = error.message || "Gagal memvalidasi data. Silakan coba lagi.";
             this.modalContent = {
                 success: false,
                 items: [],
@@ -398,7 +410,6 @@ Alpine.data("webData", () => ({
                     (c) => `${this.getWilayahName(c.kd_wilayah)} - ${c.nama_komoditas} tidak ditemukan`
                 ),
             };
-            this.$dispatch("open-modal", "error-modal");
         }
     },
 
@@ -430,31 +441,19 @@ Alpine.data("webData", () => ({
         });
 
         try {
-            const csrfToken = document
-                .querySelector('meta[name="csrf-token"]')
-                .getAttribute("content");
-            const response = await fetch("/rekonsiliasi/confirm", {
-                method: "POST",
-                headers: {
-                    "X-CSRF-TOKEN": csrfToken,
-                    Accept: "application/json",
+            const result = await this.fetchWrapper(
+                "/rekonsiliasi/confirm",
+                {
+                    method: "POST",
+                    body: formData,
                 },
-                body: formData,
-            });
+                "Rekonsiliasi berhasil dikonfirmasi",
+                true // Show success modal
+            );
 
-            const result = await response.json();
-
-            if (response.ok) { // 200 status
-                this.modalMessage = result.message;
-                this.$dispatch("open-modal", "success-modal");
-                this.tableData = [];
-            } else {
-                this.modalMessage = result.message || "Gagal mengkonfirmasi rekonsiliasi.";
-                this.$dispatch("open-modal", "error-modal");
-            }
+            this.tableData = [];
         } catch (error) {
-            this.modalMessage = "Terjadi kesalahan saat mengkonfirmasi rekonsiliasi.";
-            this.$dispatch("open-modal", "error-modal");
+            console.error("Confirm error:", error);
         }
     },
 

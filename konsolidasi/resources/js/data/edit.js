@@ -2,6 +2,7 @@ import "flowbite";
 import Alpine from "alpinejs";
 window.Alpine = Alpine;
 
+
 Alpine.data("webData", () => ({
     loading: true,
 
@@ -25,7 +26,7 @@ Alpine.data("webData", () => ({
     selectedKabkot: "",
 
     selectedKomoditas: "",
-    selectedKdLevel: "01", // Default to Harga Konsumen Kota
+    selectedKdLevel: "01",
     isPusat: true,
     kd_wilayah: "0",
     sort: "kd_komoditas",
@@ -48,39 +49,52 @@ Alpine.data("webData", () => ({
         ["Desember", 12],
     ],
 
+    async fetchWrapper(url, options = {}, successMessage = "Operasi berhasil", showSuccessModal = false) {
+        try {
+            const response = await fetch(url, {
+                method: "GET",
+                ...options,
+                headers: {
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                    ...(options.method && options.method !== "GET" ? {
+                        "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]')?.content
+                    } : {}),
+                    ...options.headers,
+                },
+            });
+            const result = await response.json();
+
+            if (!response.ok) {
+                this.modalMessage = result.message || "Terjadi kesalahan saat memproses permintaan.";
+                this.$dispatch("open-modal", "error-modal");
+                throw new Error(this.modalMessage);
+            }
+
+            if (showSuccessModal) {
+                this.modalMessage = result.message || successMessage;
+                this.$dispatch("open-modal", "success-modal");
+            }
+            return result;
+        } catch (error) {
+            console.error(`Fetch error at ${url}:`, error);
+            this.modalMessage = result.message || "Terjadi kesalahan saat memproses permintaan.";
+            this.$dispatch("open-modal", "error-modal");
+            throw error;
+        }
+    },
+
     async init() {
         this.loading = true;
         try {
-            const [wilayahResponse, komoditasResponse, bulanTahunResponse] =
-                await Promise.all([
-                    fetch("/segmented-wilayah").then((res) => {
-                        if (!res.ok)
-                            throw new Error(
-                                `Wilayah API error! status: ${res.status}`
-                            );
-                        return res.json();
-                    }),
-                    fetch("/all-komoditas").then((res) => {
-                        if (!res.ok)
-                            throw new Error(
-                                `Komoditas API error! status: ${res.status}`
-                            );
-                        return res.json();
-                    }),
-                    fetch("/bulan-tahun").then((res) => {
-                        if (!res.ok)
-                            throw new Error(
-                                `BulanTahun API error! status: ${res.status}`
-                            );
-                        return res.json();
-                    }),
-                ]);
+            const [wilayahResponse, komoditasResponse, bulanTahunResponse] = await Promise.all([
+                this.fetchWrapper("/segmented-wilayah", {}, "Data wilayah berhasil dimuat", false),
+                this.fetchWrapper("/all-komoditas", {}, "Data komoditas berhasil dimuat", false),
+                this.fetchWrapper("/bulan-tahun", {}, "Data bulan dan tahun berhasil dimuat", false),
+            ]);
 
-            // Process wilayah data
             this.provinces = wilayahResponse.data.provinces || [];
             this.kabkots = wilayahResponse.data.kabkots || [];
-
-            // Process komoditas data
             this.komoditas = komoditasResponse.data || [];
 
             // Process bulan and tahun data
@@ -198,13 +212,7 @@ Alpine.data("webData", () => ({
             return;
         }
 
-        this.loading = true;
-
         try {
-            const csrfToken = document
-                .querySelector('meta[name="csrf-token"]')
-                .getAttribute("content");
-
             // Prepare the payload, conditionally including andil
             const payload = {
                 nilai_inflasi: parseFloat(this.edit_nilai_inflasi),
@@ -219,42 +227,24 @@ Alpine.data("webData", () => ({
                 payload.andil = parseFloat(this.edit_andil);
             }
 
-            const response = await fetch(
+            const result = await this.fetchWrapper(
                 `/api/data/inflasi/${this.inflasi_id}`,
                 {
                     method: "PUT",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Accept: "application/json",
-                        "X-CSRF-TOKEN": csrfToken,
-                    },
                     body: JSON.stringify(payload),
-                }
+                },
+                "Data inflasi berhasil diperbarui",
+                true
             );
 
-            const result = await response.json();
-
-            if (!response.ok) {
-                this.modalMessage = result.message || "Gagal memperbarui data";
-                this.$dispatch("open-modal", "error-modal");
-                return;
-            }
-
-            this.modalMessage = "Data inflasi berhasil diperbarui";
-            this.$dispatch("open-modal", "success-modal");
-            this.$dispatch("close-modal", "edit-modal");
+            this.$dispatch("close-modal", "edit-modal"); 
             this.inflasi_id = null;
             this.edit_nilai_inflasi = "";
             this.edit_andil = "";
-
-            // Refresh data
             await this.fetchData();
+            
         } catch (error) {
             console.error("Failed to update data:", error);
-            this.modalMessage = "Gagal memperbarui data";
-            this.$dispatch("open-modal", "error-modal");
-        } finally {
-            this.loading = false;
         }
     },
 
@@ -306,46 +296,42 @@ Alpine.data("webData", () => ({
         return "";
     },
 
-async fetchData() {
-    if (!this.checkFormValidity()) { 
-        return;
-    }
-    try {
-        const params = new URLSearchParams({
-            bulan: this.bulan,
-            tahun: this.tahun,
-            kd_level: this.selectedKdLevel,
-            kd_wilayah: this.kd_wilayah,
-            kd_komoditas: this.selectedKomoditas,
-            sort: this.sort,
-            direction: this.direction,
-        });
-        const response = await fetch(`/api/data/edit?${params.toString()}`);
-        const result = await response.json(); 
+    async fetchData() {
+        if (!this.checkFormValidity()) { 
+            return;
+        }
+        try {
+            const params = new URLSearchParams({
+                bulan: this.bulan,
+                tahun: this.tahun,
+                kd_level: this.selectedKdLevel,
+                kd_wilayah: this.kd_wilayah,
+                kd_komoditas: this.selectedKomoditas,
+                sort: this.sort,
+                direction: this.direction,
+            });
+            
+            const result = await this.fetchWrapper(
+                `/api/data/edit?${params.toString()}`,
+                {},
+                "Data berhasil dimuat",
+                false
+            );
 
-        if (!response.ok) {
-            this.message = result.message || "Terjadi kegagalan.";
-            this.data = {
-                inflasi: [], 
-                title: result.data.title,
-                kd_level: this.selectedKdLevel, 
-                kd_wilayah: this.kd_wilayah,  
-            }; 
-        } else {
             this.message = result.message;
             this.data = {
-                inflasi: result.data.inflasi || [], 
+                inflasi: result.data.inflasi || [],
                 title: result.data.title,
-                kd_level: this.selectedKdLevel, 
-                kd_wilayah: this.kd_wilayah,  
-            }; 
+                kd_level: this.selectedKdLevel,
+                kd_wilayah: this.kd_wilayah,
+            };
+
+        } catch (error) {
+            console.error("Failed to fetch data:", error);
+            this.message = this.modalMessage || "Gagal memuat data."; // EDIT HERE: Use modalMessage
+            this.data = { inflasi: [], title: null, kd_level: null, kd_wilayah: null };
         }
-    } catch (error) {
-        console.error("Failed to fetch data:", error);
-        this.message = error.message || "Gagal memuat data.";
-        this.data = { inflasi: [], title: null, kd_level: null, kd_wilayah: null };
-    }
-},
+    },
 
     openDeleteModal(id, komoditas) {
         this.modalData = { id, komoditas };
@@ -354,51 +340,25 @@ async fetchData() {
     },
 
     async confirmDelete() {
-        // Exit if deleteRekonsiliasi is not true
         if (!this.deleteRekonsiliasi) {
             return;
         }
 
         try {
-            // Retrieve CSRF token
-            const csrfToken = document
-                .querySelector('meta[name="csrf-token"]')
-                .getAttribute("content");
-
-            // Send DELETE request
-            const response = await fetch(`/data/delete/${this.modalData.id}`, {
-                method: "DELETE",
-                headers: {
-                    "X-CSRF-TOKEN": csrfToken,
-                    "Content-Type": "application/json",
+            const result = await this.fetchWrapper(
+                `/data/delete/${this.modalData.id}`,
+                {
+                    method: "DELETE",
+                    body: JSON.stringify({ delete_rekonsiliasi: true }),
                 },
-                body: JSON.stringify({ delete_rekonsiliasi: true }),
-            });
+                "Data berhasil dihapus!",
+                true
+            );
+            await this.fetchData();
 
-            // Close the confirmation modal
             this.$dispatch("close-modal", "confirm-delete");
-
-            // Parse response body
-            const result = await response.json();
-
-            if (response.ok) {
-                // On success, store the message and refresh data
-                this.modalMessage = result.message || "Data berhasil dihapus!";
-                await this.fetchData();
-                this.$dispatch("open-modal", "success-modal");
-            } else {
-                // On failure, store the error message
-                this.modalMessage =
-                    result.message ||
-                    "Gagal menghapus data. Silakan coba lagi.";
-                console.error("Delete failed:", response.status, result);
-                this.$dispatch("open-modal", "error-modal");
-            }
         } catch (error) {
-            // Handle network or parsing errors
-            this.modalMessage = "Terjadi kesalahan saat menghapus data.";
             console.error("Delete error:", error);
-            this.$dispatch("open-modal", "error-modal");
         }
     },
 }));

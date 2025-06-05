@@ -98,6 +98,83 @@
         </form>
     </x-slot>
 
+    <!-- Rekon Table -->
+    <div x-show="!data.rekonsiliasi?.length" class="bg-white px-6 py-4 rounded-lg shadow-sm text-center text-gray-500">
+        <div class="mb-1">
+            <h2 class="text-lg font-semibold mb-2" x-text="data.title || 'Inflasi'"></h2>
+        </div>
+        <span x-text="message"></span>
+    </div>
+
+    <div x-show="data.rekonsiliasi?.length">
+        <div class="mb-1">
+            <h2 class="text-lg font-semibold mb-2" x-text="data.title || 'Rekonsiliasi'"></h2>
+        </div>
+        <div class="bg-white md:overflow-hidden shadow-sm sm:rounded-lg">
+            <div class="relative overflow-x-auto shadow-md sm:rounded-lg md:max-h-[90vh] overflow-y-auto">
+                <table class="w-full text-sm text-left rtl:text-right text-gray-500">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50   sticky top-0 z-10">
+                        <tr>
+                            <th scope="col" class="px-6 py-3">No</th>
+                            <th scope="col" class="px-6 py-3">Wilayah</th>
+                            <th scope="col" class="px-6 py-3">Komoditas</th>
+                            <th scope="col" class="px-6 py-3">Inflasi (persen)</th>
+                            <th scope="col" class="px-6 py-3 min-w-[175px]">Alasan</th>
+                            <th scope="col" class="px-6 py-3">Detail</th>
+                            <th scope="col" class="px-6 py-3">Sumber</th>
+                            <th scope="col" class="px-6 py-3">Terakhir Diedit Oleh</th>
+                            <th scope="col" class="px-6 py-3" x-show="isActivePeriod">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template x-for="(item, index) in data.rekonsiliasi" :key="item.rekonsiliasi_id">
+                            <tr class="bg-white border-b  border-gray-200 hover:bg-gray-50">
+                                <td class="px-6 py-4" x-text="index + 1"></td>
+                                <td class="px-6 py-4" x-text="item.nama_wilayah ? item.nama_wilayah.toUpperCase() : 'Tidak Dikenal'"></td>
+                                <td class="px-6 py-4" x-text="item.nama_komoditas || 'N/A'"></td>
+                                <td class="px-6 py-4 text-right" x-text="item.nilai_inflasi || '-'"></td>
+                                <td class="px-6 py-4">
+                                    <ul x-show="item.alasan" class="list-disc list-inside">
+                                        <template x-for="alasan in (item.alasan ? item.alasan.split(', ') : [])">
+                                            <li x-text="alasan"></li>
+                                        </template>
+                                    </ul>
+                                    <span x-show="!item.alasan">-</span>
+                                </td>
+                                <td class="px-6 py-4" x-data="{ showFull: false }">
+                                    <span x-text="showFull || (item.detail || '-').length <= 50 ? (item.detail || '-') : (item.detail || '-').slice(0, 50) + '...'"></span>
+                                    <template x-if="item.detail && item.detail !== '-' && item.detail.length > 50">
+                                        <button @click="showFull = !showFull" class="text-blue-500 underline ml-2">
+                                            <span x-text="showFull ? 'Sembunyikan' : 'Selengkapnya'"></span>
+                                        </button>
+                                    </template>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <a x-show="item.sumber" :href="item.sumber" class="text-blue-600 hover:underline" target="_blank" x-text="item.sumber ? (() => { try { return new URL(item.sumber).host } catch { return item.sumber } })() : ''"></a>
+                                    <span x-show="!item.sumber">-</span>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <span x-show="item.editor_name" x-text="item.editor_name"></span>
+                                    <span x-show="!item.editor_name">-</span>
+                                </td>
+                                <td class="px-6 py-4 text-left" x-show="isActivePeriod">
+                                    <button
+                                        @click="openEditRekonModal(item.rekonsiliasi_id, item.nama_komoditas, item.kd_level, item.alasan || '', item.detail || '', item.sumber || '', item.nama_wilayah)"
+                                        class="font-medium text-indigo-600 hover:underline">
+                                        Edit
+                                    </button>
+                                </td>
+                            </tr>
+                        </template>
+                        <tr x-show="!data.rekonsiliasi?.length && status === 'success'" class="bg-white ">
+                            <td colspan="9" class="px-6 py-4 text-center">Tidak ada data untuk ditampilkan.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <!-- Edit Modal -->
     <x-modal name="edit-rekonsiliasi" focusable title="Edit Rekonsiliasi" x-cloak>
         <div class="px-6 py-4">
@@ -207,81 +284,6 @@
         </div>
     </x-modal>
 
-    <!-- Rekon Table -->
-    <div x-show="!data.rekonsiliasi?.length" class="bg-white px-6 py-4 rounded-lg shadow-sm text-center text-gray-500">
-        <div class="mb-1">
-            <h2 class="text-lg font-semibold mb-2" x-text="data.title || 'Inflasi'"></h2>
-        </div>
-        <span x-text="message"></span>
-    </div>
 
-    <div x-show="data.rekonsiliasi?.length">
-        <div class="mb-1">
-            <h2 class="text-lg font-semibold mb-2" x-text="data.title || 'Rekonsiliasi'"></h2>
-        </div>
-        <div class="bg-white md:overflow-hidden shadow-sm sm:rounded-lg">
-            <div class="relative overflow-x-auto shadow-md sm:rounded-lg md:max-h-[90vh] overflow-y-auto">
-                <table class="w-full text-sm text-left rtl:text-right text-gray-500">
-                    <thead class="text-xs text-gray-700 uppercase bg-gray-50   sticky top-0 z-10">
-                        <tr>
-                            <th scope="col" class="px-6 py-3">No</th>
-                            <th scope="col" class="px-6 py-3">Wilayah</th>
-                            <th scope="col" class="px-6 py-3">Komoditas</th>
-                            <th scope="col" class="px-6 py-3">Inflasi (persen)</th>
-                            <th scope="col" class="px-6 py-3 min-w-[175px]">Alasan</th>
-                            <th scope="col" class="px-6 py-3">Detail</th>
-                            <th scope="col" class="px-6 py-3">Sumber</th>
-                            <th scope="col" class="px-6 py-3">Terakhir Diedit Oleh</th>
-                            <th scope="col" class="px-6 py-3" x-show="isActivePeriod">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <template x-for="(item, index) in data.rekonsiliasi" :key="item.rekonsiliasi_id">
-                            <tr class="bg-white border-b  border-gray-200 hover:bg-gray-50">
-                                <td class="px-6 py-4" x-text="index + 1"></td>
-                                <td class="px-6 py-4" x-text="item.nama_wilayah ? item.nama_wilayah.toUpperCase() : 'Tidak Dikenal'"></td>
-                                <td class="px-6 py-4" x-text="item.nama_komoditas || 'N/A'"></td>
-                                <td class="px-6 py-4 text-right" x-text="item.nilai_inflasi || '-'"></td>
-                                <td class="px-6 py-4">
-                                    <ul x-show="item.alasan" class="list-disc list-inside">
-                                        <template x-for="alasan in (item.alasan ? item.alasan.split(', ') : [])">
-                                            <li x-text="alasan"></li>
-                                        </template>
-                                    </ul>
-                                    <span x-show="!item.alasan">-</span>
-                                </td>
-                                <td class="px-6 py-4" x-data="{ showFull: false }">
-                                    <span x-text="showFull || (item.detail || '-').length <= 50 ? (item.detail || '-') : (item.detail || '-').slice(0, 50) + '...'"></span>
-                                    <template x-if="item.detail && item.detail !== '-' && item.detail.length > 50">
-                                        <button @click="showFull = !showFull" class="text-blue-500 underline ml-2">
-                                            <span x-text="showFull ? 'Sembunyikan' : 'Selengkapnya'"></span>
-                                        </button>
-                                    </template>
-                                </td>
-                                <td class="px-6 py-4">
-                                    <a x-show="item.sumber" :href="item.sumber" class="text-blue-600 hover:underline" target="_blank" x-text="item.sumber ? (() => { try { return new URL(item.sumber).host } catch { return item.sumber } })() : ''"></a>
-                                    <span x-show="!item.sumber">-</span>
-                                </td>
-                                <td class="px-6 py-4">
-                                    <span x-show="item.editor_name" x-text="item.editor_name"></span>
-                                    <span x-show="!item.editor_name">-</span>
-                                </td>
-                                <td class="px-6 py-4 text-left" x-show="isActivePeriod">
-                                    <button
-                                        @click="openEditRekonModal(item.rekonsiliasi_id, item.nama_komoditas, item.kd_level, item.alasan || '', item.detail || '', item.sumber || '', item.nama_wilayah)"
-                                        class="font-medium text-indigo-600 hover:underline">
-                                        Edit
-                                    </button>
-                                </td>
-                            </tr>
-                        </template>
-                        <tr x-show="!data.rekonsiliasi?.length && status === 'success'" class="bg-white ">
-                            <td colspan="9" class="px-6 py-4 text-center">Tidak ada data untuk ditampilkan.</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
 
 </x-two-panel-layout>

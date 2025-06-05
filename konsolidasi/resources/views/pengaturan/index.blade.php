@@ -4,27 +4,6 @@
     @vite(['resources/css/app.css', 'resources/js/pengaturan.js'])
     @endsection
 
-    <!-- Success Modal -->
-    <x-modal name="success-modal" title="Berhasil" maxWidth="md">
-        <div class="text-gray-900 ">
-            <p x-text="modalMessage"></p>
-            <div class="mt-4 flex justify-end">
-                <x-primary-button type="button" x-on:click="$dispatch('close')">Tutup</x-primary-button>
-            </div>
-        </div>
-    </x-modal>
-
-    <!-- Error Modal -->
-    <x-modal name="error-modal" title="Kesalahan" maxWidth="md">
-        <div class="text-gray-900 ">
-            <p x-text="modalMessage"></p>
-            <div class="mt-4 flex justify-end">
-                <x-primary-button type="button" x-on:click="$dispatch('close')">Tutup</x-primary-button>
-            </div>
-        </div>
-    </x-modal>
-
-
     <!-- Bulan Tahun Aktif Section -->
     <div class="mb-4">
         <h1 class="text-lg font-semibold">Bulan dan Tahun Aktif</h1>
@@ -75,4 +54,24 @@
             </div>
         </div>
     </div>
+
+    <!-- Success Modal -->
+    <x-modal name="success-modal" title="Berhasil" maxWidth="md">
+        <div class="text-gray-900 ">
+            <p x-text="modalMessage"></p>
+            <div class="mt-4 flex justify-end">
+                <x-primary-button type="button" x-on:click="$dispatch('close')">Tutup</x-primary-button>
+            </div>
+        </div>
+    </x-modal>
+
+    <!-- Error Modal -->
+    <x-modal name="error-modal" title="Kesalahan" maxWidth="md">
+        <div class="text-gray-900 ">
+            <p x-text="modalMessage"></p>
+            <div class="mt-4 flex justify-end">
+                <x-primary-button type="button" x-on:click="$dispatch('close')">Tutup</x-primary-button>
+            </div>
+        </div>
+    </x-modal>
 </x-one-panel-layout>

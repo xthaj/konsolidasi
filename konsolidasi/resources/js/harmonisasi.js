@@ -68,6 +68,41 @@ Alpine.data("webData", () => ({
         ],
     },
 
+    async fetchWrapper(url, options = {}, successMessage = "Operasi berhasil", showSuccessModal = false) {
+        try {
+            const response = await fetch(url, {
+                method: "GET",
+                ...options,
+                headers: {
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                    ...(options.method && options.method !== "GET" ? {
+                        "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]')?.content
+                    } : {}),
+                    ...options.headers,
+                },
+            });
+            const result = await response.json();
+
+            if (!response.ok) {
+                this.modalMessage = result.message || "Terjadi kesalahan saat memproses permintaan.";
+                this.$dispatch("open-modal", "error-modal");
+                throw new Error(this.modalMessage);
+            }
+
+            if (showSuccessModal) {
+                this.modalMessage = result.message || successMessage;
+                this.$dispatch("open-modal", "success-modal");
+            }
+            return result;
+        } catch (error) {
+            console.error(`Fetch error at ${url}:`, error);
+            this.modalMessage = result.message || "Terjadi kesalahan saat memproses permintaan.";
+            this.$dispatch("open-modal", "error-modal");
+            throw error;
+        }
+    },
+
     get priceLevels() {
         return [
             "Harga Konsumen Kota",
@@ -106,49 +141,23 @@ Alpine.data("webData", () => ({
         this.loading = true;
         try {
             const [
-                wilayahResponse,
-                komoditasResponse,
-                bulanTahunResponse,
-                provGeo,
-                kabkotGeo,
+            wilayahResponse,
+            komoditasResponse,
+            bulanTahunResponse,
+            provGeo,
+            kabkotGeo,
             ] = await Promise.all([
-                fetch("/segmented-wilayah").then((res) => {
-                    if (!res.ok)
-                        throw new Error(`Wilayah API error: ${res.status}`);
-                    return res.json();
-                }),
-                fetch("/all-komoditas").then((res) => {
-                    if (!res.ok)
-                        throw new Error(`Komoditas API error: ${res.status}`);
-                    return res.json();
-                }),
-                fetch("/bulan-tahun").then((res) => {
-                    if (!res.ok)
-                        throw new Error(`BulanTahun API error: ${res.status}`);
-                    return res.json();
-                }),
-                fetch("/geojson/provinsi.json")
-                    .then((res) => {
-                        if (!res.ok)
-                            throw new Error(
-                                `Provinsi GeoJSON error: ${res.status}`
-                            );
-                        return res.json();
-                    })
+                this.fetchWrapper("/segmented-wilayah", {}, "Data wilayah berhasil dimuat", false),
+                this.fetchWrapper("/all-komoditas", {}, "Data komoditas berhasil dimuat", false),
+                this.fetchWrapper("/bulan-tahun", {}, "Data bulan dan tahun berhasil dimuat", false),
+                this.fetchWrapper("/geojson/provinsi.json", {}, "Provinsi GeoJSON berhasil dimuat", false)
                     .catch((err) => {
-                        // console.error("Failed to load Provinsi GeoJSON:", err);
+                        console.error("Failed to load Provinsi GeoJSON:", err);
                         return null;
                     }),
-                fetch("/geojson/kabkot.json")
-                    .then((res) => {
-                        if (!res.ok)
-                            throw new Error(
-                                `Kabkot GeoJSON error: ${res.status}`
-                            );
-                        return res.json();
-                    })
+                this.fetchWrapper("/geojson/kabkot.json", {}, "Kabkot GeoJSON berhasil dimuat", false)
                     .catch((err) => {
-                        // console.error("Failed to load Kabkot GeoJSON:", err);
+                        console.error("Failed to load Kabkot GeoJSON:", err);
                         return null;
                     }),
             ]);
@@ -423,13 +432,16 @@ Alpine.data("webData", () => ({
                 kd_komoditas: this.selectedKomoditas,
             });
 
-            const response = await fetch(`/api/visualisasi?${params}`);
-            const result = await response.json();
+            const result = await this.fetchWrapper(
+                `/api/visualisasi?${params}`,
+                {},
+                "Data visualisasi berhasil dimuat",
+                false // No success modal
+            );
 
-            if (!response.ok) throw new Error(`API error: ${response.status}`);
-            if (result.data?.errors?.length > 0 || result.errors?.length > 0) { 
-                this.errors = result.errors || result.data?.errors || []; 
-            } 
+            if (result.data?.errors?.length > 0 || result.errors?.length > 0) {
+                this.errors = result.errors || result.data?.errors || [];
+            }
             this.wilayahLevel = this.pendingWilayahLevel;
             this.data = result.data;
 
@@ -439,8 +451,7 @@ Alpine.data("webData", () => ({
             this.resizeCharts();
         } catch (error) {
             console.error("Fetch data failed:", error);
-            // this.errorMessage = "Gagal mengambil data dari server";
-            // this.$dispatch("open-modal", "error-modal");
+            this.errorMessage = this.modalMessage || "Gagal mengambil data dari server";
         } finally {
             charts.forEach((chart) => chart.hideLoading());
         }
