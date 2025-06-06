@@ -35,6 +35,8 @@ class User extends Authenticatable
         'nama_lengkap',
         'level',
         'kd_wilayah',
+        // bool
+        'user_sso'
     ];
 
     /**
@@ -55,16 +57,6 @@ class User extends Authenticatable
     {
         return $this->belongsTo(Wilayah::class, 'kd_wilayah', 'kd_wilayah');
     }
-
-    /**
-     * Get the name of the unique identifier for authentication.
-     *
-     * @return string
-     */
-    // public function getAuthIdentifierName()
-    // {
-    //     return 'username';
-    // }
 
     /**
      * Check if the user is at the pusat level (Admin or Operator).

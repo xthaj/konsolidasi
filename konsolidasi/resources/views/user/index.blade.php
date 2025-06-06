@@ -3,66 +3,157 @@
     @vite(['resources/css/app.css', 'resources/js/administrasi/user.js'])
     @endsection
 
-    <!-- Add User Modal -->
     <x-modal name="add-user" focusable title="Tambah Pengguna">
         <div class="px-6 py-4">
             <form @submit.prevent="addUser">
-                <!-- Nama Lengkap -->
+                <!-- SSO vs Non-SSO Radio Buttons -->
+                <!-- // EDIT: Unchanged from previous version, included for context -->
                 <div class="mb-4">
-                    <label class="block mb-2 text-sm font-medium text-gray-900">Nama Lengkap</label>
-                    <input
-                        type="text"
-                        x-model="newUser.nama_lengkap"
-                        @input="validateNewUserNamaLengkap()"
-                        x-bind:class="{ 'border-red-600': newUser.errors.nama_lengkap }"
-                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5"
-                        placeholder="Muhammad Hatta"
-                        maxlength="255"
-                        required>
-                    <template x-if="newUser.errors.nama_lengkap">
-                        <p class="mt-2 text-sm text-red-600" x-text="newUser.errors.nama_lengkap"></p>
-                    </template>
-                </div>
-                <!-- Username -->
-                <div class="mb-4">
-                    <label class="block mb-2 text-sm font-medium text-gray-900">Username</label>
-                    <input
-                        type="text"
-                        x-model.debounce.500ms="newUser.username"
-                        @input="newUser.username = $event.target.value.toLowerCase(); validateNewUserUsername()"
-                        x-bind:class="{ 'border-red-600': newUser.errors.username }"
-                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5"
-                        placeholder="hatta45"
-                        required>
-                    <template x-if="newUser.errors.username">
-                        <p class="mt-2 text-sm text-red-600" x-text="newUser.errors.username"></p>
-                    </template>
-                </div>
-                <!-- Password -->
-                <div class="mb-4">
-                    <label class="block mb-2 text-sm font-medium text-gray-900">Password</label>
-                    <input
-                        x-bind:type="newUser.showPassword ? 'text' : 'password'"
-                        x-model="newUser.password"
-                        @input="validateNewUserPassword()"
-                        x-bind:class="{ 'border-red-600': newUser.errors.password }"
-                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5"
-                        placeholder="••••••••"
-                        maxlength="255"
-                        required>
-                    <div class="mt-2 flex items-center">
-                        <input
-                            type="checkbox"
-                            x-model="newUser.showPassword"
-                            id="show-password"
-                            class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded">
-                        <label for="show-password" class="ms-2 text-sm font-medium text-gray-900">Tampilkan Password</label>
+                    <label class="block mb-2 text-sm font-medium text-gray-900">Tipe Pengguna</label>
+                    <div class="flex items-center gap-4">
+                        <div class="flex items-center">
+                            <input
+                                type="radio"
+                                x-model="newUser.isSSO"
+                                value="false"
+                                id="non-sso"
+                                class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded"
+                                @change="newUser.isSSO = false; newUser.username = ''; newUser.nama_lengkap = ''; newUser.password = ''; newUser.searchSSOUsername = ''; newUser.ssoSearchResults = []; newUser.errors = { username: false, nama_lengkap: false, password: false, kd_wilayah: false, level: false }"
+                                checked>
+                            <label for="non-sso" class="ms-2 text-sm font-medium text-gray-900">Non-SSO</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input
+                                type="radio"
+                                x-model="newUser.isSSO"
+                                value="true"
+                                id="sso"
+                                class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded"
+                                @change="newUser.isSSO = true; newUser.username = ''; newUser.nama_lengkap = ''; newUser.password = ''; newUser.searchSSOUsername = ''; newUser.ssoSearchResults = []; newUser.errors = { username: false, nama_lengkap: false, password: false, kd_wilayah: false, level: false }">
+                            <label for="sso" class="ms-2 text-sm font-medium text-gray-900">SSO</label>
+                        </div>
                     </div>
-                    <template x-if="newUser.errors.password">
-                        <p class="mt-2 text-sm text-red-600" x-text="newUser.errors.password"></p>
-                    </template>
                 </div>
-                <!-- Admin Checkbox -->
+
+                <!-- Non-SSO Form Fields -->
+                <div x-show="!newUser.isSSO">
+                    <!-- // EDIT: Changed required to x-bind:required="!newUser.isSSO" -->
+                    <div class="mb-4">
+                        <label class="block mb-2 text-sm font-medium text-gray-900">Nama Lengkap</label>
+                        <input
+                            type="text"
+                            x-model="newUser.nama_lengkap"
+                            @input="validateNewUserNamaLengkap()"
+                            x-bind:class="{ 'border-red-600': newUser.errors.nama_lengkap }"
+                            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5"
+                            placeholder="Muhammad Hatta"
+                            maxlength="255"
+                            x-bind:required="!newUser.isSSO">
+                        <template x-if="newUser.errors.nama_lengkap">
+                            <p class="mt-2 text-sm text-red-600" x-text="newUser.errors.nama_lengkap"></p>
+                        </template>
+                    </div>
+                    <!-- // EDIT: Changed required to x-bind:required="!newUser.isSSO" -->
+                    <div class="mb-4">
+                        <label class="block mb-2 text-sm font-medium text-gray-900">Username</label>
+                        <input
+                            type="text"
+                            x-model.debounce.500ms="newUser.username"
+                            @input="newUser.username = $event.target.value.toLowerCase(); validateNewUserUsername();"
+                            x-bind:class="{ 'border-red-600': newUser.errors.username }"
+                            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5"
+                            placeholder="hatta45"
+                            x-bind:required="!newUser.isSSO">
+                        <template x-if="newUser.errors.username">
+                            <p class="mt-2 text-sm text-red-600" x-text="newUser.errors.username"></p>
+                        </template>
+                    </div>
+                    <!-- // EDIT: Changed required to x-bind:required="!newUser.isSSO" -->
+                    <div class="mb-4">
+                        <label class="mb-2 text-sm font-medium text-gray-900">Password</label>
+                        <input
+                            x-bind:type="newUser.showPassword ? 'text' : 'password'"
+                            x-model="newUser.password"
+                            @input="validateNewUserPassword()"
+                            x-bind:class="{ 'border-red-600': newUser.errors.password }"
+                            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5"
+                            placeholder="••••••••"
+                            maxlength="255"
+                            x-bind:required="!newUser.isSSO">
+                        <div class="mt-2 flex items-center">
+                            <input
+                                type="checkbox"
+                                x-model="newUser.showPassword"
+                                id="show-password"
+                                class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded">
+                            <label for="show-password" class="ms-2 text-sm font-medium text-gray-900">Tampilkan Password</label>
+                        </div>
+                        <template x-if="newUser.errors.password">
+                            <p class="mt-2 text-sm text-red-600" x-text="newUser.errors.password"></p>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- SSO Form Fields -->
+                <div x-show="newUser.isSSO">
+                    <!-- // EDIT: Changed required to x-bind:required="newUser.isSSO" -->
+                    <div class="mb-4">
+                        <label for="sso-search" class="block mb-2 text-sm font-medium text-gray-900">Cari Username (SSO)</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
+                                <svg class="w-4 h-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z" />
+                                </svg>
+                            </div>
+                            <input
+                                type="search"
+                                id="sso-search"
+                                x-model="newUser.searchSSOUsername"
+                                class="block w-full p-4 ps-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500"
+                                placeholder="Cari username SSO..."
+                                x-bind:required="newUser.isSSO">
+                            <button
+                                type="button"
+                                @click="searchSSOUser()"
+                                class="text-white absolute end-2.5 bottom-2.5 bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2">Search</button>
+                        </div>
+                        <template x-if="newUser.ssoSearchResults && newUser.ssoSearchResults.length">
+                            <div class="mt-2 max-h-40 overflow-y-auto border border-gray-300 rounded-lg bg-white">
+                                <template x-for="result in newUser.ssoSearchResults" :key="result.username">
+                                    <div
+                                        class="p-2 hover:bg-gray-100 cursor-pointer"
+                                        @click="selectSSOUser(result)">
+                                        <p x-text="result.username"></p>
+                                        <p class="text-sm text-gray-600" x-text="result.nama_lengkap"></p>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+                        <template x-if="newUser.errors.username">
+                            <p class="mt-2 text-sm text-red-600" x-text="newUser.errors.username"></p>
+                        </template>
+                    </div>
+                    <!-- // EDIT: Unchanged readonly fields -->
+                    <div class="mb-4">
+                        <label class="block mb-2 text-sm font-medium text-gray-900">Username Terpilih</label>
+                        <input
+                            type="text"
+                            x-model="newUser.username"
+                            class="bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5"
+                            readonly>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block mb-2 text-sm font-medium text-gray-900">Nama Lengkap</label>
+                        <input
+                            type="text"
+                            x-model="newUser.nama_lengkap"
+                            class="bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5"
+                            readonly>
+                    </div>
+                </div>
+
+                <!-- Common Fields for Both SSO and Non-SSO -->
+                <!-- // EDIT: Unchanged from previous version -->
                 <div class="mb-4">
                     <label class="block mb-2 text-sm font-medium text-gray-900">Role</label>
                     <div class="flex items-center">
@@ -75,7 +166,6 @@
                         <label for="add-is-admin" class="ms-2 text-sm font-medium text-gray-900">Admin</label>
                     </div>
                 </div>
-                <!-- Wilayah Selection -->
                 <div class="mb-4">
                     <label class="block mb-2 text-sm font-medium text-gray-900">Level Wilayah</label>
                     <select
@@ -326,10 +416,8 @@
                         @change="updateWilayahOptions"
                         required
                         class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
+                        <option value="">Pilih Level Wilayah</option>
                         <option value="pusat">Pusat</option>
-                        <!-- <option value="semua">Semua Provinsi dan Kab/Kota</option> -->
-                        <!-- <option value="semua-provinsi">Semua Provinsi</option> -->
-                        <!-- <option value="semua-kabkot">Semua Kabupaten/Kota</option> -->
                         <option value="provinsi">Provinsi</option>
                         <option value="kabkot">Kabupaten/Kota</option>
                     </select>
@@ -374,13 +462,14 @@
     </div>
 
     <!-- Display Users -->
-    <div x-show="usersData.length === 0" class="bg-white px-6 py-4 rounded-lg shadow-sm text-center text-gray-500">
+    <div x-show="!usersData?.length" class="bg-white px-6 py-4 rounded-lg shadow-sm text-center text-gray-500">
         <div class="mb-1">
             <h2 class="text-lg font-semibold mb-2">Isi filter untuk menampilkan data</h2>
         </div>
         <span x-text="message"></span>
     </div>
-    <div x-show="usersData.length > 0">
+
+    <div x-show="usersData?.length">
         <div class="mb-4 text-sm text-gray-700">
             <span x-text="`Pengguna ditemukan: ${totalData}`"></span>
         </div>
@@ -421,6 +510,7 @@
             </table>
         </div>
     </div>
+
     <!-- Pagination Controls -->
     <div class="mt-4 flex justify-between items-center" x-show="usersData.length > 0">
         <button

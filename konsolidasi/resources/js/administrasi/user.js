@@ -9,7 +9,7 @@ Alpine.data("webData", () => ({
     selectedKabkot: "",
     search: "",
     kd_wilayah: "",
-    wilayahLevel: "semua",
+    wilayahLevel: "",
     loading: true,
     usersData: [],
     message: "",
@@ -30,6 +30,9 @@ Alpine.data("webData", () => ({
         selected_kabkot: "",
         isAdminCheckbox: false,
         level: 1,
+        isSSO: false, // Toggle for SSO vs Non-SSO
+        searchSSOUsername: "", // Search input for SSO username
+        ssoSearchResults: [], // Store SSO search results
         errors: {
             username: false,
             nama_lengkap: false,
@@ -67,70 +70,81 @@ Alpine.data("webData", () => ({
     confirmDetails: null,
     confirmAction: null,
 
+    async fetchWrapper(url, options = {}, successMessage = "Operasi berhasil", showSuccessModal = false) {
+        try {
+            const response = await fetch(url, {
+                method: "GET",
+                ...options,
+                headers: {
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                    ...(options.method && options.method !== "GET" ? {
+                        "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]')?.content
+                    } : {}),
+                    ...options.headers,
+                },
+            });
+            const result = await response.json();
+
+            if (!response.ok) {
+                this.modalMessage = result.message || "Terjadi kesalahan saat memproses permintaan.";
+                this.$dispatch("open-modal", "error-modal");
+                throw new Error(this.modalMessage);
+            }
+
+            if (showSuccessModal) {
+                this.modalMessage = result.message || successMessage;
+                this.$dispatch("open-modal", "success-modal");
+            }
+            return result;
+        } catch (error) {
+            console.error(`Fetch error at ${url}:`, error);
+            this.modalMessage = error.message || "Terjadi kesalahan saat memproses permintaan.";
+            this.$dispatch("open-modal", "error-modal");
+            throw error;
+        }
+    },
+
     async init() {
         this.loading = true;
         try {
-            const wilayahResponse = await fetch("/segmented-wilayah");
-            if (!wilayahResponse.ok) {
-                throw new Error(
-                    `HTTP error! status: ${wilayahResponse.status}`
-                );
-            }
-            const wilayahData = await wilayahResponse.json();
+            const wilayahData = await this.fetchWrapper("/segmented-wilayah");
             this.provinces = wilayahData.data.provinces || [];
             this.kabkots = wilayahData.data.kabkots || [];
         } catch (error) {
-            console.error("Failed to load data:", error);
             this.message = "Failed to load wilayah data";
         } finally {
             this.loading = false;
         }
     },
 
-    // Map numeric level to string
     getLevelString(level) {
-        switch (parseInt(level)) {
-            case 0:
-                return "Admin Pusat";
-            case 1:
-                return "Operator Pusat";
-            case 2:
-                return "Admin Provinsi";
-            case 3:
-                return "Operator Provinsi";
-            case 4:
-                return "Admin Kabupaten/Kota";
-            case 5:
-                return "Operator Kabupaten/Kota";
-            default:
-                return "Unknown";
-        }
+        const levels = {
+            0: "Admin Pusat",
+            1: "Operator Pusat",
+            2: "Admin Provinsi",
+            3: "Operator Provinsi",
+            4: "Admin Kabupaten/Kota",
+            5: "Operator Kabupaten/Kota",
+        };
+        return levels[parseInt(level)] || "Unknown";
     },
 
     updateEditWilayah() {
+        this.editUser.errors.kd_wilayah = false;
         if (this.editUser.wilayah_level === "pusat") {
             this.editUser.kd_wilayah = "0";
             this.editUser.selected_province = "";
             this.editUser.selected_kabkot = "";
-            this.editUser.errors.kd_wilayah = false;
         } else if (this.editUser.wilayah_level === "provinsi") {
-            if (this.editUser.selected_province) {
-                this.editUser.kd_wilayah = this.editUser.selected_province;
-                this.editUser.errors.kd_wilayah = false;
-            } else {
-                this.editUser.kd_wilayah = "";
+            this.editUser.kd_wilayah = this.editUser.selected_province || "";
+            this.editUser.selected_kabkot = "";
+            if (!this.editUser.kd_wilayah) {
                 this.editUser.errors.kd_wilayah = "Satuan kerja belum dipilih.";
             }
-            this.editUser.selected_kabkot = "";
         } else if (this.editUser.wilayah_level === "kabkot") {
-            if (
-                this.editUser.selected_province &&
-                this.editUser.selected_kabkot
-            ) {
-                this.editUser.kd_wilayah = this.editUser.selected_kabkot;
-                this.editUser.errors.kd_wilayah = false;
-            } else {
-                this.editUser.kd_wilayah = "";
+            this.editUser.kd_wilayah = this.editUser.selected_kabkot || "";
+            if (!this.editUser.selected_province || !this.editUser.selected_kabkot) {
                 this.editUser.errors.kd_wilayah = "Satuan kerja belum dipilih.";
             }
         }
@@ -145,10 +159,9 @@ Alpine.data("webData", () => ({
     async checkEditUserUsername() {
         if (!this.editUser.username) return;
         try {
-            let response = await fetch(
+            const data = await this.fetchWrapper(
                 `/api/check-username?username=${this.editUser.username}&except=${this.editUser.user_id}`
             );
-            let data = await response.json();
             this.editUser.usernameExists = data.exists;
         } catch (error) {
             console.error("Failed to check username:", error);
@@ -156,84 +169,79 @@ Alpine.data("webData", () => ({
     },
 
     checkFormValidity() {
-        return true; // Simplified; add specific validation if needed
+        return true; // Add specific validation if needed
     },
 
     async getWilayahUsers(isFilterSubmit = false) {
         if (!this.checkFormValidity()) return;
+
+        // // Check if wilayahLevel is empty or kd_wilayah is empty (but not "0")
+        if (!this.wilayahLevel || (this.wilayahLevel !== "pusat" && !this.kd_wilayah)) {
+            this.message = "Pilih level wilayah dan wilayah yang valid.";
+            this.usersData = [];
+            return;
+        }
+
         this.message = "";
         if (isFilterSubmit) {
-            this.currentPage = 1; // Reset to page 1 only for filter submissions
+            this.currentPage = 1;
         }
         try {
             const params = new URLSearchParams();
             if (this.search) params.append("search", this.search);
-            if (this.wilayahLevel)
-                params.append("level_wilayah", this.wilayahLevel);
+            if (this.wilayahLevel) params.append("level_wilayah", this.wilayahLevel);
             if (this.kd_wilayah && this.wilayahLevel !== "pusat") {
                 params.append("kd_wilayah", this.kd_wilayah);
             }
             params.append("page", this.currentPage);
 
-            const response = await fetch(`/user?${params.toString()}`);
-            const result = await response.json();
-
-            if (response.status === 200) {
-                this.message = result.message;
-                this.usersData = result.data.users;
-                this.currentPage = result.data.current_page;
-                this.lastPage = result.data.last_page;
-                this.totalData = result.data.total;
-            } else {
-                this.message = result.message || "Failed to fetch users";
-                this.usersData = [];
-                this.$dispatch("open-modal", "fail-update-bulan-tahun");
-            }
+            const result = await this.fetchWrapper(`/user?${params.toString()}`);
+            this.message = result.message;
+            this.usersData = result.data.users;
+            this.currentPage = result.data.current_page;
+            this.lastPage = result.data.last_page;
+            this.totalData = result.data.total;
         } catch (error) {
-            console.error("Fetch error:", error);
             this.message = "Terjadi kesalahan saat mengambil data pengguna.";
             this.usersData = [];
-            this.$dispatch("open-modal", "fail-update-bulan-tahun");
         }
     },
 
     get filteredKabkots() {
-        if (!this.selectedProvince) return [];
-        return this.kabkots.filter(
-            (k) => k.parent_kd === this.selectedProvince
-        );
+        return this.selectedProvince
+            ? this.kabkots.filter((k) => k.parent_kd === this.selectedProvince)
+            : [];
     },
 
     get newUserFilteredKabkots() {
-        if (!this.newUser.selected_province) return [];
-        return this.kabkots.filter(
-            (k) => k.parent_kd === this.newUser.selected_province
-        );
+        return this.newUser.selected_province
+            ? this.kabkots.filter((k) => k.parent_kd === this.newUser.selected_province)
+            : [];
     },
 
     get editFilteredKabkots() {
-        if (!this.editUser.selected_province) return [];
-        return this.kabkots.filter(
-            (k) => k.parent_kd === this.editUser.selected_province
-        );
+        return this.editUser.selected_province
+            ? this.kabkots.filter((k) => k.parent_kd === this.editUser.selected_province)
+            : [];
     },
 
     get newUserHasErrors() {
-        return Object.values(this.newUser.errors).some(
-            (error) => error !== false
-        );
+        return Object.values(this.newUser.errors).some((error) => error);
     },
 
     updateKdWilayah() {
-        if (this.wilayahLevel === "pusat") {
-            this.kd_wilayah = "0";
-        } else {
-            this.kd_wilayah =
-                this.selectedKabkot || this.selectedProvince || "";
-        }
+        this.kd_wilayah = this.wilayahLevel === "pusat"
+            ? "0"
+            : this.selectedKabkot || this.selectedProvince || "";
     },
 
     validateNewUserNamaLengkap() {
+        if (this.newUser.isSSO) {
+            this.newUser.errors.nama_lengkap = !this.newUser.nama_lengkap
+                ? "Nama lengkap wajib diisi (pilih dari hasil pencarian SSO)."
+                : false;
+            return;
+        }
         if (!this.newUser.nama_lengkap) {
             this.newUser.errors.nama_lengkap = "Nama lengkap wajib diisi.";
         } else if (this.newUser.nama_lengkap.length > 255) {
@@ -264,11 +272,14 @@ Alpine.data("webData", () => ({
     },
 
     validateNewUserPassword() {
+        if (this.newUser.isSSO) {
+            this.newUser.errors.password = false;
+            return;
+        }
         if (!this.newUser.password) {
             this.newUser.errors.password = "Password wajib diisi.";
         } else if (this.newUser.password.length < 6) {
-            this.newUser.errors.password =
-                "Password minimal sepanjang 6 karakter.";
+            this.newUser.errors.password = "Password minimal sepanjang 6 karakter.";
         } else if (this.newUser.password.length > 255) {
             this.newUser.errors.password = "Password terlalu panjang.";
         } else {
@@ -278,55 +289,42 @@ Alpine.data("webData", () => ({
 
     validateNewUserLevel() {
         const validLevels = [0, 1, 2, 3, 4, 5];
-        if (!validLevels.includes(this.newUser.level)) {
-            this.newUser.errors.level = "Level pengguna tidak valid.";
-        } else {
-            this.newUser.errors.level = false;
-        }
+        this.newUser.errors.level = !validLevels.includes(this.newUser.level)
+            ? "Level pengguna tidak valid."
+            : false;
     },
 
     updateNewUserWilayah() {
+        this.newUser.errors.kd_wilayah = false;
         if (this.newUser.wilayah_level === "pusat") {
             this.newUser.kd_wilayah = "0";
             this.newUser.selected_province = "";
             this.newUser.selected_kabkot = "";
-            this.newUser.errors.kd_wilayah = false;
         } else if (this.newUser.wilayah_level === "provinsi") {
-            if (this.newUser.selected_province) {
-                this.newUser.kd_wilayah = this.newUser.selected_province;
-                this.newUser.errors.kd_wilayah =
-                    this.newUser.kd_wilayah.length > 6
-                        ? "Kode wilayah terlalu panjang."
-                        : false;
-            } else {
-                this.newUser.kd_wilayah = "";
+            this.newUser.kd_wilayah = this.newUser.selected_province || "";
+            if (!this.newUser.kd_wilayah) {
                 this.newUser.errors.kd_wilayah = "Satuan kerja belum dipilih.";
+            } else if (this.newUser.kd_wilayah.length > 6) {
+                this.newUser.errors.kd_wilayah = "Kode wilayah terlalu panjang.";
             }
+            this.newUser.selected_kabkot = "";
         } else if (this.newUser.wilayah_level === "kabkot") {
-            if (
-                this.newUser.selected_province &&
-                this.newUser.selected_kabkot
-            ) {
-                this.newUser.kd_wilayah = this.newUser.selected_kabkot;
-                this.newUser.errors.kd_wilayah =
-                    this.newUser.kd_wilayah.length > 6
-                        ? "Kode wilayah terlalu panjang."
-                        : false;
-            } else {
-                this.newUser.kd_wilayah = "";
+            this.newUser.kd_wilayah = this.newUser.selected_kabkot || "";
+            if (!this.newUser.selected_province || !this.newUser.selected_kabkot) {
                 this.newUser.errors.kd_wilayah = "Satuan kerja belum dipilih.";
+            } else if (this.newUser.kd_wilayah.length > 6) {
+                this.newUser.errors.kd_wilayah = "Kode wilayah terlalu panjang.";
             }
         }
     },
 
     updateNewUserLevel() {
-        if (this.newUser.wilayah_level === "pusat") {
-            this.newUser.level = this.newUser.isAdminCheckbox ? 0 : 1;
-        } else if (this.newUser.wilayah_level === "provinsi") {
-            this.newUser.level = this.newUser.isAdminCheckbox ? 2 : 3;
-        } else if (this.newUser.wilayah_level === "kabkot") {
-            this.newUser.level = this.newUser.isAdminCheckbox ? 4 : 5;
-        }
+        const levelMap = {
+            pusat: this.newUser.isAdminCheckbox ? 0 : 1,
+            provinsi: this.newUser.isAdminCheckbox ? 2 : 3,
+            kabkot: this.newUser.isAdminCheckbox ? 4 : 5,
+        };
+        this.newUser.level = levelMap[this.newUser.wilayah_level];
         this.validateNewUserLevel();
     },
 
@@ -342,6 +340,9 @@ Alpine.data("webData", () => ({
             selected_kabkot: "",
             isAdminCheckbox: false,
             level: 1,
+            isSSO: false, // Default to non-SSO
+            searchSSOUsername: "", // New: SSO search input
+            ssoSearchResults: [], // New: SSO search results
             errors: {
                 username: false,
                 nama_lengkap: false,
@@ -357,24 +358,61 @@ Alpine.data("webData", () => ({
     async checkNewUserUsername() {
         if (!this.newUser.username) return;
         try {
-            let response = await fetch(
+            const data = await this.fetchWrapper(
                 `/api/check-username?username=${this.newUser.username}`
             );
-            let data = await response.json();
             this.newUser.usernameExists = data.exists;
         } catch (error) {
             console.error("Failed to check username:", error);
         }
     },
 
+    async searchSSOUser() {
+        if (!this.newUser.searchSSOUsername) {
+            this.newUser.ssoSearchResults = [];
+            this.newUser.errors.username = "Masukkan username untuk mencari.";
+            return;
+        }
+        try {
+            const data = await this.fetchWrapper(
+                `/api/sso-search-username?query=${encodeURIComponent(this.newUser.searchSSOUsername)}`
+            );
+            this.newUser.ssoSearchResults = data.results || [];
+            this.newUser.errors.username = this.newUser.ssoSearchResults.length === 0
+                ? "Tidak ada pengguna ditemukan."
+                : false;
+        } catch (error) {
+            this.newUser.ssoSearchResults = [];
+            this.newUser.errors.username = "Gagal mencari pengguna SSO.";
+            console.error("Failed to search SSO user:", error);
+        }
+    },
+
+    selectSSOUser(result) {
+        this.newUser.username = result.username;
+        this.newUser.nama_lengkap = result.nama_lengkap;
+        this.newUser.ssoSearchResults = [];
+        this.newUser.searchSSOUsername = "";
+        this.validateNewUserUsername();
+        this.validateNewUserNamaLengkap();
+    },
+
     async addUser() {
+        // Validate based on SSO or non-SSO
         this.validateNewUserNamaLengkap();
         await this.validateNewUserUsername();
-        this.validateNewUserPassword();
+        if (!this.newUser.isSSO) {
+            this.validateNewUserPassword();
+        }
         this.updateNewUserWilayah();
         this.validateNewUserLevel();
 
-        if (this.newUserHasErrors) {
+        if (this.newUserHasErrors) return;
+
+        // // ADD: Check username uniqueness before submission
+        await this.checkNewUserUsername();
+        if (this.newUser.usernameExists) {
+            this.newUser.errors.username = "Username sudah digunakan.";
             return;
         }
 
@@ -383,297 +421,157 @@ Alpine.data("webData", () => ({
             username: this.newUser.username,
             kd_wilayah: this.newUser.kd_wilayah,
             level: this.newUser.level,
-            password: this.newUser.password,
+            user_sso: this.newUser.isSSO,
+            password: this.newUser.isSSO ? null : this.newUser.password,
         };
 
         try {
-            const response = await fetch("/user", {
+            const data = await this.fetchWrapper("/user", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Accept: "application/json",
-                    "X-CSRF-TOKEN": document.querySelector(
-                        'meta[name="csrf-token"]'
-                    ).content,
-                },
                 body: JSON.stringify(userData),
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                this.failMessage = data.message || "Failed to add user";
-                this.$dispatch("open-modal", "fail-update-bulan-tahun");
-                return;
-            }
-
-            this.usersData.push(data.data);
-            this.successMessage = "Berhasil menambah pengguna!";
-            this.$dispatch("open-modal", "success-update-bulan-tahun");
+            }, "Berhasil menambah pengguna!", true);
+            
             this.$dispatch("close");
-            this.getWilayahUsers();
+            // // EDIT: Only fetch users if kd_wilayah is not empty
+            if (this.wilayahLevel && this.kd_wilayah) {
+            await this.getWilayahUsers();
+        }
         } catch (error) {
-            this.failMessage = "An unexpected error occurred: " + error.message;
-            this.$dispatch("open-modal", "fail-update-bulan-tahun");
+            // Error handled by fetchWrapper
         }
     },
 
     openEditUserModal(user) {
-        this.editUser.user_id = user.user_id;
-        this.editUser.username = user.username;
-        this.editUser.nama_lengkap = user.nama_lengkap;
-        this.editUser.kd_level = user.kd_level; // Numeric level (e.g., 0)
-        this.editUser.level = user.level; // Display label (e.g., "Admin Pusat")
-        this.editUser.kd_wilayah = user.kd_wilayah;
-        this.editUser.nama_wilayah =
-            user.nama_wilayah ||
-            (user.kd_wilayah === "0" ? "Pusat" : "Unknown");
-        this.editUser.wilayah_level =
-            user.kd_wilayah === "0"
-                ? "pusat"
-                : user.kd_level === 2 || user.kd_level === 3
-                ? "provinsi"
-                : "kabkot";
-        this.editUser.selected_province =
-            user.kd_level === 2 || user.kd_level === 3 ? user.kd_wilayah : "";
-        this.editUser.selected_kabkot =
-            user.kd_level === 4 || user.kd_level === 5 ? user.kd_wilayah : "";
-        this.editUser.password = "";
-        this.editUser.confirmPassword = "";
-        // Set initial_role_label for checkbox based on kd_level
-        this.editUser.initial_role_label = [0, 2, 4].includes(
-            parseInt(this.editUser.kd_level)
-        )
-            ? "Ganti menjadi Operator"
-            : "Ganti menjadi Admin";
-        this.editUser.role_toggle = false; // Checkbox state
-        this.editUser.errors = {};
+        this.editUser = {
+            user_id: user.user_id,
+            username: user.username,
+            nama_lengkap: user.nama_lengkap,
+            kd_level: user.kd_level,
+            level: user.level,
+            kd_wilayah: user.kd_wilayah,
+            nama_wilayah: user.kd_wilayah === "0" ? "Pusat" : user.nama_wilayah || "Unknown",
+            wilayah_level: user.kd_wilayah === "0" ? "pusat" : [2, 3].includes(user.kd_level) ? "provinsi" : "kabkot",
+            selected_province: [2, 3].includes(user.kd_level) ? user.kd_wilayah : "",
+            selected_kabkot: [4, 5].includes(user.kd_level) ? user.kd_wilayah : "",
+            password: "",
+            confirmPassword: "",
+            initial_role_label: [0, 2, 4].includes(parseInt(user.kd_level)) ? "Ganti menjadi Operator" : "Ganti menjadi Admin",
+            role_toggle: false,
+            errors: {},
+            usernameExists: false,
+        };
         this.$dispatch("open-modal", "edit-user");
     },
 
     async updateUserAttribute(attribute) {
         this.editUser.errors = {};
 
-        // Validate input based on attribute
+        // Validate input
         if (attribute === "username") {
             if (this.editUser.username.length < 7) {
-                this.editUser.errors.usernameLength =
-                    "Username harus lebih dari 6 karakter.";
+                this.editUser.errors.usernameLength = "Username harus lebih dari 6 karakter.";
+                return;
+            }
+            await this.checkEditUserUsername();
+            if (this.editUser.usernameExists) {
+                this.editUser.errors.usernameUnique = "Username sudah digunakan.";
                 return;
             }
         } else if (attribute === "password") {
             if (this.editUser.password && this.editUser.password.length < 6) {
-                this.editUser.errors.password =
-                    "Password minimal sepanjang 6 karakter.";
+                this.editUser.errors.password = "Password minimal sepanjang 6 karakter.";
                 return;
             }
             if (this.editUser.password !== this.editUser.confirmPassword) {
-                this.editUser.errors.confirmPassword =
-                    "Password dan konfirmasi password berbeda.";
+                this.editUser.errors.confirmPassword = "Password dan konfirmasi password berbeda.";
                 return;
             }
         } else if (attribute === "wilayah") {
-            if (
-                this.editUser.wilayah_level !== "pusat" &&
-                !this.editUser.kd_wilayah
-            ) {
+            if (this.editUser.wilayah_level !== "pusat" && !this.editUser.kd_wilayah) {
                 this.editUser.errors.kd_wilayah = "Satuan kerja belum dipilih.";
                 return;
             }
         }
 
         try {
-            // Prepare payload for the specific attribute
             const payload = {};
             if (attribute === "username") {
                 payload.username = this.editUser.username;
             } else if (attribute === "nama_lengkap") {
                 payload.nama_lengkap = this.editUser.nama_lengkap;
             } else if (attribute === "password") {
-                if (!this.editUser.password) {
-                    return; // Skip if password is empty
-                }
-                if (this.editUser.user_id) {
-                    payload.user_id = this.editUser.user_id; // Include user_id for updating another user
-                }
+                if (!this.editUser.password) return;
+                if (this.editUser.user_id) payload.user_id = this.editUser.user_id;
                 payload.password = this.editUser.password;
                 payload.password_confirmation = this.editUser.confirmPassword;
             } else if (attribute === "role") {
-                // Toggle kd_level between admin and operator based on checkbox
                 const currentLevel = parseInt(this.editUser.kd_level);
-                if ([0, 1].includes(currentLevel)) {
-                    // Pusat
-                    payload.level = this.editUser.role_toggle
-                        ? currentLevel === 0
-                            ? 1
-                            : 0
-                        : currentLevel;
-                } else if ([2, 3].includes(currentLevel)) {
-                    // Provinsi
-                    payload.level = this.editUser.role_toggle
-                        ? currentLevel === 2
-                            ? 3
-                            : 2
-                        : currentLevel;
-                } else if ([4, 5].includes(currentLevel)) {
-                    // Kabupaten/Kota
-                    payload.level = this.editUser.role_toggle
-                        ? currentLevel === 4
-                            ? 5
-                            : 4
-                        : currentLevel;
-                }
+                const roleMap = {
+                    0: this.editUser.role_toggle ? 1 : 0,
+                    1: this.editUser.role_toggle ? 0 : 1,
+                    2: this.editUser.role_toggle ? 3 : 2,
+                    3: this.editUser.role_toggle ? 2 : 3,
+                    4: this.editUser.role_toggle ? 5 : 4,
+                    5: this.editUser.role_toggle ? 4 : 5,
+                };
+                payload.level = roleMap[currentLevel];
             } else if (attribute === "wilayah") {
-                payload.kd_wilayah =
-                    this.editUser.wilayah_level === "pusat"
-                        ? "0"
-                        : this.editUser.kd_wilayah;
-                // Set level based on wilayah_level, preserving admin/operator status
+                payload.kd_wilayah = this.editUser.wilayah_level === "pusat" ? "0" : this.editUser.kd_wilayah;
                 const currentLevel = parseInt(this.editUser.kd_level);
                 const isAdmin = [0, 2, 4].includes(currentLevel);
-                payload.level =
-                    this.editUser.wilayah_level === "pusat"
-                        ? isAdmin
-                            ? 0
-                            : 1
-                        : this.editUser.wilayah_level === "provinsi"
-                        ? isAdmin
-                            ? 2
-                            : 3
-                        : isAdmin
-                        ? 4
-                        : 5;
+                const levelMap = {
+                    pusat: isAdmin ? 0 : 1,
+                    provinsi: isAdmin ? 2 : 3,
+                    kabkot: isAdmin ? 4 : 5,
+                };
+                payload.level = levelMap[this.editUser.wilayah_level];
             }
 
-            // Use different endpoint and method for password update
-            const url =
-                attribute === "password"
-                    ? "/profile/password"
-                    : `/user/${this.editUser.user_id}`;
+            const url = attribute === "password" ? "/profile/password" : `/user/${this.editUser.user_id}`;
             const method = attribute === "password" ? "POST" : "PUT";
 
-            const response = await fetch(url, {
-                method: method,
-                headers: {
-                    "Content-Type": "application/json",
-                    Accept: "application/json",
-                    "X-CSRF-TOKEN": document.querySelector(
-                        'meta[name="csrf-token"]'
-                    ).content,
-                },
+            await this.fetchWrapper(url, {
+                method,
                 body: JSON.stringify(payload),
-            });
+            }, `Data ${attribute} berhasil diperbarui`, true);
 
-            const result = await response.json();
-
-            if (response.ok) {
-                if (attribute === "password") {
-                    // Clear password fields after successful update
-                    this.editUser.password = "";
-                    this.editUser.confirmPassword = "";
-                } else {
-                    this.getWilayahUsers();
-                    if (attribute === "wilayah") {
-                        // Update nama_wilayah based on wilayah_level
-                        if (this.editUser.wilayah_level === "pusat") {
-                            this.editUser.nama_wilayah = "Pusat";
-                        } else if (this.editUser.wilayah_level === "provinsi") {
-                            const province = this.provinces.find(
-                                (p) =>
-                                    p.kd_wilayah ===
-                                    this.editUser.selected_province
-                            );
-                            this.editUser.nama_wilayah = province
-                                ? province.nama_wilayah
-                                : "Unknown";
-                        } else if (this.editUser.wilayah_level === "kabkot") {
-                            const kabkot = this.editFilteredKabkots.find(
-                                (k) =>
-                                    k.kd_wilayah ===
-                                    this.editUser.selected_kabkot
-                            );
-                            this.editUser.nama_wilayah = kabkot
-                                ? kabkot.nama_wilayah
-                                : "Unknown";
-                        }
-                    }
-                    if (payload.level !== undefined) {
-                        this.editUser.kd_level = payload.level; // Update kd_level
-                        // Update level label
-                        this.editUser.level =
-                            payload.level === 0
-                                ? "Admin Pusat"
-                                : payload.level === 1
-                                ? "Operator Pusat"
-                                : payload.level === 2
-                                ? "Admin Provinsi"
-                                : payload.level === 3
-                                ? "Operator Provinsi"
-                                : payload.level === 4
-                                ? "Admin Kabupaten/Kota"
-                                : "Operator Kabupaten/Kota";
-                        // Update initial_role_label
-                        this.editUser.initial_role_label = [0, 2, 4].includes(
-                            payload.level
-                        )
-                            ? "Ganti menjadi Operator"
-                            : "Ganti menjadi Admin";
-                        this.editUser.role_toggle = false; // Reset checkbox
-                    }
-                }
-                this.modalMessage =
-                    result.message || `Data ${attribute} berhasil diperbarui`;
-                this.$dispatch("open-modal", "success-modal");
+            if (attribute === "password") {
+                this.editUser.password = "";
+                this.editUser.confirmPassword = "";
             } else {
-                // Handle specific backend errors
-                if (result.errors && result.errors.username) {
-                    this.editUser.errors.usernameUnique =
-                        result.errors.username[0];
+                await this.getWilayahUsers();
+                if (attribute === "wilayah") {
+                    this.editUser.nama_wilayah = this.editUser.wilayah_level === "pusat"
+                        ? "Pusat"
+                        : this.editUser.wilayah_level === "provinsi"
+                        ? this.provinces.find((p) => p.kd_wilayah === this.editUser.selected_province)?.nama_wilayah || "Unknown"
+                        : this.editFilteredKabkots.find((k) => k.kd_wilayah === this.editUser.selected_kabkot)?.nama_wilayah || "Unknown";
                 }
-                this.modalMessage =
-                    result.message || `Gagal memperbarui ${attribute}`;
-                this.$dispatch("open-modal", "error-modal");
+                if (payload.level !== undefined) {
+                    this.editUser.kd_level = payload.level;
+                    this.editUser.level = this.getLevelString(payload.level);
+                    this.editUser.initial_role_label = [0, 2, 4].includes(payload.level)
+                        ? "Ganti menjadi Operator"
+                        : "Ganti menjadi Admin";
+                    this.editUser.role_toggle = false;
+                }
             }
         } catch (error) {
-            console.error("Update error:", error);
-            this.modalMessage = `Terjadi kesalahan saat memperbarui ${attribute}.`;
-            this.$dispatch("open-modal", "error-modal");
+            // Error handled by fetchWrapper
         }
     },
 
-    deleteUser(user_id, username) {
+    async deleteUser(user_id, username) {
         this.confirmMessage = `Apakah Anda yakin ingin menghapus pengguna "${username}"?`;
         this.confirmDetails = "Tindakan ini tidak dapat dibatalkan.";
         this.confirmAction = async () => {
             try {
-                const response = await fetch(`/user/${user_id}`, {
+                await this.fetchWrapper(`/user/${user_id}`, {
                     method: "DELETE",
-                    headers: {
-                        Accept: "application/json",
-                        "X-CSRF-TOKEN": document.querySelector(
-                            'meta[name="csrf-token"]'
-                        ).content,
-                    },
-                });
-
-                const result = await response.json();
-
-                if (!response.ok) {
-                    this.modalMessage =
-                        result.message || `Gagal menghapus pengguna`;
-                    this.$dispatch("open-modal", "error-modal");
-                    return;
-                }
-
-                this.getWilayahUsers();
-
-                this.modalMessage =
-                    result.message || `Pengguna "${username}" berhasil dihapus`;
-                this.$dispatch("open-modal", "success-modal");
+                }, `Pengguna "${username}" berhasil dihapus`, true);
+                await this.getWilayahUsers();
             } catch (error) {
-                this.failMessage =
-                    "An unexpected error occurred: " + error.message;
-                this.$dispatch("open-modal", "fail-update-bulan-tahun");
+                // Error handled by fetchWrapper
             }
         };
         this.$dispatch("open-modal", "confirm-action");
