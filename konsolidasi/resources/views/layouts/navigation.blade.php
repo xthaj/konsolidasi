@@ -18,7 +18,6 @@
             request()->routeIs('rekon.pemilihan') => 'Pemilihan Komoditas',
             request()->routeIs('rekon.pengisian') => 'Pengisian Rekonsiliasi',
             request()->routeIs('rekon.pembahasan') => 'Pembahasan Rekonsiliasi',
-            request()->routeIs('profile.edit', 'user.index') => 'User',
             request()->routeIs('pengaturan') => 'Pengaturan',
             default => 'Dashboard',
             };
@@ -44,7 +43,7 @@
                 <!-- Administrasi -->
                 @if (auth()->user()->isPusat())
                 <li>
-                    <button id="dropdownNavbarLink4" data-dropdown-toggle="dropdownAkun" class="flex items-center justify-between w-full py-2 px-3 rounded-sm md:p-0 md:w-auto {{ request()->routeIs('user.index', 'profile.edit') ? 'text-primary-700' : 'text-gray-900 hover:bg-gray-100 md:hover:bg-transparent md:hover:text-primary-700' }}">Administrasi
+                    <button id="dropdownNavbarLink4" data-dropdown-toggle="dropdownAkun" class="flex items-center justify-between w-full py-2 px-3 rounded-sm md:p-0 md:w-auto {{ request()->routeIs('user.index') ? 'text-primary-700' : 'text-gray-900 hover:bg-gray-100 md:hover:bg-transparent md:hover:text-primary-700' }}">Administrasi
                         <span class="material-symbols-rounded">keyboard_arrow_down</span>
                     </button>
                     <div id="dropdownAkun" class="z-15 hidden font-normal bg-white divide-y divide-gray-100 rounded-lg shadow-sm w-44">
@@ -111,7 +110,7 @@
                 <!-- Pengaturan -->
                 @if (auth()->user()->isPusat())
                 <li>
-                    <button id="dropdownNavbarLink5" data-dropdown-toggle="dropdownPengaturan" class="flex items-center justify-between w-full py-2 px-3 rounded-sm md:p-0 md:w-auto {{ request()->routeIs('pengaturan', 'profile.edit') ? 'text-primary-700' : 'text-gray-900 hover:bg-gray-100 md:hover:bg-transparent md:hover:text-primary-700' }}">Pengaturan
+                    <button id="dropdownNavbarLink5" data-dropdown-toggle="dropdownPengaturan" class="flex items-center justify-between w-full py-2 px-3 rounded-sm md:p-0 md:w-auto {{ request()->routeIs('pengaturan') ? 'text-primary-700' : 'text-gray-900 hover:bg-gray-100 md:hover:bg-transparent md:hover:text-primary-700' }} ">Pengaturan
                         <span class="material-symbols-rounded">keyboard_arrow_down</span>
                     </button>
                     <div id="dropdownPengaturan" class="z-15 hidden font-normal bg-white divide-y divide-gray-100 rounded-lg shadow-sm w-44">

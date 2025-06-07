@@ -13,7 +13,6 @@
 
 <form @submit.prevent="submitLogin" class="space-y-4 md:space-y-5" x-data="webData">
     @csrf
-
     <!-- Username -->
     <div>
         <label for="username" class="block mb-2 text-sm font-medium text-gray-900">Username</label>
@@ -35,11 +34,12 @@
             name="password"
             id="password"
             x-model="password"
+            maxlength="200"
             placeholder="••••••••"
             class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg  block w-full p-2.5"
             required>
         <label class="inline-flex items-center mt-2 space-x-2 text-sm text-gray-700">
-            <input type="checkbox" x-model="show" class="rounded border-gray-300 text-primary-600 ">
+            <input type="checkbox" maxlength="200" x-model="show" class="rounded border-gray-300 text-primary-600 ">
             <span>Lihat password</span>
         </label>
     </div>
@@ -63,7 +63,6 @@
     <x-primary-button class="w-full justify-center">
         <span>Masuk</span>
     </x-primary-button>
-
 </form>
 
 <form action="{{ route('sso.login') }}" method="GET" class="w-full">
@@ -72,10 +71,6 @@
         Login dengan SSO BPS
     </button>
 </form>
-
-
-
-
 
 <p class="text-sm font-light text-gray-500">
     Belum punya akun? <a href="{{ route('register') }}" class="font-medium text-primary-600 hover:underline">Daftar di sini</a>

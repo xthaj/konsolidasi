@@ -18,7 +18,7 @@
         @include('layouts.navigation')
         <!-- Page Content -->
         <main>
-            <div class="bg-white py-8 px-4 mx-auto max-w-screen-xl text-center lg:py-16 lg:px-12">
+            <div class="bg-white p-4 mx-auto max-w-screen-xl text-center lg:pt-4 lg:pb-8 lg:px-12">
                 @if ($percentage >= 0)
                 <a href="{{ route('rekon.pengisian') }}" class="inline-flex justify-between items-center py-1 px-1 pr-4 mb-7 text-sm text-gray-700 bg-gray-100 rounded-full  hover:bg-gray-200 " role="alert">
                     <span class="text-xs bg-primary-600 rounded-full text-white px-4 py-1.5 mr-3">{{ $activeMonthYear }}</span>

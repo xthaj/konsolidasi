@@ -88,8 +88,8 @@
                     <label class="block mb-2 text-sm font-medium text-gray-900">Status</label>
                     <select name="status_rekon" x-model="status_rekon" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                         <option value="00" :selected="status_rekon == '00'">Semua Status</option>
-                        <option value="01" :selected="status_rekon == '01'">Sudah diisi</option>
-                        <option value="02" :selected="status_rekon == '02'">Belum diisi</option>
+                        <option value="02" :selected="status_rekon == '02'">Sudah diisi</option>
+                        <option value="01" :selected="status_rekon == '01'">Belum diisi</option>
                     </select>
                 </div>
 

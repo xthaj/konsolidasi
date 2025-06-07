@@ -4,6 +4,36 @@
     @vite(['resources/css/app.css', 'resources/js/master/komoditas.js'])
     @endsection
 
+    <!-- Komoditas Table -->
+    <div class="flex justify-between items-center mb-4">
+        <h1 class="text-lg font-semibold">Daftar Komoditas</h1>
+        <button class="bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg text-sm px-5 py-2.5" @click="openAddKomoditasModal">Tambah Komoditas</button>
+    </div>
+
+    <div class="relative overflow-x-auto shadow-md sm:rounded-lg">
+        <table class="w-full text-sm text-left text-gray-500">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50  ">
+                <tr>
+                    <th scope="col" class="px-6 py-3">Kode Komoditas</th>
+                    <th scope="col" class="px-6 py-3">Nama Komoditas</th>
+                    <th scope="col" class="px-6 py-3">Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+                <template x-for="komoditas in komoditasData" :key="komoditas.kd_komoditas">
+                    <tr class="bg-white border-b border-gray-200">
+                        <td class="px-6 py-4" x-text="komoditas.kd_komoditas"></td>
+                        <td class="px-6 py-4" x-text="komoditas.nama_komoditas"></td>
+                        <td class="px-6 py-4">
+                            <button @click="openEditKomoditasModal(komoditas)" class="font-medium text-blue-600 hover:underline mr-3">Edit</button>
+                            <button @click="deleteKomoditas(komoditas.kd_komoditas)" class="font-medium text-red-600  hover:underline">Hapus</button>
+                        </td>
+                    </tr>
+                </template>
+            </tbody>
+        </table>
+    </div>
+
     <!-- Success Modal -->
     <x-modal name="success-modal" title="Berhasil" maxWidth="md">
         <div class="text-gray-900 ">
@@ -17,7 +47,6 @@
             </div>
         </div>
     </x-modal>
-
 
     <!-- Modal for Adding Komoditas -->
     <x-modal name="add-komoditas" focusable title="Konfirmasi Penambahan Komoditas">
@@ -79,33 +108,4 @@
         </div>
     </x-modal>
 
-    <!-- Komoditas Table -->
-    <div class="flex justify-between items-center mb-4">
-        <h1 class="text-lg font-semibold">Daftar Komoditas</h1>
-        <button class="bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg text-sm px-5 py-2.5" @click="openAddKomoditasModal">Tambah Komoditas</button>
-    </div>
-
-    <div class="relative overflow-x-auto shadow-md sm:rounded-lg">
-        <table class="w-full text-sm text-left text-gray-500">
-            <thead class="text-xs text-gray-700 uppercase bg-gray-50  ">
-                <tr>
-                    <th scope="col" class="px-6 py-3">Kode Komoditas</th>
-                    <th scope="col" class="px-6 py-3">Nama Komoditas</th>
-                    <th scope="col" class="px-6 py-3">Aksi</th>
-                </tr>
-            </thead>
-            <tbody>
-                <template x-for="komoditas in komoditasData" :key="komoditas.kd_komoditas">
-                    <tr class="bg-white border-b border-gray-200">
-                        <td class="px-6 py-4" x-text="komoditas.kd_komoditas"></td>
-                        <td class="px-6 py-4" x-text="komoditas.nama_komoditas"></td>
-                        <td class="px-6 py-4">
-                            <button @click="openEditKomoditasModal(komoditas)" class="font-medium text-blue-600 hover:underline mr-3">Edit</button>
-                            <button @click="deleteKomoditas(komoditas.kd_komoditas)" class="font-medium text-red-600  hover:underline">Hapus</button>
-                        </td>
-                    </tr>
-                </template>
-            </tbody>
-        </table>
-    </div>
 </x-one-panel-layout>

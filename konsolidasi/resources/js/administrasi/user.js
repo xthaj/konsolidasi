@@ -432,7 +432,7 @@ Alpine.data("webData", () => ({
             }, "Berhasil menambah pengguna!", true);
             
             this.$dispatch("close");
-            // // EDIT: Only fetch users if kd_wilayah is not empty
+            // Only fetch users if kd_wilayah is not empty
             if (this.wilayahLevel && this.kd_wilayah) {
             await this.getWilayahUsers();
         }

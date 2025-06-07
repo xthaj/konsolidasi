@@ -60,7 +60,6 @@ Alpine.data("webData", () => ({
             });
 
             const result = await response.json();
-            // 200 for get, 201 for post
             if (!response.ok) {
                 this.modalMessage =
                     result.message || "Gagal menambahkan komoditas.";
