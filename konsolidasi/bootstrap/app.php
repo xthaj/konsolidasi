@@ -5,6 +5,7 @@ use App\Http\Middleware\isKabkot;
 use App\Http\Middleware\isPusat;
 use App\Http\Middleware\isProvinsi;
 use App\Http\Middleware\isOperator;
+use App\Http\Middleware\IsProvinsiOrKabkot;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -21,7 +22,6 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        // Define the 'pusat' middleware group
         $middleware->appendToGroup('pusat', [
             'auth',
             isPusat::class,
@@ -47,10 +47,15 @@ return Application::configure(basePath: dirname(__DIR__))
             isOperator::class,
         ]);
 
+        $middleware->appendToGroup('provinsi_or_kabkot', [
+            'auth',
+            IsProvinsiOrKabkot::class,
+        ]);
+
         // Exclude /rekonsiliasi/update/* from CSRF protection
         $middleware->validateCsrfTokens(except: [
-            '/rekonsiliasi/update/*',
-            '/rekonsiliasi/pengisian',
+            // '/rekonsiliasi/update/*',
+            // '/rekonsiliasi/pengisian',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
