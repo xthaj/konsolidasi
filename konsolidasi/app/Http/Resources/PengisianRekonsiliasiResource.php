@@ -25,7 +25,7 @@ class PengisianRekonsiliasiResource extends JsonResource
             'user_id' => $this->user_id,
             'alasan' => $this->alasan,
             'detail' => $this->detail,
-            'sumber' => $this->media, // Assuming 'sumber' refers to 'media'
+            'sumber' => $this->media,
             'editor_name' => $this->user ? $this->user->nama_lengkap : null,
         ];
     }

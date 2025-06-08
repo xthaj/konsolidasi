@@ -2,8 +2,12 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use App\Models\User;
 use App\Models\Wilayah;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -77,7 +81,7 @@ class UserService
 
         // Define validation rules for each attribute
         $rules = [
-            'username' => ['sometimes', 'string', 'min:7', 'max:255', 'regex:/^[a-zA-Z0-9_]+$/', Rule::unique('user', 'username')->ignore($user->id)],
+            'username' => ['sometimes', 'string', 'max:255', 'regex:/^[a-zA-Z0-9_]+$/', Rule::unique('user', 'username')->ignore($user->id)],
             'nama_lengkap' => ['sometimes', 'string', 'max:255'],
             'password' => ['sometimes', 'string', 'min:6', 'max:255', 'confirmed'],
             'kd_wilayah' => ['sometimes', 'string', 'max:6', 'exists:wilayah,kd_wilayah'],
@@ -173,10 +177,38 @@ class UserService
         // Update user
         $user->update($updateData);
 
+        $cacheKey = 'user_' . $userId;
+        if (Cache::has($cacheKey)) {
+            Cache::forget($cacheKey);
+            Log::info('Removed user cache', ['user_id' => $userId, 'cache_key' => $cacheKey]);
+        }
+
         return [
             'success' => true,
             'user' => $user,
             'message' => 'User berhasil diperbarui.',
         ];
+    }
+
+    public function getCachedUser(?int $userId = null, bool $isApi = false): User
+    {
+        $cacheKey = 'user_' . ($userId ?? Auth::id());
+        $user = Cache::remember($cacheKey, now()->addMinutes(10), function () use ($userId, $isApi) {
+            if ($userId) {
+                $user = User::find($userId);
+                if (!$user) {
+                    throw new Exception('User tidak ditemukan.', 404);
+                }
+                return $user;
+            }
+
+            $user = Auth::user();
+            if (!$user) {
+                throw new Exception('User tidak ditemukan atau belum login.', 401);
+            }
+            return $user;
+        });
+
+        return $user;
     }
 }

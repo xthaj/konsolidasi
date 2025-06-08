@@ -167,6 +167,7 @@ class BulanTahunController extends Controller
     private function clearBulanTahunCache(): void
     {
         Cache::forget('bt_aktif');
-        Log::info('Cache cleared for bt_aktif', ['timestamp' => now()]);
+        Cache::forget('rekonsiliasi_aktif');
+        Log::info('Cache cleared for bt_aktif & rekonsiliasi_aktif', ['timestamp' => now()]);
     }
 }

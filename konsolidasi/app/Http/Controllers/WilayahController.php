@@ -87,7 +87,7 @@ class WilayahController extends Controller
         try {
             $data = Cache::remember('all_wilayah_data', now()->addHours(24), function () {
                 Log::info('Wilayah data fetched from database for all_wilayah_data', ['timestamp' => now()]);
-                return Wilayah::orderBy('nama_wilayah', 'asc')->get();
+                return Wilayah::orderBy('kd_wilayah', 'asc')->get();
             });
 
             // add here: Handle empty result
@@ -122,6 +122,10 @@ class WilayahController extends Controller
         try {
             $data = Cache::remember('wilayah_data', now()->addHours(24), function () {
                 Log::info('Wilayah data fetched from database for wilayah_data', ['timestamp' => now()]);
+
+                Cache::put('all_wilayah_data', Wilayah::orderBy('kd_wilayah', 'asc')->get(), now()->addHours(24));
+                Log::info('Wilayah data also cached for all_wilayah_data inside getSegmentedWilayah', ['timestamp' => now()]);
+
                 return [
                     'provinces' => Wilayah::where('flag', 2)->orderBy('nama_wilayah', 'asc')->get(),
                     'kabkots' => Wilayah::where('flag', 3)->orderBy('nama_wilayah', 'asc')->get(),
