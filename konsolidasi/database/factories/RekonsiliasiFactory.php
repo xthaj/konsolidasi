@@ -8,15 +8,13 @@ class RekonsiliasiFactory extends Factory
 {
     protected $model = \App\Models\Rekonsiliasi::class;
 
-    public function definition(): array
+    public function definition()
     {
         return [
-            'rekonsiliasi_id' => $this->faker->unique()->numberBetween(1000, 2000), // Avoid 364–763
-            'inflasi_id' => null, // Let seeder override
-            'user_id' => null, // Let seeder override
-            'bulan_tahun_id' => null, // Let seeder override
-            'terakhir_diedit' => now(),
-            'alasan' => 'Lainnya',
+            'inflasi_id' => 1, // Will override
+            'bulan_tahun_id' => 1, // Will override
+            'user_id' => null,
+            'alasan' => $this->faker->sentence,
             'detail' => $this->faker->paragraph,
             'media' => $this->faker->url,
         ];

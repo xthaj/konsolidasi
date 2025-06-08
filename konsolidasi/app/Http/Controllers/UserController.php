@@ -13,9 +13,6 @@ use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Hash;
 
-// JsonResponse
-
-
 class UserController extends Controller
 {
     protected $userService;
