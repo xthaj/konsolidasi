@@ -7,7 +7,6 @@
         <div class="px-6 py-4">
             <form @submit.prevent="addUser">
                 <!-- SSO vs Non-SSO Radio Buttons -->
-                <!-- // EDIT: Unchanged from previous version, included for context -->
                 <div class="mb-4">
                     <label class="block mb-2 text-sm font-medium text-gray-900">Tipe Pengguna</label>
                     <div class="flex items-center gap-4">
@@ -17,7 +16,7 @@
                                 x-model="newUser.isSSO"
                                 value="false"
                                 id="non-sso"
-                                class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded"
+                                class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300"
                                 @change="newUser.isSSO = false; newUser.username = ''; newUser.nama_lengkap = ''; newUser.password = ''; newUser.searchSSOUsername = ''; newUser.ssoSearchResults = []; newUser.errors = { username: false, nama_lengkap: false, password: false, kd_wilayah: false, level: false }"
                                 checked>
                             <label for="non-sso" class="ms-2 text-sm font-medium text-gray-900">Non-SSO</label>
@@ -28,7 +27,7 @@
                                 x-model="newUser.isSSO"
                                 value="true"
                                 id="sso"
-                                class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded"
+                                class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300"
                                 @change="newUser.isSSO = true; newUser.username = ''; newUser.nama_lengkap = ''; newUser.password = ''; newUser.searchSSOUsername = ''; newUser.ssoSearchResults = []; newUser.errors = { username: false, nama_lengkap: false, password: false, kd_wilayah: false, level: false }">
                             <label for="sso" class="ms-2 text-sm font-medium text-gray-900">SSO</label>
                         </div>

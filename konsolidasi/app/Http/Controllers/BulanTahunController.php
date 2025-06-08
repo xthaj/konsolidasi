@@ -31,7 +31,7 @@ class BulanTahunController extends Controller
 
         try {
             $validated = $request->validate([
-                'bulan' => 'required|integer|between:1,12', // edit here: Use integer, remove ltrim
+                'bulan' => 'required|integer|between:1,12',
                 'tahun' => 'required|integer|digits:4|min:2000|max:2100',
             ], [
                 'bulan.between' => 'Bulan harus antara 1 dan 12.',
