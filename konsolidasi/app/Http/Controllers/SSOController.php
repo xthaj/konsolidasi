@@ -2,15 +2,26 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use Illuminate\Http\Request;
 use JKD\SSO\Client\Provider\Keycloak;
 use Exception;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Http\RedirectResponse;
+
 
 class SSOController extends Controller
 {
+    protected $authController;
+
+    public function __construct(AuthenticatedSessionController $authController)
+    {
+        $this->authController = $authController;
+    }
+
     protected function getProvider()
     {
         return new Keycloak(config('sso'));
@@ -84,10 +95,20 @@ class SSOController extends Controller
         }
     }
 
-    public function logoutSSO()
+    public function logoutSSO(Request $request)
     {
         $provider = $this->getProvider();
-        Session::forget('sso_user'); // Clear user session
+
+        $userId = Auth::id();
+        Log::info('Attempting SSO logout', [
+            'user_id' => $userId,
+            'timestamp' => now(),
+        ]);
+
+        // Call destroy for local logout and cache clearing
+        $this->authController->destroy($request);
+        // Session::forget('sso_user'); // Clear user session
+
         return redirect($provider->getLogoutUrl());
     }
 }

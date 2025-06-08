@@ -8,9 +8,8 @@ use App\Http\Requests\Auth\LoginRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\View\View;
-use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Illuminate\Validation\ValidationException;
 
 class AuthenticatedSessionController extends Controller
@@ -81,11 +80,30 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
+        $userId = Auth::id();
+
+        Log::info('Attempting to log out user', [
+            'user_id' => $userId,
+            'timestamp' => now(),
+        ]);
+
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();
 
         $request->session()->regenerateToken();
+
+        if ($userId) {
+            $cacheKey = 'user_' . $userId;
+            if (Cache::has($cacheKey)) {
+                Cache::forget($cacheKey);
+                Log::info('Removed user cache on logout', [
+                    'user_id' => $userId,
+                    'cache_key' => $cacheKey,
+                    'timestamp' => now(),
+                ]);
+            }
+        }
 
         return redirect('/');
     }
