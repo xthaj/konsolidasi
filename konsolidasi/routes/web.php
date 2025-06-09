@@ -19,6 +19,11 @@ use App\Http\Middleware\isPusat;
 use Illuminate\Support\Facades\Cache;
 // SSOController
 
+// Route::get('/test', function () {
+//     abort(506);
+// });
+
+
 // sso
 Route::get('/sso/login', [SSOController::class, 'redirectToSSO'])->name('sso.login');
 Route::get('/sso/callback', [SSOController::class, 'handleSSOCallback'])->name('sso.callback');
