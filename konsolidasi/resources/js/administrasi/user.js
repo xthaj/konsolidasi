@@ -17,8 +17,8 @@ Alpine.data("webData", () => ({
     lastPage: 1,
     totalData: 0,
     wilayah_level: "",
-    selected_province: "{{ request('kd_wilayah_provinsi') }}",
-    selected_kabkot: "{{ request('kd_wilayah') }}",
+    // selected_province: "{{ request('kd_wilayah_provinsi') }}",
+    // selected_kabkot: "{{ request('kd_wilayah') }}",
     newUser: {
         username: "",
         nama_lengkap: "",
@@ -32,7 +32,8 @@ Alpine.data("webData", () => ({
         level: 1,
         isSSO: false, // Toggle for SSO vs Non-SSO
         searchSSOUsername: "", // Search input for SSO username
-        ssoSearchResults: [], // Store SSO search results
+        ssoSearchResults: [], 
+        isSearching: false,
         errors: {
             username: false,
             nama_lengkap: false,
@@ -41,6 +42,9 @@ Alpine.data("webData", () => ({
             level: false,
         },
         usernameExists: false,
+    },
+    errors: {
+        kd_wilayah: false,
     },
     editUser: {
         user_id: "",
@@ -108,11 +112,33 @@ Alpine.data("webData", () => ({
     async init() {
         this.loading = true;
         try {
-            const wilayahData = await this.fetchWrapper("/segmented-wilayah");
-            this.provinces = wilayahData.data.provinces || [];
-            this.kabkots = wilayahData.data.kabkots || [];
+            // ADD HERE: Fetch user data to set initial state
+            const [userResponse, wilayahResponse] = await Promise.all([
+                this.fetchWrapper("/rekonsiliasi/user-provinsi"),
+                this.fetchWrapper("/segmented-wilayah"),
+            ]);
+
+            // Process user data
+            const userData = userResponse.data;
+            this.isPusat = userData.is_pusat;
+            this.isProvinsi = userData.is_provinsi;
+            this.kd_wilayah = userData.kd_wilayah || "0";
+            this.wilayahLevel = userData.wilayah_level;
+            if (this.wilayahLevel === "provinsi") {
+                this.selectedProvince = userData.kd_wilayah;
+            } else if (this.wilayahLevel === "kabkot") {
+                this.selectedKabkot = userData.kd_wilayah;
+                this.selectedProvince = userData.kd_parent || "";
+            } else if (this.isPusat) {
+                this.kd_wilayah = "0";
+            }
+
+            // Process wilayah data
+            this.provinces = wilayahResponse.data.provinces || [];
+            this.kabkots = wilayahResponse.data.kabkots || [];
         } catch (error) {
             this.message = "Failed to load wilayah data";
+            console.error("Init error:", error);
         } finally {
             this.loading = false;
         }
@@ -151,9 +177,35 @@ Alpine.data("webData", () => ({
     },
 
     updateWilayahOptions() {
-        this.selectedProvince = "";
-        this.selectedKabkot = "";
+        // EDIT HERE: Update to validate selections
+        this.errors.kd_wilayah = false;
         this.updateKdWilayah();
+    },
+
+    updateKdWilayah() {
+        this.errors.kd_wilayah = false;
+        if (this.wilayahLevel === "pusat") {
+            this.kd_wilayah = "0";
+            this.selectedProvince = "";
+            this.selectedKabkot = "";
+        } else if (this.wilayahLevel === "provinsi") {
+            this.kd_wilayah = this.selectedProvince || "";
+            this.selectedKabkot = "";
+            if (!this.kd_wilayah) {
+                this.errors.kd_wilayah = "Pilih Provinsi terlebih dahulu.";
+            }
+        } else if (this.wilayahLevel === "kabkot") {
+            if (!this.selectedProvince) {
+                this.errors.kd_wilayah = "Pilih Provinsi terlebih dahulu.";
+                this.kd_wilayah = "";
+                this.selectedKabkot = "";
+            } else {
+                this.kd_wilayah = this.selectedKabkot || "";
+                if (!this.selectedKabkot) {
+                    this.errors.kd_wilayah = "Pilih Kabupaten/Kota.";
+                }
+            }
+        }
     },
 
     async checkEditUserUsername() {
@@ -169,7 +221,12 @@ Alpine.data("webData", () => ({
     },
 
     checkFormValidity() {
-        return true; // Add specific validation if needed
+        // EDIT HERE: Add kd_wilayah validation
+        if (this.wilayahLevel === "kabkot" && !this.selectedProvince) {
+            this.errors.kd_wilayah = "Pilih Provinsi terlebih dahulu.";
+            return false;
+        }
+        return !this.errors.kd_wilayah;
     },
 
     async getWilayahUsers(isFilterSubmit = false) {
@@ -183,6 +240,7 @@ Alpine.data("webData", () => ({
         }
 
         this.message = "";
+        // kalau dari filter, reset page. Kalau dari tambah akun, stay di page tsbt
         if (isFilterSubmit) {
             this.currentPage = 1;
         }
@@ -229,12 +287,6 @@ Alpine.data("webData", () => ({
         return Object.values(this.newUser.errors).some((error) => error);
     },
 
-    updateKdWilayah() {
-        this.kd_wilayah = this.wilayahLevel === "pusat"
-            ? "0"
-            : this.selectedKabkot || this.selectedProvince || "";
-    },
-
     validateNewUserNamaLengkap() {
         if (this.newUser.isSSO) {
             this.newUser.errors.nama_lengkap = !this.newUser.nama_lengkap
@@ -255,10 +307,10 @@ Alpine.data("webData", () => ({
         const regex = /^[a-zA-Z0-9_]+$/;
         if (!this.newUser.username) {
             this.newUser.errors.username = "Username wajib diisi.";
-        } else if (this.newUser.username.length < 6) {
+        } else if (this.newUser.username.length < 5) {
             this.newUser.errors.username =
-                "Username harus lebih dari 5 karakter.";
-        } else if (this.newUser.username.length > 255) {
+                "Username harus lebih dari 4 karakter.";
+        } else if (this.newUser.username.length > 20) {
             this.newUser.errors.username = "Username terlalu panjang.";
         } else if (!regex.test(this.newUser.username)) {
             this.newUser.errors.username =
@@ -368,40 +420,31 @@ Alpine.data("webData", () => ({
     },
 
     async searchSSOUser() {
-        if (!this.newUser.searchSSOUsername) {
-            this.newUser.ssoSearchResults = [];
+        if (!this.newUser.searchSSOUsername.trim()) {
             this.newUser.errors.username = "Masukkan username untuk mencari.";
             return;
         }
+
+        this.newUser.isSearching = true;
+        this.newUser.errors.username = false;
         try {
             const data = await this.fetchWrapper(
-                `/api/sso-search-username?query=${encodeURIComponent(this.newUser.searchSSOUsername)}`
+                `/sso/search-username?username=${encodeURIComponent(this.newUser.searchSSOUsername.trim())}`
             );
-            this.newUser.ssoSearchResults = data.results || [];
-            this.newUser.errors.username = this.newUser.ssoSearchResults.length === 0
-                ? "Tidak ada pengguna ditemukan."
-                : false;
+            // Auto-fill fields on success
+            this.newUser.username = data.username;
+            this.newUser.nama_lengkap = data.nama_lengkap;
+            this.newUser.searchSSOUsername = ""; // Clear search input
         } catch (error) {
-            this.newUser.ssoSearchResults = [];
-            this.newUser.errors.username = "Gagal mencari pengguna SSO.";
             console.error("Failed to search SSO user:", error);
+        } finally {
+            this.newUser.isSearching = false;
         }
     },
 
-    selectSSOUser(result) {
-        this.newUser.username = result.username;
-        this.newUser.nama_lengkap = result.nama_lengkap;
-        this.newUser.ssoSearchResults = [];
-        this.newUser.searchSSOUsername = "";
-        this.validateNewUserUsername();
-        this.validateNewUserNamaLengkap();
-    },
-
     async addUser() {
-        // Validate based on SSO or non-SSO
-        this.validateNewUserNamaLengkap();
-        await this.validateNewUserUsername();
         if (!this.newUser.isSSO) {
+            this.validateNewUserNamaLengkap();
             this.validateNewUserPassword();
         }
         this.updateNewUserWilayah();
@@ -409,7 +452,7 @@ Alpine.data("webData", () => ({
 
         if (this.newUserHasErrors) return;
 
-        // // ADD: Check username uniqueness before submission
+        // // Check username uniqueness before submission
         await this.checkNewUserUsername();
         if (this.newUser.usernameExists) {
             this.newUser.errors.username = "Username sudah digunakan.";
@@ -468,8 +511,8 @@ Alpine.data("webData", () => ({
 
         // Validate input
         if (attribute === "username") {
-            if (this.editUser.username.length < 7) {
-                this.editUser.errors.usernameLength = "Username harus lebih dari 6 karakter.";
+            if (this.editUser.username.length < 5) {
+                this.editUser.errors.usernameLength = "Username harus lebih dari 4 karakter.";
                 return;
             }
             await this.checkEditUserUsername();

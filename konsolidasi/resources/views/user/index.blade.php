@@ -36,7 +36,22 @@
 
                 <!-- Non-SSO Form Fields -->
                 <div x-show="!newUser.isSSO">
-                    <!-- // EDIT: Changed required to x-bind:required="!newUser.isSSO" -->
+                    <div class="mb-4">
+                        <label class="block mb-2 text-sm font-medium text-gray-900">Username</label>
+                        <input
+                            type="text"
+                            x-model.debounce.750ms="newUser.username"
+                            @input="newUser.username = $event.target.value.toLowerCase(); validateNewUserUsername();"
+                            x-bind:class="{ 'border-red-600': newUser.errors.username }"
+                            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5"
+                            placeholder="hatta45"
+                            maxlength="20"
+                            x-bind:required="!newUser.isSSO">
+                        <template x-if="newUser.errors.username">
+                            <p class="mt-2 text-sm text-red-600" x-text="newUser.errors.username"></p>
+                        </template>
+                    </div>
+
                     <div class="mb-4">
                         <label class="block mb-2 text-sm font-medium text-gray-900">Nama Lengkap</label>
                         <input
@@ -46,28 +61,13 @@
                             x-bind:class="{ 'border-red-600': newUser.errors.nama_lengkap }"
                             class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5"
                             placeholder="Muhammad Hatta"
-                            maxlength="255"
+                            maxlength="200"
                             x-bind:required="!newUser.isSSO">
                         <template x-if="newUser.errors.nama_lengkap">
                             <p class="mt-2 text-sm text-red-600" x-text="newUser.errors.nama_lengkap"></p>
                         </template>
                     </div>
-                    <!-- // EDIT: Changed required to x-bind:required="!newUser.isSSO" -->
-                    <div class="mb-4">
-                        <label class="block mb-2 text-sm font-medium text-gray-900">Username</label>
-                        <input
-                            type="text"
-                            x-model.debounce.500ms="newUser.username"
-                            @input="newUser.username = $event.target.value.toLowerCase(); validateNewUserUsername();"
-                            x-bind:class="{ 'border-red-600': newUser.errors.username }"
-                            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5"
-                            placeholder="hatta45"
-                            x-bind:required="!newUser.isSSO">
-                        <template x-if="newUser.errors.username">
-                            <p class="mt-2 text-sm text-red-600" x-text="newUser.errors.username"></p>
-                        </template>
-                    </div>
-                    <!-- // EDIT: Changed required to x-bind:required="!newUser.isSSO" -->
+
                     <div class="mb-4">
                         <label class="mb-2 text-sm font-medium text-gray-900">Password</label>
                         <input
@@ -95,50 +95,37 @@
 
                 <!-- SSO Form Fields -->
                 <div x-show="newUser.isSSO">
-                    <!-- // EDIT: Changed required to x-bind:required="newUser.isSSO" -->
                     <div class="mb-4">
-                        <label for="sso-search" class="block mb-2 text-sm font-medium text-gray-900">Cari Username (SSO)</label>
+                        <label for="sso-search" class="block mb-2 text-sm font-medium text-gray-900">Cari User SSO</label>
                         <div class="relative">
-                            <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
-                                <svg class="w-4 h-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
-                                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z" />
-                                </svg>
+                            <div class="text-gray-500 absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
+                                <span class="material-symbols-rounded">search</span>
                             </div>
                             <input
-                                type="search"
+                                type="text"
                                 id="sso-search"
                                 x-model="newUser.searchSSOUsername"
-                                class="block w-full p-4 ps-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="Cari username SSO..."
+                                class="block w-full p-3 ps-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500"
+                                placeholder="Username"
                                 x-bind:required="newUser.isSSO">
                             <button
                                 type="button"
                                 @click="searchSSOUser()"
-                                class="text-white absolute end-2.5 bottom-2.5 bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2">Search</button>
+                                class="text-white absolute end-2 bottom-1 bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                                <span x-show="!newUser.isSearching">Search</span>
+                                <span x-show="newUser.isSearching">Loading...</span>
+                            </button>
                         </div>
-                        <template x-if="newUser.ssoSearchResults && newUser.ssoSearchResults.length">
-                            <div class="mt-2 max-h-40 overflow-y-auto border border-gray-300 rounded-lg bg-white">
-                                <template x-for="result in newUser.ssoSearchResults" :key="result.username">
-                                    <div
-                                        class="p-2 hover:bg-gray-100 cursor-pointer"
-                                        @click="selectSSOUser(result)">
-                                        <p x-text="result.username"></p>
-                                        <p class="text-sm text-gray-600" x-text="result.nama_lengkap"></p>
-                                    </div>
-                                </template>
-                            </div>
-                        </template>
                         <template x-if="newUser.errors.username">
                             <p class="mt-2 text-sm text-red-600" x-text="newUser.errors.username"></p>
                         </template>
                     </div>
-                    <!-- // EDIT: Unchanged readonly fields -->
                     <div class="mb-4">
-                        <label class="block mb-2 text-sm font-medium text-gray-900">Username Terpilih</label>
+                        <label class="block mb-2 text-sm font-medium text-gray-900">Username</label>
                         <input
                             type="text"
                             x-model="newUser.username"
-                            class="bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5"
+                            class="cursor-not-allowed bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-3"
                             readonly>
                     </div>
                     <div class="mb-4">
@@ -146,13 +133,12 @@
                         <input
                             type="text"
                             x-model="newUser.nama_lengkap"
-                            class="bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5"
+                            class="cursor-not-allowed bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-3"
                             readonly>
                     </div>
                 </div>
 
                 <!-- Common Fields for Both SSO and Non-SSO -->
-                <!-- // EDIT: Unchanged from previous version -->
                 <div class="mb-4">
                     <label class="block mb-2 text-sm font-medium text-gray-900">Role</label>
                     <div class="flex items-center">
@@ -394,10 +380,8 @@
                 <div class="mb-4">
                     <label class="block mb-2 text-sm font-medium text-gray-900">Cari Pengguna</label>
                     <div class="relative">
-                        <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
-                            <svg class="w-4 h-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
-                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z" />
-                            </svg>
+                        <div class="text-gray-500 absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
+                            <span class="material-symbols-rounded">search</span>
                         </div>
                         <input
                             type="text"
@@ -408,44 +392,128 @@
                     </div>
                 </div>
                 <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-900">Level Wilayah<span class="text-red-500 ml-1">*</span></label>
-                    <select
-                        name="level_wilayah"
-                        x-model="wilayahLevel"
-                        @change="updateWilayahOptions"
-                        required
-                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
-                        <option value="">Pilih Level Wilayah</option>
-                        <option value="pusat">Pusat</option>
-                        <option value="provinsi">Provinsi</option>
-                        <option value="kabkot">Kabupaten/Kota</option>
-                    </select>
+                    <!-- EDIT HERE: Add conditional logic for user roles -->
+                    @if (auth()->user()->isPusat())
+                    <!-- Level Wilayah -->
+                    <div class="mb-4">
+                        <label class="block mb-2 text-sm font-medium text-gray-900">Level Wilayah<span class="text-red-500 ml-1">*</span></label>
+                        <select
+                            name="level_wilayah"
+                            x-model="wilayahLevel"
+                            @change="selectedProvince = ''; selectedKabkot = ''; updateWilayahOptions()"
+                            required
+                            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
+                            <option value="">Pilih Level Wilayah</option>
+                            <option value="pusat">Pusat</option>
+                            <option value="provinsi">Provinsi</option>
+                            <option value="kabkot">Kabupaten/Kota</option>
+                        </select>
+                    </div>
+                    <!-- Province Select -->
+                    <div x-show="wilayahLevel === 'provinsi' || wilayahLevel === 'kabkot'" class="mb-4">
+                        <label class="block mb-2 text-sm font-medium text-gray-900">Provinsi<span class="text-red-500 ml-1">*</span></label>
+                        <select
+                            x-model="selectedProvince"
+                            @change="selectedKabkot = ''; updateWilayahOptions()"
+                            x-bind:class="{ 'border-red-600': errors.kd_wilayah && !selectedProvince }"
+                            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
+                            <option value="">Pilih Provinsi</option>
+                            <template x-for="province in provinces" :key="province.kd_wilayah">
+                                <option :value="province.kd_wilayah" x-text="province.nama_wilayah"></option>
+                            </template>
+                        </select>
+                    </div>
+                    <!-- City Select -->
+                    <div x-show="wilayahLevel === 'kabkot'" class="mb-4">
+                        <label class="block mb-2 text-sm font-medium text-gray-900">Kabupaten/Kota<span class="text-red-500 ml-1">*</span></label>
+                        <select
+                            x-model="selectedKabkot"
+                            @change="updateWilayahOptions()"
+                            x-bind:class="{ 'border-red-600': errors.kd_wilayah && !selectedKabkot }"
+                            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
+                            <option value="">Pilih Kabupaten/Kota</option>
+                            <template x-for="kabkot in filteredKabkots" :key="kabkot.kd_wilayah">
+                                <option :value="kabkot.kd_wilayah" x-text="kabkot.nama_wilayah"></option>
+                            </template>
+                        </select>
+                    </div>
+                    @elseif (auth()->user()->isProvinsi())
+                    <!-- Level Wilayah -->
+                    <div class="mb-4">
+                        <label class="block mb-2 text-sm font-medium text-gray-900">Level Wilayah<span class="text-red-500 ml-1">*</span></label>
+                        <select
+                            name="level_wilayah"
+                            x-model="wilayahLevel"
+                            @change="selectedKabkot = ''; updateWilayahOptions()"
+                            required
+                            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
+                            <option value="provinsi">Provinsi</option>
+                            <option value="kabkot">Kabupaten/Kota</option>
+                        </select>
+                    </div>
+                    <!-- Province Select -->
+                    <div class="mb-4">
+                        <label class="block mb-2 text-sm font-medium text-gray-900">Provinsi<span class="text-red-500 ml-1">*</span></label>
+                        <select
+                            x-model="selectedProvince"
+                            class="cursor-not-allowed bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5"
+                            disabled>
+                            <option :value="selectedProvince" x-text="provinces.find(p => p.kd_wilayah === selectedProvince)?.nama_wilayah || 'Pilih Provinsi'" selected></option>
+                        </select>
+                    </div>
+                    <!-- City Select -->
+                    <div x-show="wilayahLevel === 'kabkot'" class="mb-4">
+                        <label class="block mb-2 text-sm font-medium text-gray-900">Kabupaten/Kota<span class="text-red-500 ml-1">*</span></label>
+                        <select
+                            x-model="selectedKabkot"
+                            @change="updateWilayahOptions()"
+                            x-bind:class="{ 'border-red-600': errors.kd_wilayah && !selectedKabkot }"
+                            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
+                            <option value="">Pilih Kabupaten/Kota</option>
+                            <template x-for="kabkot in filteredKabkots" :key="kabkot.kd_wilayah">
+                                <option :value="kabkot.kd_wilayah" x-text="kabkot.nama_wilayah"></option>
+                            </template>
+                        </select>
+                    </div>
+                    @else
+                    <!-- Level Wilayah -->
+                    <div class="mb-4">
+                        <label class="block mb-2 text-sm font-medium text-gray-900">Level Wilayah<span class="text-red-500 ml-1">*</span></label>
+                        <select
+                            name="level_wilayah"
+                            x-model="wilayahLevel"
+                            class="cursor-not-allowed bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5"
+                            disabled>
+                            <option value="kabkot" selected>Kabupaten/Kota</option>
+                        </select>
+                    </div>
+                    <!-- Province Select -->
+                    <div class="mb-4">
+                        <label class="block mb-2 text-sm font-medium text-gray-900">Provinsi<span class="text-red-500 ml-1">*</span></label>
+                        <select
+                            x-model="selectedProvince"
+                            class="cursor-not-allowed bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5"
+                            disabled>
+                            <option :value="selectedProvince" x-text="provinces.find(p => p.kd_wilayah === selectedProvince)?.nama_wilayah || 'Pilih Provinsi'" selected></option>
+                        </select>
+                    </div>
+                    <!-- City Select -->
+                    <div class="mb-4">
+                        <label class="block mb-2 text-sm font-medium text-gray-900">Kabupaten/Kota<span class="text-red-500 ml-1">*</span></label>
+                        <select
+                            x-model="selectedKabkot"
+                            class="cursor-not-allowed bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5"
+                            disabled>
+                            <option :value="selectedKabkot" x-text="kabkots.find(k => k.kd_wilayah === selectedKabkot)?.nama_wilayah || 'Pilih Kabupaten/Kota'" selected></option>
+                        </select>
+                    </div>
+                    @endif
+
+                    <template x-if="errors.kd_wilayah">
+                        <p class="mt-2 text-sm text-red-600" x-text="errors.kd_wilayah"></p>
+                    </template>
+                    <input type="hidden" name="kd_wilayah" x-model="kd_wilayah">
                 </div>
-                <div x-show="wilayahLevel === 'provinsi' || wilayahLevel === 'kabkot'" class="mt-4">
-                    <label class="block mb-2 text-sm font-medium text-gray-900">Provinsi</label>
-                    <select
-                        x-model="selectedProvince"
-                        @change="selectedKabkot = ''; updateKdWilayah()"
-                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
-                        <option value="">Pilih Provinsi</option>
-                        <template x-for="province in provinces" :key="province.kd_wilayah">
-                            <option :value="province.kd_wilayah" x-text="province.nama_wilayah" :selected="province.kd_wilayah == selectedProvince"></option>
-                        </template>
-                    </select>
-                </div>
-                <div x-show="wilayahLevel === 'kabkot'" class="mt-4">
-                    <label class="block mb-2 text-sm font-medium text-gray-900">Kabupaten/Kota</label>
-                    <select
-                        x-model="selectedKabkot"
-                        @change="updateKdWilayah()"
-                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
-                        <option value="">Pilih Kabupaten/Kota</option>
-                        <template x-for="kabkot in filteredKabkots" :key="kabkot.kd_wilayah">
-                            <option :value="kabkot.kd_wilayah" x-text="kabkot.nama_wilayah" :selected="kabkot.kd_wilayah == selectedKabkot"></option>
-                        </template>
-                    </select>
-                </div>
-                <input type="hidden" name="kd_wilayah" x-model="kd_wilayah">
             </div>
         </div>
         <div class="flex justify-end mt-4">
@@ -515,14 +583,14 @@
         <button
             x-bind:disabled="currentPage === 1"
             @click="currentPage--; getWilayahUsers()"
-            class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg disabled:opacity-50">
+            class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed">
             Sebelumnya
         </button>
         <span x-text="`Halaman ${currentPage} dari ${lastPage}`"></span>
         <button
             x-bind:disabled="currentPage === lastPage"
             @click="currentPage++; getWilayahUsers()"
-            class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg disabled:opacity-50">
+            class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed">
             Selanjutnya
         </button>
     </div>
