@@ -692,7 +692,7 @@ class RekonsiliasiController extends Controller
                         return "{$item->kd_wilayah}-{$item->kd_komoditas}-{$item->kd_level}";
                     });
 
-                // edit: Updated loop to use keyBy structure
+                // Updated loop to use keyBy structure
                 $rekonsiliasi->each(function ($rekon) use ($inflasiData) {
                     $wilayah = $rekon->inflasi->kd_wilayah;
                     $komoditas = $rekon->inflasi->kd_komoditas;
@@ -721,7 +721,7 @@ class RekonsiliasiController extends Controller
                         return "{$item->kd_wilayah}-{$item->kd_komoditas}-{$item->kd_level}";
                     });
 
-                // edit: Updated loop to use keyBy structure
+                // Updated loop to use keyBy structure
                 $rekonsiliasi->each(function ($rekon) use ($inflasiData) {
                     $wilayah = $rekon->inflasi->kd_wilayah;
                     $komoditas = $rekon->inflasi->kd_komoditas;
@@ -925,7 +925,8 @@ class RekonsiliasiController extends Controller
                 // ADD // Invalidate and pre-warm rekonsiliasi_aktif cache
                 $cacheKey = 'rekonsiliasi_aktif';
                 Cache::forget($cacheKey);
-                Log::info('Cleared rekonsiliasi cache', ['key' => $cacheKey]);
+                Cache::forget('dashboard_data');
+                Log::info('Cleared rekonsiliasi & dashboard cache', ['key' => $cacheKey]);
 
                 // Pre-warm cache with active period data
                 $activeBulanTahun = Cache::get('bt_aktif')['bt_aktif'] ?? throw new \Exception('Tidak ada periode aktif.');

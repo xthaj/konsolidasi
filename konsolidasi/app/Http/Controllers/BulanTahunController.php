@@ -168,6 +168,7 @@ class BulanTahunController extends Controller
     {
         Cache::forget('bt_aktif');
         Cache::forget('rekonsiliasi_aktif');
+        Cache::forget('dashboard_data');
         Log::info('Cache cleared for bt_aktif & rekonsiliasi_aktif', ['timestamp' => now()]);
     }
 }
