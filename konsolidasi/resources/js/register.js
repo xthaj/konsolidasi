@@ -121,9 +121,9 @@ Alpine.data("webData", () => ({
         const regex = /^[a-zA-Z0-9_]+$/;
         if (!this.username) {
             this.errors.username = "Username wajib diisi.";
-        } else if (this.username.length < 7) {
-            this.errors.username = "Username harus lebih dari 6 karakter.";
-        } else if (this.username.length > 255) {
+        } else if (this.username.length < 5) {
+            this.errors.username = "Username harus lebih dari 4 karakter.";
+        } else if (this.username.length > 20) {
             this.errors.username = "Username terlalu panjang.";
         } else if (!regex.test(this.username)) {
             this.errors.username =

@@ -10,7 +10,7 @@ Alpine.data("webData", () => ({
     async submitLogin() {
         this.error = "";
 
-        if (this.username.length < 6 || this.password.length < 6) {
+        if (this.username.length < 5 || this.username.length > 20 || this.password.length < 6) {
             // Simulate network delay
             await new Promise((resolve) => setTimeout(resolve, 600));
             this.error = "Kombinasi antara username dan password salah.";
