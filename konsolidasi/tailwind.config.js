@@ -13,6 +13,9 @@ export default {
     darkMode: "class",
     theme: {
         extend: {
+            screens: {
+                nav_breakpoint: '920px',
+            },
             colors: {
                 primary: {
                     50: "#fffbeb",

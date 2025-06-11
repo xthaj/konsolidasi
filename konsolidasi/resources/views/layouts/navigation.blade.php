@@ -26,13 +26,13 @@
         </div>
 
         <!-- Mobile Menu Button -->
-        <button data-collapse-toggle="navbar-default" type="button" class="inline-flex items-center p-2 w-10 h-10 justify-center text-sm text-gray-500 rounded-lg md:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200" aria-controls="navbar-default" aria-expanded="false">
+        <button data-collapse-toggle="navbar-default" type="button" class="inline-flex items-center p-2 w-10 h-10 justify-center text-sm text-gray-500 rounded-lg nav_breakpoint:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200" aria-controls="navbar-default" aria-expanded="false">
             <span class="sr-only">Open main menu</span>
             <span class="material-symbols-rounded">keyboard_arrow_down</span>
         </button>
 
         <!-- Navigation -->
-        <div class="hidden w-full md:block md:w-auto" id="navbar-default">
+        <div class="hidden w-full nav_breakpoint:block md:w-auto" id="navbar-default">
             <ul class="font-medium flex flex-col p-4 md:p-0 mt-4 border border-gray-100 rounded-lg bg-gray-50 md:flex-row md:space-x-8 md:mt-0 md:border-0 md:bg-white">
 
                 <!-- Dashboard -->
