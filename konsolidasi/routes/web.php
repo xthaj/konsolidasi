@@ -31,6 +31,7 @@ Route::get('/sso/callback', [SSOController::class, 'handleSSOCallback'])->name('
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/sso/logout', [SSOController::class, 'logoutSSO'])->name('sso.logout');
+    Route::get('/sso/search-username', [SSOController::class, 'lookupPegawai'])->name('sso.search-username');
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
@@ -39,7 +40,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/all-komoditas', [KomoditasController::class, 'getAllKomoditas']);
     Route::get('/all-wilayah', [WilayahController::class, 'getAllWilayah']);
     Route::get('/segmented-wilayah', [WilayahController::class, 'getSegmentedWilayah']);
-    Route::get('/rekonsiliasi/user-provinsi', [UserController::class, 'getProvinsi'])->name('rekon.get_provinsi');
+    Route::get('/rekonsiliasi/user-provinsi', [UserController::class, 'getUserWilayah'])->name('rekon.get_provinsi');
     Route::get('/bulan-tahun', [BulanTahunController::class, 'get']);
 });
 
@@ -50,15 +51,17 @@ Route::middleware('auth')->group(function () {
     // Route::post('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
 });
 
-Route::middleware(['pusat'])->group(function () {
+Route::middleware(['admin'])->group(function () {
     // User management routes
     Route::get('/users', [UserController::class, 'index'])->name('user.index');
     Route::get('/user', [UserController::class, 'getUsers']);
     Route::post('/user', [UserController::class, 'store']);
-    Route::put('/user/{user_id}', [UserController::class, 'update']);
+    Route::put('/user/{user_id}', [UserController::class, 'edit']);
     Route::delete('/user/{user_id}', [UserController::class, 'destroy']);
     Route::get('/api/check-username', [RegisteredUserController::class, 'checkUsername']);
+});
 
+Route::middleware(['pusat'])->group(function () {
     // upload
     Route::get('/data/upload', [InflasiController::class, 'create'])->name('data.create');
     Route::post('/data/upload', [InflasiController::class, 'upload'])->name('data.upload');
@@ -128,11 +131,6 @@ Route::middleware('auth')->group(function () {
     // so far isi pengaturan hanyalah bulantahun
     Route::get('/pengaturan', [BulanTahunController::class, 'pengaturan'])->name('pengaturan');
 });
-
-
-
-
-
 
 
 // Unused

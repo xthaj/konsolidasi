@@ -41,7 +41,7 @@
                 </li>
 
                 <!-- Administrasi -->
-                @if (auth()->user()->isPusat())
+                @if (auth()->user()->isAdmin())
                 <li>
                     <button id="dropdownNavbarLink4" data-dropdown-toggle="dropdownAkun" class="flex items-center justify-between w-full py-2 px-3 rounded-sm md:p-0 md:w-auto {{ request()->routeIs('user.index') ? 'text-primary-700' : 'text-gray-900 hover:bg-gray-100 md:hover:bg-transparent md:hover:text-primary-700' }}">Administrasi
                         <span class="material-symbols-rounded">keyboard_arrow_down</span>
