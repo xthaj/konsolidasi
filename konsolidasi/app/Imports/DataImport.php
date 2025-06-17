@@ -15,6 +15,9 @@ use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Exception;
+use Illuminate\Support\Facades\Cache;
+use Maatwebsite\Excel\Concerns\WithEvents;
+use Maatwebsite\Excel\Events\AfterImport;
 
 /**
  * Imports Excel data into the Inflasi table, with optional Rekonsiliasi record creation.
@@ -33,7 +36,7 @@ use Exception;
  * - Provides a summary of inserted, updated, Rekonsiliasi created, and failed rows.
  */
 
-class DataImport implements ToCollection, WithHeadingRow, WithChunkReading
+class DataImport implements ToCollection, WithHeadingRow, WithChunkReading, WithEvents
 {
     /**
      * @var array List of valid `kd_wilayah` codes from the Wilayah table.
@@ -112,6 +115,12 @@ class DataImport implements ToCollection, WithHeadingRow, WithChunkReading
     private int $skippedRekonsiliasiCount = 0;
 
     /**
+     * Initialize with timeout tracking
+     */
+    private float $startTime;
+    private float $maxExecutionTime;
+
+    /**
      * Constructor to initialize the import process.
      *
      * @param int $bulan The month (1-12) for the import.
@@ -121,6 +130,9 @@ class DataImport implements ToCollection, WithHeadingRow, WithChunkReading
 
     public function __construct(int $bulan, int $tahun, string $level)
     {
+        $this->maxExecutionTime = (float) ini_get('max_execution_time') ?: 30; // Default to 30 seconds
+        $this->startTime = microtime(true);
+
         // Load valid codes for validation
         $this->validKdWilayah = Wilayah::pluck('kd_wilayah')->toArray();
         $this->validKdKomoditas = Komoditas::pluck('kd_komoditas')->toArray();
@@ -134,6 +146,25 @@ class DataImport implements ToCollection, WithHeadingRow, WithChunkReading
         // Initialize BulanTahun and load existing Inflasi records
         $this->initializeBulanTahun($bulan, $tahun);
         $this->loadExistingInflasi();
+    }
+
+    /**
+     * Check if execution time is nearing the limit
+     */
+    /**
+     * Check if execution time is nearing the limit
+     */
+    private function checkExecutionTime(): void
+    {
+        $elapsedTime = microtime(true) - $this->startTime;
+        $bufferTime = 5; // Seconds before maxExecutionTime to exit gracefully
+        if ($elapsedTime >= ($this->maxExecutionTime - $bufferTime)) {
+            $errorMessage = "Proses telah berjalan melebihi batas waktu maksimum yang diizinkan. Harap melanjutkan impor dari baris terakhir yang sukses";
+            $this->errors->add("row_{$this->rowNumber}", $errorMessage);
+            $this->failedRow = $this->rowNumber;
+            $this->stopProcessing = true;
+            // Log::error("Timeout error at row {$this->rowNumber}: {$errorMessage}");
+        }
     }
 
     /**
@@ -173,9 +204,11 @@ class DataImport implements ToCollection, WithHeadingRow, WithChunkReading
      */
     public function collection(Collection $rows): void
     {
+        $this->checkExecutionTime();
+
         // Skip processing if a previous error or stop condition was triggered
         if ($this->stopProcessing) {
-            Log::info("Skipping chunk due to previous stop condition");
+            // Log::info("Skipping chunk due to previous stop condition");
             return;
         }
 
@@ -186,6 +219,7 @@ class DataImport implements ToCollection, WithHeadingRow, WithChunkReading
 
         foreach ($rows as $row) {
             $this->rowNumber++;
+            $this->checkExecutionTime();
 
             // Check for empty kd_wilayah (indicates EOF)
             $kd_wilayah = trim($row['kd_wilayah'] ?? '');
@@ -231,6 +265,7 @@ class DataImport implements ToCollection, WithHeadingRow, WithChunkReading
 
     private function validateAndPrepareRow(Collection $row, array &$inserts, array &$updates): void
     {
+
         $kd_wilayah = trim($row['kd_wilayah'] ?? '');
         if ($kd_wilayah === '') {
             $this->throwError("kd_wilayah kosong");
@@ -254,10 +289,6 @@ class DataImport implements ToCollection, WithHeadingRow, WithChunkReading
             $this->throwError("kd_komoditas '$kd_komoditasRaw' harus berupa bilangan bulat");
         }
         $kd_komoditas = (int) $kd_komoditasRaw;
-        // Ensure non-negative for unsignedInteger
-        if ($kd_komoditas < 0) {
-            $this->throwError("kd_komoditas '$kd_komoditas' tidak valid, harus non-negatif");
-        }
         // Check if valid and exists in komoditas table
         if (!in_array($kd_komoditas, $this->validKdKomoditas, true)) {
             $this->throwError("kd_komoditas '$kd_komoditas' tidak valid atau tidak ditemukan");
@@ -341,7 +372,9 @@ class DataImport implements ToCollection, WithHeadingRow, WithChunkReading
 
     private function processBulk(array $inserts, array $updates): void
     {
-        Log::info("Bulk processing: " . count($inserts) . " inserts, " . count($updates) . " updates");
+        $this->checkExecutionTime();
+
+        // Log::info("Bulk processing: " . count($inserts) . " inserts, " . count($updates) . " updates");
 
         DB::beginTransaction();
         try {
@@ -352,7 +385,7 @@ class DataImport implements ToCollection, WithHeadingRow, WithChunkReading
             $wilayahFlags = Wilayah::whereIn('flag', [1, 3])
                 ->pluck('flag', 'kd_wilayah')
                 ->toArray();
-            Log::debug("Preloaded " . count($wilayahFlags) . " Wilayah records with flag 1 or 3");
+            // Log::debug("Preloaded " . count($wilayahFlags) . " Wilayah records with flag 1 or 3");
 
             // Handle inserts
             if (!empty($inserts)) {
@@ -450,7 +483,7 @@ class DataImport implements ToCollection, WithHeadingRow, WithChunkReading
                     }
                 }
                 $this->updatedCount += $updatedRows;
-                Log::debug("Updated {$updatedRows} rows, total updated: {$this->updatedCount}");
+                // Log::debug("Updated {$updatedRows} rows, total updated: {$this->updatedCount}");
             }
 
             // Process Rekonsiliasi records, preventing duplicates
@@ -473,7 +506,7 @@ class DataImport implements ToCollection, WithHeadingRow, WithChunkReading
                 if (!empty($rekonsiliasiData)) {
                     Rekonsiliasi::insert(array_values($rekonsiliasiData));
                     $this->rekonsiliasiCreatedCount += count($rekonsiliasiData);
-                    Log::debug("Inserted " . count($rekonsiliasiData) . " Rekonsiliasi records");
+                    // Log::debug("Inserted " . count($rekonsiliasiData) . " Rekonsiliasi records");
                 }
             }
 
@@ -483,16 +516,16 @@ class DataImport implements ToCollection, WithHeadingRow, WithChunkReading
             // }
 
             DB::commit();
-            Log::debug("Transaction committed");
+            // Log::debug("Transaction committed");
 
             // Stop processing if the chunk is smaller than CHUNK_SIZE (end of data)
             if (count($inserts) + count($updates) < self::CHUNK_SIZE) {
                 $this->stopProcessing = true;
-                Log::info("Stopping processing: chunk size " . (count($inserts) + count($updates)) . " < " . self::CHUNK_SIZE);
+                // Log::info("Stopping processing: chunk size " . (count($inserts) + count($updates)) . " < " . self::CHUNK_SIZE);
             }
         } catch (Exception $e) {
             DB::rollBack();
-            Log::error("Bulk processing failed: " . $e->getMessage());
+            // Log::error("Bulk processing failed: " . $e->getMessage());
             $this->throwError("Bulk error: " . $e->getMessage());
         }
     }
@@ -515,6 +548,18 @@ class DataImport implements ToCollection, WithHeadingRow, WithChunkReading
             'rekonsiliasi_created' => $this->rekonsiliasiCreatedCount,
             'skipped_rekonsiliasi' => $this->skippedRekonsiliasiCount, // Add skipped count
             'failed_row' => $this->failedRow,
+        ];
+    }
+
+    public function registerEvents(): array
+    {
+        return [
+            AfterImport::class => function (AfterImport $event) {
+                Log::info('Excel import completed', [
+                    'timestamp' => now(),
+                    'summary' => $this->getSummary()
+                ]);
+            }
         ];
     }
 }

@@ -15,11 +15,14 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
+
+
 use App\Imports\DataImport;
 use App\Models\BulanTahun;
 use App\Imports\FinalImport;
 use App\Models\Wilayah;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+
 
 class InflasiController extends Controller
 {
@@ -158,11 +161,11 @@ class InflasiController extends Controller
             // Handle import results
             return $this->handleImportResult($import, $summary, $validated);
         } catch (ValidationException $e) {
-            Log::error('Validation failed in upload', ['errors' => $e->errors()]);
+            Log::error('Validation gagal', ['errors' => $e->errors()]);
             return redirect()->back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
             Log::error('Import failed in upload', ['message' => $e->getMessage()]);
-            return redirect()->back()->withErrors(['file' => 'Error importing data: ' . $e->getMessage()]);
+            return redirect()->back()->withErrors(['file' => 'Terjadi kegagalan: ' . $e->getMessage()]);
         }
     }
 
