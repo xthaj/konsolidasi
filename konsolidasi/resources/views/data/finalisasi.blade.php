@@ -25,7 +25,7 @@
         </svg>
         <div>
             <span class="font-medium">Kesalahan:</span>
-            <ul class="mt-1.5 list-disc list-inside">
+            <ul class="mt-1.5">
                 @foreach ($errors->all() as $error)
                 <li>{{ $error }}</li>
                 @endforeach
@@ -41,7 +41,7 @@
         </svg>
         <div>
             <span class="font-medium">Berhasil:</span>
-            <ul class="mt-1.5 list-disc list-inside">
+            <ul class="mt-1.5">
                 @if(is_array(session('success')))
                 @foreach(session('success') as $line)
                 <li>{{ $line }}</li>
@@ -66,6 +66,7 @@
             <ul>
                 <li>1. Gunakan kode komoditas tanpa padding (contoh: 0, bukan 000)</li>
                 <li>2. Untuk kode wilayah nasional, gunakan 0 (jangan dikosongkan). Proses berhenti saat kode wilayah kosong.</li>
+                <li>3. Gunakan titik sebagai separator desimal (contoh: 1.23, bukan 1,23)</li>
             </ul>
             <div class="tooltip-arrow" data-popper-arrow></div>
         </div>

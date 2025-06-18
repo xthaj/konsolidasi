@@ -6,6 +6,7 @@ use App\Models\BulanTahun;
 use App\Models\Inflasi;
 use App\Models\Komoditas;
 use App\Models\Wilayah;
+use Exception;
 use Illuminate\Support\Collection;
 use Illuminate\Support\MessageBag;
 use Maatwebsite\Excel\Concerns\ToCollection;
@@ -13,8 +14,11 @@ use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Maatwebsite\Excel\Concerns\WithEvents;
+use Maatwebsite\Excel\Events\AfterImport;
+use App\Exceptions\EarlyHaltException;
 
-class FinalImport implements ToCollection, WithHeadingRow, WithChunkReading
+class FinalImport implements ToCollection, WithHeadingRow, WithChunkReading, WithEvents
 {
     /**
      * @var array List of valid `kd_wilayah` codes from the Wilayah table.
@@ -82,6 +86,17 @@ class FinalImport implements ToCollection, WithHeadingRow, WithChunkReading
     private const CHUNK_SIZE = 200;
 
     /**
+     * Initialize with timeout tracking
+     */
+    private float $startTime;
+    private float $maxExecutionTime;
+
+    /**
+     * @var array Wilayah flags (1 or 3) keyed by kd_wilayah.
+     */
+    private array $wilayahFlags;
+
+    /**
      * Constructor to initialize the import process.
      *
      * @param int $bulan The month (1-12) for the import.
@@ -91,9 +106,17 @@ class FinalImport implements ToCollection, WithHeadingRow, WithChunkReading
      */
     public function __construct(int $bulan, int $tahun, string $level, bool $debugMode = false)
     {
+        // Initialize timeout variables
+        $this->maxExecutionTime = (float) ini_get('max_execution_time') ?: 30; // Default to 30 seconds
+        $this->startTime = microtime(true);
+
         // Load valid codes for validation
         $this->validKdWilayah = Wilayah::pluck('kd_wilayah')->toArray();
         $this->validKdKomoditas = Komoditas::pluck('kd_komoditas')->toArray();
+
+        $this->wilayahFlags = Wilayah::whereIn('flag', [1, 3])
+            ->pluck('flag', 'kd_wilayah')
+            ->toArray();
 
         // Initialize error bag
         $this->errors = new MessageBag();
@@ -105,6 +128,22 @@ class FinalImport implements ToCollection, WithHeadingRow, WithChunkReading
         // Initialize BulanTahun and load existing Inflasi records
         $this->initializeBulanTahun($bulan, $tahun);
         $this->loadExistingInflasi();
+    }
+
+    /**
+     * Check if execution time is nearing the limit
+     */
+    private function checkExecutionTime(): void
+    {
+        $elapsedTime = microtime(true) - $this->startTime;
+        $bufferTime = 5; // Seconds before maxExecutionTime to exit gracefully
+        if ($elapsedTime >= ($this->maxExecutionTime - $bufferTime)) {
+            $errorMessage = "Proses telah berjalan melebihi batas waktu maksimum yang diizinkan. Harap melanjutkan impor dari baris terakhir yang sukses";
+            $this->errors->add("row_{$this->rowNumber}", $errorMessage);
+            $this->failedRow = $this->rowNumber;
+            $this->stopProcessing = true;
+            Log::error("Timeout error at row {$this->rowNumber}: {$errorMessage}");
+        }
     }
 
     /**
@@ -145,29 +184,42 @@ class FinalImport implements ToCollection, WithHeadingRow, WithChunkReading
     {
         // Skip processing if a previous error or stop condition was triggered
         if ($this->stopProcessing) {
-            Log::info("Skipping chunk due to previous stop condition at row {$this->rowNumber}");
+            // Log::info("Skipping chunk due to previous stop condition at row {$this->rowNumber}");
             return;
         }
 
-        Log::info("Processing chunk, rows: " . count($rows) . ", starting at row {$this->rowNumber}");
+        $this->checkExecutionTime();
+
+        // Log::info("Processing chunk, rows: " . count($rows) . ", starting at row {$this->rowNumber}");
 
         $updates = [];
 
         foreach ($rows as $row) {
             $this->rowNumber++;
+            $this->checkExecutionTime();
 
             // Check for empty kd wilayah (indicates EOF)
             $kd_wilayah = trim($row['kd_wilayah'] ?? '');
             if ($kd_wilayah === '') {
-                Log::info("Detected empty kd_wilayah (likely EOF) at row {$this->rowNumber}");
-                $this->stopProcessing = true;
-                break;
+                Log::info("Detected empty kd_wilayah (taken as EOF) at row {$this->rowNumber}");
+                $this->stopProcessing = true; // Set to ensure chunk halt
+                throw new EarlyHaltException("Import stopped at row {$this->rowNumber} due to empty kd_wilayah");
             }
 
             try {
                 $this->validateAndPrepareRow($row, $updates);
             } catch (\Exception $e) {
                 Log::error("Error at row {$this->rowNumber}: " . $e->getMessage());
+                $this->errors->add("row_{$this->rowNumber}", $e->getMessage());
+                $this->failedRow = $this->rowNumber;
+                $this->stopProcessing = true;
+                break;
+            } catch (\PhpOffice\PhpSpreadsheet\Exception $e) {
+                Log::error("PhpSpreadsheet error at row {$this->rowNumber}: " . $e->getMessage(), [
+                    'trace' => $e->getTraceAsString(),
+                ]);
+                $this->errors->add("row_{$this->rowNumber}", "File parsing error: " . $e->getMessage());
+                $this->failedRow = $this->rowNumber;
                 $this->stopProcessing = true;
                 break;
             }
@@ -186,6 +238,14 @@ class FinalImport implements ToCollection, WithHeadingRow, WithChunkReading
                     Log::error("Failed to process collected rows: " . $e->getMessage());
                 }
             }
+        }
+
+        // ADD: Halt chunk iteration for EOF or errors
+        if ($this->stopProcessing) {
+            throw new \Maatwebsite\Excel\Validators\ValidationException(
+                \Illuminate\Validation\ValidationException::withMessages($this->errors->toArray()),
+                []
+            );
         }
     }
 
@@ -322,7 +382,7 @@ class FinalImport implements ToCollection, WithHeadingRow, WithChunkReading
                 $this->stopProcessing = true;
                 Log::info("Stopping processing: chunk size " . count($updates) . " < " . self::CHUNK_SIZE);
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             Log::error("Bulk processing failed: " . $e->getMessage());
             $this->throwError("Bulk error: " . $e->getMessage());
@@ -351,7 +411,7 @@ class FinalImport implements ToCollection, WithHeadingRow, WithChunkReading
                 $this->updatedCount++;
                 Log::info("Debug: Successfully updated row {$this->rowNumber}");
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->errors->add("row_{$this->rowNumber}", "Update failed: " . $e->getMessage());
             $this->failedRow = $this->rowNumber;
             Log::error("Debug: Update failed at row {$this->rowNumber}: " . $e->getMessage(), [
@@ -392,6 +452,18 @@ class FinalImport implements ToCollection, WithHeadingRow, WithChunkReading
         return [
             'updated' => $this->updatedCount,
             'failed_row' => $this->failedRow,
+        ];
+    }
+
+    public function registerEvents(): array
+    {
+        return [
+            AfterImport::class => function (AfterImport $event) {
+                Log::info('Excel import completed', [
+                    'timestamp' => now(),
+                    'summary' => $this->getSummary()
+                ]);
+            }
         ];
     }
 }

@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
+use App\Exceptions\EarlyHaltException;
 
 
 use App\Imports\DataImport;
@@ -160,6 +161,10 @@ class InflasiController extends Controller
 
             // Handle import results
             return $this->handleImportResult($import, $summary, $validated);
+        } catch (\App\Exceptions\EarlyHaltException $e) {
+            Log::info("Import halted successfully: " . $e->getMessage());
+            $summary = $import->getSummary();
+            return $this->handleFinalImportResult($import, $summary, $validated);
         } catch (ValidationException $e) {
             Log::error('Validation gagal', ['errors' => $e->errors()]);
             return redirect()->back()->withErrors($e->errors())->withInput();
@@ -206,7 +211,7 @@ class InflasiController extends Controller
         $message = "$title berhasil diimpor: {$inserted} data baru ditambahkan, {$updated} data diperbarui, {$rekonsiliasi_created} komoditas rekonsiliasi ditambahkan";
         // Append skipped Rekonsiliasi message
         if ($skipped_rekonsiliasi > 0) {
-            $message .= ", {$skipped_rekonsiliasi} komoditas rekonsiliasi di-skip karena rekonsiliasi di level nasional, atau rekonsiliasi di kabupaten/kota untuk level harga selain HK";
+            $message .= ", {$skipped_rekonsiliasi} komoditas rekonsiliasi dilewati karena rekonsiliasi di level nasional, rekonsiliasi di kabupaten/kota untuk level harga selain HK, atau sudah ada di sistem.";
         }
         $message .= "."; // Ensure consistent punctuation
         return redirect()->back()->with('success', $message);
@@ -315,6 +320,10 @@ class InflasiController extends Controller
 
             // Handle import results
             return $this->handleFinalImportResult($import, $summary, $validated);
+        } catch (\App\Exceptions\EarlyHaltException $e) {
+            Log::info("Import halted successfully: " . $e->getMessage());
+            $summary = $import->getSummary(); // ADD: Define summary
+            return $this->handleFinalImportResult($import, $summary, $validated); // EDIT: Use handleFinalImportResult
         } catch (ValidationException $e) {
             Log::error('Validation failed in final_upload', ['errors' => $e->errors()]);
             return redirect()->back()->withErrors($e->errors())->withInput();
@@ -551,8 +560,8 @@ class InflasiController extends Controller
                 'bulan' => 'required|integer|min:1|max:12',
                 'tahun' => 'required|integer',
                 'kd_level' => 'required|in:00,01,02,03,04,05',
-                'kd_wilayah' => 'required|string',
-                'kd_komoditas' => 'nullable|string',
+                'kd_wilayah' => 'required|integer|max:9999|exists:wilayah,kd_wilayah',
+                'kd_komoditas' => 'nullable|integer|max:99|exists:komoditas,kd_komoditas',
                 'sort' => 'in:kd_komoditas,nilai_inflasi',
                 'direction' => 'in:asc,desc',
             ]);

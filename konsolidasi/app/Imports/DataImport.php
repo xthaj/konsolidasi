@@ -18,6 +18,7 @@ use Exception;
 use Illuminate\Support\Facades\Cache;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Events\AfterImport;
+use App\Exceptions\EarlyHaltException;
 
 /**
  * Imports Excel data into the Inflasi table, with optional Rekonsiliasi record creation.
@@ -114,11 +115,17 @@ class DataImport implements ToCollection, WithHeadingRow, WithChunkReading, With
      */
     private int $skippedRekonsiliasiCount = 0;
 
+
     /**
      * Initialize with timeout tracking
      */
     private float $startTime;
     private float $maxExecutionTime;
+
+    /**
+     * @var array Wilayah flags (1 or 3) keyed by kd_wilayah.
+     */
+    private array $wilayahFlags;
 
     /**
      * Constructor to initialize the import process.
@@ -136,6 +143,9 @@ class DataImport implements ToCollection, WithHeadingRow, WithChunkReading, With
         // Load valid codes for validation
         $this->validKdWilayah = Wilayah::pluck('kd_wilayah')->toArray();
         $this->validKdKomoditas = Komoditas::pluck('kd_komoditas')->toArray();
+        $this->wilayahFlags = Wilayah::whereIn('flag', [1, 3])
+            ->pluck('flag', 'kd_wilayah')
+            ->toArray();
 
         // Initialize error bag
         $this->errors = new MessageBag();
@@ -204,15 +214,15 @@ class DataImport implements ToCollection, WithHeadingRow, WithChunkReading, With
      */
     public function collection(Collection $rows): void
     {
-        $this->checkExecutionTime();
 
         // Skip processing if a previous error or stop condition was triggered
         if ($this->stopProcessing) {
             // Log::info("Skipping chunk due to previous stop condition");
             return;
         }
+        $this->checkExecutionTime();
 
-        Log::info("Processing chunk, rows: " . count($rows) . ", starting at row {$this->rowNumber}");
+        // Log::info("Processing chunk, rows: " . count($rows) . ", starting at row {$this->rowNumber}");
 
         $inserts = [];
         $updates = [];
@@ -224,17 +234,25 @@ class DataImport implements ToCollection, WithHeadingRow, WithChunkReading, With
             // Check for empty kd_wilayah (indicates EOF)
             $kd_wilayah = trim($row['kd_wilayah'] ?? '');
             if ($kd_wilayah === '') {
-                Log::info("Detected empty kd_wilayah (likely EOF) at row {$this->rowNumber}");
-                $this->stopProcessing = true;
-                break;
+                // Log::info("Detected empty kd_wilayah (taken as EOF) at row {$this->rowNumber}");
+                $this->stopProcessing = true; // Set to ensure chunk halt
+                throw new EarlyHaltException("Import stopped at row {$this->rowNumber} due to empty kd_wilayah");
             }
 
             try {
                 $this->validateAndPrepareRow($row, $inserts, $updates);
-            } catch (Exception $e) {
-                // $this->errors->add("row_{$this->rowNumber}", $e->getMessage());
+            } catch (\Exception $e) {
                 Log::error("Error at row {$this->rowNumber}: " . $e->getMessage());
-                // Stop processing any more rows in this chunk
+                $this->errors->add("row_{$this->rowNumber}", $e->getMessage());
+                $this->failedRow = $this->rowNumber;
+                $this->stopProcessing = true;
+                break;
+            } catch (\PhpOffice\PhpSpreadsheet\Exception $e) {
+                Log::error("PhpSpreadsheet error at row {$this->rowNumber}: " . $e->getMessage(), [
+                    'trace' => $e->getTraceAsString(),
+                ]);
+                $this->errors->add("row_{$this->rowNumber}", "File parsing error: " . $e->getMessage());
+                $this->failedRow = $this->rowNumber;
                 $this->stopProcessing = true;
                 break;
             }
@@ -280,6 +298,11 @@ class DataImport implements ToCollection, WithHeadingRow, WithChunkReading, With
             $this->throwError("kd_wilayah '$kd_wilayah' tidak valid");
         }
 
+        // Check for flag = 3 and kd_level != '01'
+        $wilayahFlag = $this->wilayahFlags[$kd_wilayah] ?? null;
+        if (($wilayahFlag === 3 || (is_string($wilayahFlag) && $wilayahFlag === '3')) && $this->level !== '01') {
+            $this->throwError("Pembuatan inflasi kabupaten/kota untuk kd_wilayah {$kd_wilayah} tidak diizinkan dengan level harga selain HK");
+        }
         // Validate kd_komoditas
         if (is_null($kd_komoditasRaw) || $kd_komoditasRaw === '') {
             $this->throwError('kd_komoditas kosong');
@@ -382,7 +405,7 @@ class DataImport implements ToCollection, WithHeadingRow, WithChunkReading, With
             $now = now();
 
             // Preload Wilayah flags to check flag = 1 (exclude) and flag = 3 (restrict for kd_level != '01')
-            $wilayahFlags = Wilayah::whereIn('flag', [1, 3])
+            $wilayahFlags = Wilayah::whereIn('flag', [1])
                 ->pluck('flag', 'kd_wilayah')
                 ->toArray();
             // Log::debug("Preloaded " . count($wilayahFlags) . " Wilayah records with flag 1 or 3");
@@ -421,13 +444,8 @@ class DataImport implements ToCollection, WithHeadingRow, WithChunkReading, With
                     if ($keyData['rekonsiliasi_flag'] === '1') {
                         // Check Wilayah flag
                         $wilayahFlag = $wilayahFlags[$keyData['kd_wilayah']] ?? null;
-                        if ($wilayahFlag === 1) {
+                        if ($wilayahFlag === 1 || (is_string($wilayahFlag) && $wilayahFlag === '1')) {
                             // Log::debug("Skipping Rekonsiliasi for kd_wilayah {$keyData['kd_wilayah']} (flag = 1)");
-                            $this->skippedRekonsiliasiCount++;
-                            continue;
-                        }
-                        if ($wilayahFlag === 3 && $this->level !== '01') {
-                            // Log::debug("Skipping Rekonsiliasi for kd_wilayah {$keyData['kd_wilayah']} (flag = 3, kd_level != '01')");
                             $this->skippedRekonsiliasiCount++;
                             continue;
                         }
@@ -496,11 +514,18 @@ class DataImport implements ToCollection, WithHeadingRow, WithChunkReading, With
                     ->pluck('inflasi_id')
                     ->toArray();
 
-                // Filter out existing Rekonsiliasi records
+                // Count skipped duplicates before filtering
+                $initialCount = count($rekonsiliasiData);
                 $rekonsiliasiData = array_filter(
                     $rekonsiliasiData,
                     fn($data) => !in_array($data['inflasi_id'], $existingRekonsiliasiIds)
                 );
+                $skippedDuplicates = $initialCount - count($rekonsiliasiData);
+                if ($skippedDuplicates > 0) {
+                    $this->skippedRekonsiliasiCount += $skippedDuplicates;
+                    // Log::debug("Skipped {$skippedDuplicates} Rekonsiliasi records due to existing entries");
+                }
+
 
                 // Insert new Rekonsiliasi records
                 if (!empty($rekonsiliasiData)) {

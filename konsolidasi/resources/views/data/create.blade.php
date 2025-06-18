@@ -67,6 +67,7 @@
                 <li>1. Gunakan kode komoditas tanpa padding (contoh: 0, bukan 000)</li>
                 <li>2. Untuk kode wilayah nasional, gunakan 0 (jangan dikosongkan). Proses berhenti saat kode wilayah kosong.</li>
                 <li>3. Gunakan kode 1 untuk membuat rekonsiliasi, 0 untuk tidak membuat rekonsiliasi</li>
+                <li>4. Gunakan titik sebagai separator desimal (contoh: 1.23, bukan 1,23)</li>
             </ul>
             <div class="tooltip-arrow" data-popper-arrow></div>
         </div>
@@ -89,7 +90,7 @@
 
             <!-- Tahun -->
             <div>
-                <label class="block mb-2 text-sm font-medium text-gray-900">Tahun<span class="text-red-500 ml-1">*</span></label>
+                <label class="block mb-2 text-sm font-medium text-gray-900">Tahun</label>
                 <select name="tahun" x-model="tahun" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                     <template x-for="year in tahunOptions" :key="year">
                         <option :value="year" :selected="year == tahun" x-text="year"></option>
