@@ -231,19 +231,10 @@ class DataImport implements ToCollection, WithHeadingRow, WithChunkReading, With
             $this->rowNumber++;
             $this->checkExecutionTime();
 
-            // Check for empty kd_wilayah (indicates EOF)
-            $kd_wilayah = trim($row['kd_wilayah'] ?? '');
-            if ($kd_wilayah === '') {
-                // Log::info("Detected empty kd_wilayah (taken as EOF) at row {$this->rowNumber}");
-                $this->stopProcessing = true; // Set to ensure chunk halt
-                throw new EarlyHaltException("Import stopped at row {$this->rowNumber} due to empty kd_wilayah");
-            }
-
             try {
                 $this->validateAndPrepareRow($row, $inserts, $updates);
             } catch (\Exception $e) {
                 Log::error("Error at row {$this->rowNumber}: " . $e->getMessage());
-                $this->errors->add("row_{$this->rowNumber}", $e->getMessage());
                 $this->failedRow = $this->rowNumber;
                 $this->stopProcessing = true;
                 break;
@@ -256,14 +247,22 @@ class DataImport implements ToCollection, WithHeadingRow, WithChunkReading, With
                 $this->stopProcessing = true;
                 break;
             }
+
+            if ($this->stopProcessing) {
+                // Log::info("Stopping row processing in chunk at row {$this->rowNumber}");
+                break;
+            }
         }
 
         // Process whatever rows were valid before the first error
         if (!empty($inserts) || !empty($updates)) {
             try {
                 $this->processBulk($inserts, $updates);
-            } catch (Exception $e) {
-                Log::error("Failed to process collected rows: " . $e->getMessage());
+            } catch (\Exception $e) {
+                Log::error("Error during bulk processing: " . $e->getMessage());
+                $this->errors->add("bulk_error", "Gagal memproses data: " . $e->getMessage());
+                $this->failedRow = $this->rowNumber;
+                $this->stopProcessing = true;
             }
         }
     }
@@ -286,8 +285,10 @@ class DataImport implements ToCollection, WithHeadingRow, WithChunkReading, With
 
         $kd_wilayah = trim($row['kd_wilayah'] ?? '');
         if ($kd_wilayah === '') {
-            $this->throwError("kd_wilayah kosong");
+            $this->stopProcessing = true;
+            return;
         }
+
         $kd_komoditasRaw = trim($row['kd_komoditas'] ?? '');
         $nilai_inflasiRaw = trim($row['inflasi'] ?? '');
         $andilRaw = trim($row['andil'] ?? '');
@@ -379,6 +380,7 @@ class DataImport implements ToCollection, WithHeadingRow, WithChunkReading, With
         $this->failedRow = $this->rowNumber;
         throw new Exception("Kegagalan di baris {$this->rowNumber}: $message");
     }
+
 
     /**
      * Processes bulk inserts and updates for Inflasi and creates Rekonsiliasi records.
@@ -534,11 +536,6 @@ class DataImport implements ToCollection, WithHeadingRow, WithChunkReading, With
                     // Log::debug("Inserted " . count($rekonsiliasiData) . " Rekonsiliasi records");
                 }
             }
-
-            // Log warning for skipped Rekonsiliasi records
-            // if ($this->skippedRekonsiliasiCount > 0) {
-            //     Log::warning("Total rekonsiliasi skipped: {$this->skippedRekonsiliasiCount}");
-            // }
 
             DB::commit();
             // Log::debug("Transaction committed");

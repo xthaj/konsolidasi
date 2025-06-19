@@ -184,13 +184,13 @@ class FinalImport implements ToCollection, WithHeadingRow, WithChunkReading, Wit
     {
         // Skip processing if a previous error or stop condition was triggered
         if ($this->stopProcessing) {
-            // Log::info("Skipping chunk due to previous stop condition at row {$this->rowNumber}");
+            Log::info("Skipping chunk due to previous stop condition at row {$this->rowNumber}");
             return;
         }
 
         $this->checkExecutionTime();
 
-        // Log::info("Processing chunk, rows: " . count($rows) . ", starting at row {$this->rowNumber}");
+        Log::info("Processing chunk, rows: " . count($rows) . ", starting at row {$this->rowNumber}");
 
         $updates = [];
 
@@ -198,22 +198,13 @@ class FinalImport implements ToCollection, WithHeadingRow, WithChunkReading, Wit
             $this->rowNumber++;
             $this->checkExecutionTime();
 
-            // Check for empty kd wilayah (indicates EOF)
-            $kd_wilayah = trim($row['kd_wilayah'] ?? '');
-            if ($kd_wilayah === '') {
-                Log::info("Detected empty kd_wilayah (taken as EOF) at row {$this->rowNumber}");
-                $this->stopProcessing = true; // Set to ensure chunk halt
-                throw new EarlyHaltException("Import stopped at row {$this->rowNumber} due to empty kd_wilayah");
-            }
-
             try {
                 $this->validateAndPrepareRow($row, $updates);
             } catch (\Exception $e) {
                 Log::error("Error at row {$this->rowNumber}: " . $e->getMessage());
-                $this->errors->add("row_{$this->rowNumber}", $e->getMessage());
                 $this->failedRow = $this->rowNumber;
                 $this->stopProcessing = true;
-                break;
+                break; // Stop processing further rows in this chunk
             } catch (\PhpOffice\PhpSpreadsheet\Exception $e) {
                 Log::error("PhpSpreadsheet error at row {$this->rowNumber}: " . $e->getMessage(), [
                     'trace' => $e->getTraceAsString(),
@@ -223,9 +214,15 @@ class FinalImport implements ToCollection, WithHeadingRow, WithChunkReading, Wit
                 $this->stopProcessing = true;
                 break;
             }
+
+            // If stopProcessing was set (e.g., by empty kd_wilayah), break the loop
+            if ($this->stopProcessing) {
+                // Log::info("Stopping row processing in chunk at row {$this->rowNumber}");
+                break;
+            }
         }
 
-        // Process valid rows before any error
+        // Process valid rows before any error or stop condition
         if (!empty($updates)) {
             if ($this->debugMode) {
                 foreach ($updates as $update) {
@@ -235,19 +232,15 @@ class FinalImport implements ToCollection, WithHeadingRow, WithChunkReading, Wit
                 try {
                     $this->processBulk($updates);
                 } catch (\Exception $e) {
-                    Log::error("Failed to process collected rows: " . $e->getMessage());
+                    Log::error("Error during bulk processing: " . $e->getMessage());
+                    $this->errors->add("bulk_error", "Gagal memproses data: " . $e->getMessage());
+                    $this->failedRow = $this->rowNumber;
+                    $this->stopProcessing = true;
                 }
             }
         }
-
-        // ADD: Halt chunk iteration for EOF or errors
-        if ($this->stopProcessing) {
-            throw new \Maatwebsite\Excel\Validators\ValidationException(
-                \Illuminate\Validation\ValidationException::withMessages($this->errors->toArray()),
-                []
-            );
-        }
     }
+
 
     /**
      * Validates a single row and prepares data for Inflasi.
@@ -257,7 +250,6 @@ class FinalImport implements ToCollection, WithHeadingRow, WithChunkReading, Wit
      * for insert or update.
      *
      * @param Collection $row The Excel row data.
-     * @param array &$inserts Array to store new Inflasi records.
      * @param array &$updates Array to store updates for existing Inflasi records.
      * @throws \Exception If validation fails.
      */
@@ -265,8 +257,13 @@ class FinalImport implements ToCollection, WithHeadingRow, WithChunkReading, Wit
     {
         $kd_wilayah = trim($row['kd_wilayah'] ?? '');
         if ($kd_wilayah === '') {
-            $this->throwError("kd_wilayah kosong");
+            // Log::info("Detected empty kd_wilayah (taken as EOF) at row {$this->rowNumber}");
+            // $this->errors->add("row_{$this->rowNumber}", "kd_wilayah kosong (dianggap akhir data)");
+            // $this->failedRow = $this->rowNumber;
+            $this->stopProcessing = true;
+            return; // Exit early without throwing to allow processing of prior rows
         }
+
         $kd_komoditasRaw = trim($row['kd_komoditas'] ?? '');
         $final_inflasiRaw = trim($row['final_inflasi'] ?? '');
         $final_andilRaw = trim($row['final_andil'] ?? '');
@@ -316,7 +313,7 @@ class FinalImport implements ToCollection, WithHeadingRow, WithChunkReading, Wit
         $this->seenKeys[$key] = true;
 
         if (!isset($this->existingInflasi[$key])) {
-            $this->throwError("No existing Inflasi record for kd_komoditas-kd_wilayah {$key} at row {$this->rowNumber}"); //edit
+            $this->throwError("Tidak ada inflasi untuk kombinasi kd_komoditas-kd_wilayah {$key} di baris {$this->rowNumber}");
         }
 
         $updates[] = [
@@ -340,7 +337,7 @@ class FinalImport implements ToCollection, WithHeadingRow, WithChunkReading, Wit
     {
         $this->errors->add("row_{$this->rowNumber}", $message);
         $this->failedRow = $this->rowNumber;
-        throw new \Exception("Kegagalan di baris {$this->rowNumber}: $message");
+        throw new Exception("Kegagalan di baris {$this->rowNumber}: $message");
     }
 
     /**
@@ -459,7 +456,7 @@ class FinalImport implements ToCollection, WithHeadingRow, WithChunkReading, Wit
     {
         return [
             AfterImport::class => function (AfterImport $event) {
-                Log::info('Excel import completed', [
+                Log::info('Excel final import completed', [
                     'timestamp' => now(),
                     'summary' => $this->getSummary()
                 ]);

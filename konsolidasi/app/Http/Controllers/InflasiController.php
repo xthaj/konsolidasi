@@ -22,6 +22,7 @@ use App\Imports\DataImport;
 use App\Models\BulanTahun;
 use App\Imports\FinalImport;
 use App\Models\Wilayah;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 
@@ -159,12 +160,11 @@ class InflasiController extends Controller
             Excel::import($import, $request->file('file'));
             $summary = $import->getSummary();
 
-            // Handle import results
-            return $this->handleImportResult($import, $summary, $validated);
+            return $this->handleImportResult($import, $summary, $validated, false); // Pass false for regular import
         } catch (\App\Exceptions\EarlyHaltException $e) {
             Log::info("Import halted successfully: " . $e->getMessage());
             $summary = $import->getSummary();
-            return $this->handleFinalImportResult($import, $summary, $validated);
+            return $this->handleImportResult($import, $summary, $validated, false);
         } catch (ValidationException $e) {
             Log::error('Validation gagal', ['errors' => $e->errors()]);
             return redirect()->back()->withErrors($e->errors())->withInput();
@@ -175,29 +175,44 @@ class InflasiController extends Controller
     }
 
     /**
-     * Handle the results of the import process and return a response.
+     * Handle the results of an import process and return a response.
      *
      * Displays a success message with the import summary, including inserted, updated,
-     * created, and skipped Rekonsiliasi counts. If errors exist, calls handleImportErrors.
+     * and optional Rekonsiliasi counts. If errors exist, handles them with a detailed error message.
+     *
+     * @param mixed $import The import instance (DataImport or FinalImport).
+     * @param array $summary The import summary from getSummary().
+     * @param array $validated The validated request data.
+     * @param bool $isFinalImport Whether this is a final import (affects message and fields).
+     * @return \Illuminate\Http\RedirectResponse
      */
-    private function handleImportResult(DataImport $import, array $summary, array $validated)
+    private function handleImportResult($import, array $summary, array $validated, bool $isFinalImport = false)
     {
         $errors = $import->getErrors()->all();
-        $inserted = $summary['inserted'];
-        $updated = $summary['updated'];
-        $failedRow = $summary['failed_row'];
+        $inserted = $summary['inserted'] ?? 0;
+        $updated = $summary['updated'] ?? 0;
+        $failedRow = $summary['failed_row'] ?? null;
+        $rekonsiliasi_created = $summary['rekonsiliasi_created'] ?? 0;
+        $skipped_rekonsiliasi = $summary['skipped_rekonsiliasi'] ?? 0;
         $levelHarga = $validated['level'];
         $bulan = $validated['bulan'];
         $tahun = $validated['tahun'];
-        $rekonsiliasi_created = $summary['rekonsiliasi_created']; // Added Rekonsiliasi count
-        $skipped_rekonsiliasi = $summary['skipped_rekonsiliasi'] ?? 0; // Extract skipped count
 
         // Title prefix
-        $title = "Data " . BulanTahun::getBulanName($bulan) . " Tahun {$tahun} level " . LevelHarga::getLevelHargaNameComplete($levelHarga);
+        $titlePrefix = $isFinalImport ? "Data Final" : "Data";
+        $title = "$titlePrefix " . BulanTahun::getBulanName($bulan) . " Tahun {$tahun} level " . LevelHarga::getLevelHargaNameComplete($levelHarga);
 
-        // If there are errors, handle them
+        // If there are errors or a failed row, handle them
         if (!empty($errors) || $failedRow !== null) {
-            return $this->handleImportErrors($import, $summary, $levelHarga, $bulan, $tahun);
+            $errorMessage = "$title gagal diimpor";
+            $errorMessage .= $failedRow ? " pada baris {$failedRow}" : "";
+            $errorMessage .= ": " . (empty($errors) ? "Terjadi kesalahan tak terduga" : implode(', ', $errors)) . ". ";
+            if ($isFinalImport) {
+                $errorMessage .= "Sebelum kegagalan, {$updated} data final diperbarui.";
+            } else {
+                $errorMessage .= "Sebelum kegagalan, {$inserted} data baru ditambahkan, {$updated} data diperbarui, {$rekonsiliasi_created} rekonsiliasi dibuat.";
+            }
+            return redirect()->back()->withErrors(['file' => $errorMessage]);
         }
 
         // If no data was processed
@@ -208,41 +223,18 @@ class InflasiController extends Controller
         }
 
         // Success case
-        $message = "$title berhasil diimpor: {$inserted} data baru ditambahkan, {$updated} data diperbarui, {$rekonsiliasi_created} komoditas rekonsiliasi ditambahkan";
-        // Append skipped Rekonsiliasi message
-        if ($skipped_rekonsiliasi > 0) {
-            $message .= ", {$skipped_rekonsiliasi} komoditas rekonsiliasi dilewati karena rekonsiliasi di level nasional, rekonsiliasi di kabupaten/kota untuk level harga selain HK, atau sudah ada di sistem.";
+        $message = "$title berhasil diimpor: ";
+        if ($isFinalImport) {
+            $message .= "{$updated} data final berhasil diperbarui.";
+        } else {
+            $message .= "{$inserted} data baru ditambahkan, {$updated} data diperbarui, {$rekonsiliasi_created} komoditas rekonsiliasi ditambahkan";
+            if ($skipped_rekonsiliasi > 0) {
+                $message .= ", {$skipped_rekonsiliasi} komoditas rekonsiliasi dilewati karena rekonsiliasi di level nasional, rekonsiliasi di kabupaten/kota untuk level harga selain HK, atau sudah ada di sistem";
+            }
+            $message .= ".";
         }
-        $message .= "."; // Ensure consistent punctuation
+
         return redirect()->back()->with('success', $message);
-    }
-
-    /**
-     * Handle errors during import.
-     *
-     * @param DataImport $import
-     * @param array $summary
-     * @param string $levelHarga
-     * @param string $bulan
-     * @param int $tahun
-     * @return \Illuminate\Http\RedirectResponse
-     */
-    private function handleImportErrors(DataImport $import, array $summary, string $levelHarga, string $bulan, int $tahun)
-    {
-        $errors = $import->getErrors()->all();
-        $inserted = $summary['inserted'];
-        $updated = $summary['updated'];
-        $rekonsiliasi_created = $summary['rekonsiliasi_created'];
-        $failedRow = $summary['failed_row'];
-
-        // Title prefix for the error message
-        $title = "Data " . BulanTahun::getBulanName($bulan) . " Tahun {$tahun} level " . LevelHarga::getLevelHargaNameComplete($levelHarga);
-
-        // Build error message
-        $errorMessage = "$title gagal diimpor pada baris {$failedRow}: " . implode(', ', $errors) . ". ";
-        $errorMessage .= "Sebelum kegagalan, {$inserted} data baru ditambahkan, {$updated} data diperbarui, {$rekonsiliasi_created} rekonsiliasi dibuat.";
-
-        return redirect()->back()->withErrors(['file' => $errorMessage]);
     }
 
     /**
@@ -260,8 +252,11 @@ class InflasiController extends Controller
      */
     public function final_upload(Request $request)
     {
-        // Log the entire request for debugging
-        Log::debug('Final upload request received');
+        Log::debug('Final upload request received', [
+            'request' => $request->all(),
+            'has_file' => $request->hasFile('file'),
+            'file' => $request->file('file') ? $request->file('file')->getClientOriginalName() : 'No file',
+        ]);
 
         try {
             $rules = [
@@ -271,7 +266,6 @@ class InflasiController extends Controller
                 'level' => 'required|string|in:01,02,03,04,05',
             ];
 
-            // Custom validation messages
             $messages = [
                 'file.required' => 'File Excel wajib diunggah.',
                 'file.file' => 'File harus berupa dokumen.',
@@ -289,9 +283,10 @@ class InflasiController extends Controller
                 'level.in' => 'Level harga harus salah satu dari: 01, 02, 03, 04, atau 05.',
             ];
 
-            // Validate request
-
             $validated = $request->validate($rules, $messages);
+
+            ini_set('memory_limit', '512M');
+            ini_set('max_execution_time', 300);
 
             $bulanTahun = BulanTahun::where('bulan', $validated['bulan'])
                 ->where('tahun', $validated['tahun'])
@@ -301,11 +296,6 @@ class InflasiController extends Controller
                 return redirect()->back()->withErrors(['bulan' => 'Periode tidak ditemukan untuk bulan dan tahun yang dipilih.']);
             }
 
-            // Set PHP runtime limits
-            ini_set('memory_limit', '512M');
-            ini_set('max_execution_time', 300);
-
-            // Verify file is valid
             if (!$request->file('file')->isValid()) {
                 Log::error('File upload failed', [
                     'error' => $request->file('file')->getErrorMessage(),
@@ -313,17 +303,15 @@ class InflasiController extends Controller
                 return redirect()->back()->withErrors(['file' => 'File gagal diunggah: ' . $request->file('file')->getErrorMessage()])->withInput();
             }
 
-            // Perform import
             $import = new FinalImport($validated['bulan'], $validated['tahun'], $validated['level']);
             Excel::import($import, $request->file('file'));
             $summary = $import->getSummary();
 
-            // Handle import results
-            return $this->handleFinalImportResult($import, $summary, $validated);
+            return $this->handleImportResult($import, $summary, $validated, true); // Pass true for final import
         } catch (\App\Exceptions\EarlyHaltException $e) {
             Log::info("Import halted successfully: " . $e->getMessage());
-            $summary = $import->getSummary(); // ADD: Define summary
-            return $this->handleFinalImportResult($import, $summary, $validated); // EDIT: Use handleFinalImportResult
+            $summary = $import->getSummary();
+            return $this->handleImportResult($import, $summary, $validated, true);
         } catch (ValidationException $e) {
             Log::error('Validation failed in final_upload', ['errors' => $e->errors()]);
             return redirect()->back()->withErrors($e->errors())->withInput();
@@ -331,81 +319,6 @@ class InflasiController extends Controller
             Log::error('Import failed in final_upload', ['message' => $e->getMessage()]);
             return redirect()->back()->withErrors(['file' => 'Error importing data: ' . $e->getMessage()]);
         }
-    }
-
-    /**
-     * Handle the results of the final import process and return a response.
-     *
-     * Displays a success message with the import summary, including inserted and updated counts.
-     * If errors exist, calls handleFinalImportErrors.
-     *
-     * @param FinalImport $import The import instance.
-     * @param array $summary The import summary from getSummary().
-     * @param array $validated The validated request data.
-     * @return \Illuminate\Http\RedirectResponse
-     */
-    private function handleFinalImportResult(FinalImport $import, array $summary, array $validated)
-    {
-        $errors = $import->getErrors()->all();
-        $updated = $summary['updated'];
-        $failedRow = $summary['failed_row'];
-        $levelHarga = $validated['level'];
-        $bulan = $validated['bulan'];
-        $tahun = $validated['tahun'];
-
-        // Log the summary for debugging
-        Log::debug('Final import summary', [
-            'updated' => $updated,
-            'failed_row' => $failedRow,
-            'errors' => $errors,
-        ]);
-
-        // Title prefix
-        $title = "Data Final " . BulanTahun::getBulanName($bulan) . " Tahun {$tahun} level " . LevelHarga::getLevelHargaNameComplete($levelHarga);
-
-        // If there are errors, handle them
-        if (!empty($errors) || $failedRow !== null) {
-            return $this->handleFinalImportErrors($import, $summary, $levelHarga, $bulan, $tahun);
-        }
-
-        // If no data was processed
-        if ($updated === 0) {
-            return redirect()->back()->withErrors([
-                'file' => "$title gagal diimpor: Tidak ada data yang berhasil diimpor. Pastikan file Anda tidak kosong dan formatnya sesuai.",
-            ]);
-        }
-
-        // Success case
-        $message = "$title berhasil diimpor: {$updated} data final diperbarui.";
-        return redirect()->back()->with('success', $message);
-    }
-
-    /**
-     * Handle errors during final import.
-     *
-     * Builds an error message with details about the failed row and any processed data.
-     *
-     * @param FinalImport $import The import instance.
-     * @param array $summary The import summary.
-     * @param string $levelHarga The level harga code.
-     * @param int $bulan The month.
-     * @param int $tahun The year.
-     * @return \Illuminate\Http\RedirectResponse
-     */
-    private function handleFinalImportErrors(FinalImport $import, array $summary, string $levelHarga, int $bulan, int $tahun)
-    {
-        $errors = $import->getErrors()->all();
-        $updated = $summary['updated'];
-        $failedRow = $summary['failed_row'];
-
-        // Title prefix for the error message
-        $title = "Data Final " . BulanTahun::getBulanName($bulan) . " Tahun {$tahun} level " . LevelHarga::getLevelHargaNameComplete($levelHarga);
-
-        // Build error message
-        $errorMessage = "$title gagal diimpor pada baris {$failedRow}: " . implode(', ', $errors) . ". ";
-        $errorMessage .= "Sebelum kegagalan {$updated} data diperbarui.";
-
-        return redirect()->back()->withErrors(['file' => $errorMessage]);
     }
 
     /**
@@ -446,6 +359,9 @@ class InflasiController extends Controller
             $inflasi->update($updateData);
 
             DB::commit();
+
+            $cacheKey = 'rekonsiliasi_aktif';
+            Cache::forget($cacheKey);
 
             return response()->json([
                 'message' => 'Data inflasi berhasil diperbarui',
@@ -731,6 +647,9 @@ class InflasiController extends Controller
             // Find the Inflasi record or fail with a 404
             $inflasi = Inflasi::findOrFail($id);
             $inflasi->delete();
+
+            $cacheKey = 'rekonsiliasi_aktif';
+            Cache::forget($cacheKey);
 
             return response()->json([
                 'message' => 'Data inflasi berhasil dihapus.',
