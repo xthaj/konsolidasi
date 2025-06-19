@@ -138,7 +138,7 @@ Alpine.data("webData", () => ({
 
         this.confirmMessage = `Apakah Anda yakin ingin menghapus komoditas "${komoditas.nama_komoditas}"?`;
         this.confirmDetails =
-            "Seluruh inflasi & rekonsiliasi terkait juga akan terhapus dan tidak bisa dikembalikan.";
+            "Hanya bisa dilakukan apabila tidak ada inflasi terkait.";
         this.confirmAction = async () => {
             try {
                 const response = await fetch(`/komoditas/${kd_komoditas}`, {

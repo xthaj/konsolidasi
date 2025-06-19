@@ -41,8 +41,9 @@ class KomoditasController extends Controller
                 'nama_komoditas.max' => 'Nama komoditas tidak boleh melebihi 255 karakter.',
             ]);
 
-            // Find the last kd_komoditas, cast to integer, and increment
-            $lastKdKomoditas = Komoditas::max(DB::raw('CAST(kd_komoditas AS UNSIGNED)')) ?? 0;
+            // Find the last kd_komoditas and increment
+
+            $lastKdKomoditas = Komoditas::max('kd_komoditas') ?? 0;
             $newKdKomoditas = $lastKdKomoditas + 1;
 
             // Create the new komoditas
@@ -222,7 +223,7 @@ class KomoditasController extends Controller
         try {
             $data = Cache::remember('komoditas_data', now()->addHours(24), function () {
                 Log::info('Komoditas data fetched from database', ['timestamp' => now()]);
-                return Komoditas::orderBy('nama_komoditas', 'asc')->get();
+                return Komoditas::orderBy('kd_komoditas', 'asc')->get();
             });
 
             // edit here: Handle empty result
