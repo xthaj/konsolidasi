@@ -92,6 +92,8 @@
 
     <input type="hidden" name="kd_wilayah" x-model="kd_wilayah">
     <input type="hidden" name="level" x-model="level">
+    <input type="hidden" name="user_sso" value="0">
+
     <template x-if="errors.kd_wilayah && (wilayah_level === 'provinsi' || wilayah_level === 'kabkot')">
         <p class="mt-2 text-sm text-red-600">Satuan kerja belum dipilih.</p>
     </template>

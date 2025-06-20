@@ -21,6 +21,7 @@ class UserResource extends JsonResource
             'nama_lengkap' => $this->nama_lengkap,
             'level' => $this->level_nama,
             'kd_level' => $this->level,
+            'user_sso' => $this->user_sso,
         ];
     }
 }

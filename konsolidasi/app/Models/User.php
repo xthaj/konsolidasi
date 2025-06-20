@@ -165,5 +165,6 @@ class User extends Authenticatable
 
     protected $casts = [
         'level' => 'integer',
+        'user_sso' => 'integer',
     ];
 }

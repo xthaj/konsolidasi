@@ -221,7 +221,7 @@ class UserController extends Controller
             $query->orderBy('nama_lengkap', 'asc');
 
             // Paginate results
-            $users = $query->paginate(2);
+            $users = $query->paginate(100);
 
             // Handle empty results
             if ($users->isEmpty()) {

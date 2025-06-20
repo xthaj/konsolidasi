@@ -20,24 +20,22 @@ class UserService
     {
         $rules = [
             'nama_lengkap' => ['required', 'string', 'max:255'],
-            'username' => ['required', 'string', 'max:255', 'unique:user,username', 'regex:/^[a-zA-Z0-9_]+$/'],
-            'password' => ['required', 'string', 'min:6', 'max:255'],
+            'username' => ['required', 'string', 'max:255', 'unique:user,username'],
+            'password' => ['sometimes', 'required', 'string', 'min:6', 'max:255'],
             'kd_wilayah' => ['required', 'string', 'max:6'],
             'level' => ['required', 'integer', 'in:0,1,2,3,4,5'],
+            'user_sso' => ['required', 'boolean'],
         ];
 
-        // Custom error messages
         $messages = [
             'username.max' => 'Username terlalu panjang.',
             'username.unique' => 'Username sudah digunakan.',
-            'username.regex' => 'Username hanya boleh berisi huruf, angka, dan underscore.',
             'password.min' => 'Password minimal sepanjang 6 karakter.',
             'password.max' => 'Password terlalu panjang.',
             'kd_wilayah.required' => 'Satuan kerja belum dipilih.',
             'level.in' => 'Level pengguna tidak valid.',
         ];
 
-        // Validate request
         $validator = Validator::make($request->all(), $rules, $messages);
 
         if ($validator->fails()) {
@@ -51,20 +49,27 @@ class UserService
             ];
         }
 
-        // Create user
-        $user = User::create([
+        // Create user (conditionally include password)
+        $userData = [
             'username' => strtolower($request->username),
-            'password' => Hash::make($request->password),
             'nama_lengkap' => $request->nama_lengkap,
             'level' => $request->level,
             'kd_wilayah' => $request->kd_wilayah,
-        ]);
+            'user_sso' => $request->boolean('user_sso'),
+        ];
+
+        if (!$userData['user_sso']) {
+            $userData['password'] = Hash::make($request->password);
+        }
+
+        $user = User::create($userData);
 
         return [
             'success' => true,
             'user' => $user,
         ];
     }
+
 
     public function updateUser(int $userId, Request $request, bool $isApi = false): array
     {
