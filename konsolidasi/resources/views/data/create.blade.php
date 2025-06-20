@@ -68,6 +68,7 @@
                 <li>2. Untuk kode wilayah nasional, gunakan 0 (jangan dikosongkan). Proses berhenti saat kode wilayah kosong.</li>
                 <li>3. Gunakan kode 1 untuk membuat rekonsiliasi, 0 untuk tidak membuat rekonsiliasi</li>
                 <li>4. Gunakan titik sebagai separator desimal (contoh: 1.23, bukan 1,23)</li>
+                <li>5. Apabila kombinasi kode komoditas dan kode wilayah sudah terdapat di dalam sistem, maka data akan dihitung sebagai pembaruan, terlepas dari apakah nilai inflasi dan andilnya sama atau berbeda dengan data sebelumnya.</li>
             </ul>
             <div class="tooltip-arrow" data-popper-arrow></div>
         </div>

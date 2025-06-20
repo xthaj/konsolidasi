@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\Cache;
 // SSOController
 
 // Route::get('/test', function () {
-//     abort(506);
+//     abort(500);
 // });
 
 
@@ -28,6 +28,7 @@ use Illuminate\Support\Facades\Cache;
 Route::get('/sso/login', [SSOController::class, 'redirectToSSO'])->name('sso.login');
 Route::get('/sso/callback', [SSOController::class, 'handleSSOCallback'])->name('sso.callback');
 
+Route::get('/segmented-wilayah', [WilayahController::class, 'getSegmentedWilayah']);
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/sso/logout', [SSOController::class, 'logoutSSO'])->name('sso.logout');
@@ -39,7 +40,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/all-alasan', [AlasanController::class, 'getAllAlasan']);
     Route::get('/all-komoditas', [KomoditasController::class, 'getAllKomoditas']);
     Route::get('/all-wilayah', [WilayahController::class, 'getAllWilayah']);
-    Route::get('/segmented-wilayah', [WilayahController::class, 'getSegmentedWilayah']);
+
     Route::get('/rekonsiliasi/user-provinsi', [UserController::class, 'getUserWilayah'])->name('rekon.get_provinsi');
     Route::get('/bulan-tahun', [BulanTahunController::class, 'get']);
 });
@@ -48,7 +49,7 @@ Route::middleware('auth')->group(function () {
     // Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     // Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     // Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-    // Route::post('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
+    Route::post('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
 });
 
 Route::middleware(['admin'])->group(function () {

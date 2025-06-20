@@ -46,7 +46,7 @@
     <x-modal name="limit-error" focusable title="Kesalahan">
         <div class="px-6 py-4">
             <p>Terlalu banyak kombinasi yang dipilih (maksimal 100).</p>
-            <p class="mt-2">Tambah rekonsiliasi dapat dilakukan berkali-kali sampai Konfirmasi Rekonsiliasi.</p>
+            <p class="mt-2">Tambah rekonsiliasi dapat dilakukan berkali-kali sebelum dilakukan "Konfirmasi Rekonsiliasi".</p>
             <div class="mt-6 flex justify-end">
                 <x-secondary-button x-on:click="$dispatch('close')">Mengerti</x-secondary-button>
             </div>
@@ -253,7 +253,7 @@
                         <th scope="col" class="px-6 py-3">Kode Komoditas</th>
                         <th scope="col" class="px-6 py-3">Nama Komoditas</th>
                         <th scope="col" class="px-6 py-3">Level Harga</th>
-                        <th scope="col" class="px-6 py-3">Inflasi</th>
+                        <th scope="col" class="px-6 py-3">Inflasi (persen)</th>
                         <th scope="col" class="px-6 py-3"><span class="sr-only">Hapus</span></th>
                     </tr>
                 </thead>
@@ -266,8 +266,8 @@
                             <td class="px-6 py-4" x-text="item.kd_komoditas"></td>
                             <td class="px-6 py-4" x-text="item.nama_komoditas"></td>
                             <td class="px-6 py-4" x-text="item.nama_kd_level"></td>
-                            <td x-text="formatInflasi(item.nilai_inflasi)"></td>
-                            <td class="px-6 py-4 text-right">
+                            <td class="px-6 py-4 text-right" x-text="formatInflasi(item.nilai_inflasi)"></td>
+                            <td class="px-6 py-4 ">
                                 <button @click="removeRow(index)" class="font-medium text-red-600  hover:underline">Hapus</button>
                             </td>
                         </tr>

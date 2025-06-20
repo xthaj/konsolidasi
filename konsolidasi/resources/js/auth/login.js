@@ -10,7 +10,7 @@ Alpine.data("webData", () => ({
     async submitLogin() {
         this.error = "";
 
-        if (this.username.length < 5 || this.username.length > 20 || this.password.length < 6) {
+        if (this.username.length < 5 || this.username.length > 20 || this.password.length < 5) {
             // Simulate network delay
             await new Promise((resolve) => setTimeout(resolve, 600));
             this.error = "Kombinasi antara username dan password salah.";
@@ -32,6 +32,11 @@ Alpine.data("webData", () => ({
                     password: this.password,
                 }),
             });
+
+            if (response.status === 419) {
+                this.error = "Token kedaluwarsa. Harap reload halaman.";
+                return;
+            }
 
             if (!response.ok) {
                 const data = await response.json();

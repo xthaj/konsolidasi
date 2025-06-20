@@ -9,7 +9,7 @@
                 <!-- Bulan & Tahun -->
                 <div class="flex gap-4">
                     <div class="w-1/2">
-                        <label class="block mb-2 text-sm font-medium text-gray-900">Bulan<span class="text-red-500 ml-1">*</span></label>
+                        <label class="block mb-2 text-sm font-medium text-gray-900">Bulan</label>
                         <select name="bulan" x-model="bulan" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                             <template x-for="[nama, bln] in bulanOptions" :key="bln">
                                 <option :value="bln" :selected="bulan == bln" x-text="nama"></option>
@@ -17,7 +17,7 @@
                         </select>
                     </div>
                     <div class="w-1/2">
-                        <label class="block mb-2 text-sm font-medium text-gray-900">Tahun<span class="text-red-500 ml-1">*</span></label>
+                        <label class="block mb-2 text-sm font-medium text-gray-900">Tahun</label>
                         <select name="tahun" x-model="tahun" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                             <template x-for="year in tahunOptions" :key="year">
                                 <option :value="year" :selected="year == tahun" x-text="year"></option>
@@ -28,7 +28,7 @@
                 <p x-show="isActivePeriod" class="text-sm text-gray-500">Periode aktif</p>
 
                 <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-900">Level Harga<span class="text-red-500 ml-1">*</span></label>
+                    <label class="block mb-2 text-sm font-medium text-gray-900">Level Harga</label>
                     <select name="kd_level" x-model="pendingKdLevel" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                         <option value="01" :selected="pendingKdLevel == '01'">Harga Konsumen Kota</option>
                         <option value="02" :selected="pendingKdLevel == '02'">Harga Konsumen Desa</option>
@@ -38,7 +38,7 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-900">Level Wilayah<span class="text-red-500 ml-1">*</span></label>
+                    <label class="block mb-2 text-sm font-medium text-gray-900">Level Wilayah</label>
                     <select name="level_wilayah" x-model="wilayahLevel" @change="updateWilayahOptions" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                         <option value="semua" :disabled="pendingKdLevel !== '01'">Semua Provinsi dan Kab/Kota</option>
                         <option value="semua-provinsi">Semua Provinsi</option>
@@ -79,16 +79,16 @@
                     <select name="kd_komoditas" x-model="selectedKomoditas" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                         <option value="">Semua Komoditas</option>
                         <template x-for="komoditi in komoditas" :key="komoditi.kd_komoditas">
-                            <option :value="komoditi.kd_komoditas" x-text="komoditi.nama_komoditas" :selected="komoditi.kd_komoditas == selectedKomoditas"></option>
+                            <option :value="komoditi.kd_komoditas" x-text="komoditi.nama_komoditas"></option>
                         </template>
                     </select>
                 </div>
                 <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-900">Status Rekonsiliasi<span class="text-red-500 ml-1">*</span></label>
+                    <label class="block mb-2 text-sm font-medium text-gray-900">Status Rekonsiliasi</label>
                     <select name="status_rekon" x-model="status_rekon" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                         <option value="00" :selected="status_rekon == '00'">Semua Status</option>
-                        <option value="01" :selected="status_rekon == '01'">Sudah diisi</option>
-                        <option value="02" :selected="status_rekon == '02'">Belum diisi</option>
+                        <option value="02" :selected="status_rekon == '02'">Sudah diisi</option>
+                        <option value="01" :selected="status_rekon == '01'">Belum diisi</option>
                     </select>
                 </div>
                 <div x-show="errorMessage" class="my-2 text-sm text-red-600" x-text="errorMessage"></div>

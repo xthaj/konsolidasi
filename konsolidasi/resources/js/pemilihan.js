@@ -202,9 +202,11 @@ Alpine.data("webData", () => ({
 
     selectAllKomoditas(checked) {
         this.selectedKomoditas = checked
-            ? this.filteredKomoditas.map((k) => k.kd_komoditas)
+            ? this.filteredKomoditas.map((k) => String(k.kd_komoditas)) // Convert to string
             : [];
         this.selectAllKomoditasChecked = checked;
+        // console.log("Selected Komoditas:", this.selectedKomoditas);
+        // console.log("Type of first kd_komoditas:", typeof this.selectedKomoditas[0]);
     },
 
     updateSelectAllProvinces() {
@@ -296,6 +298,8 @@ Alpine.data("webData", () => ({
     },
 
     async addRow() {
+        this.errorMessage = "";
+
         if (!this.bulan || !this.tahun || !this.selectedKdLevel) {
             this.errorMessage = "Pilih bulan, tahun, dan level harga.";
             return;
@@ -317,7 +321,7 @@ Alpine.data("webData", () => ({
         );
 
         if (komoditasToAdd.length === 0) {
-            this.errorMessage = "Tidak ada komoditas yang valid dipilih.";
+            this.errorMessage = "Tidak ada komoditas yang dipilih.";
             return;
         }
 
@@ -358,7 +362,7 @@ Alpine.data("webData", () => ({
                     body: JSON.stringify(combinations),
                 },
                 "Data berhasil divalidasi",
-                true // Show success modal if no missing items
+                false
             );
 
             const { message, data } = result;
@@ -436,9 +440,16 @@ Alpine.data("webData", () => ({
             formData.append("inflasi_ids[]", item.inflasi_id);
             formData.append(
                 "bulan_tahun_ids[]",
-                parseInt(item.bulan_tahun_id, 10)
+                item.bulan_tahun_id
             );
         });
+
+         // Log FormData contents
+        // console.log("POST request to /rekonsiliasi/confirm - FormData contents:");
+        // for (const [key, value] of formData.entries()) {
+        //     console.log(`${key}: ${value}`);
+        // }
+        // console.log("Unique data items:", uniqueData);
 
         try {
             const result = await this.fetchWrapper(
@@ -469,7 +480,7 @@ Alpine.data("webData", () => ({
         if (value === '-' || value === null) return '-';
         const num = parseFloat(value);
         if (isNaN(num)) return '-';
-        return num.toFixed(2) + '%';
+        return num.toFixed(2);
     }
 }));
 

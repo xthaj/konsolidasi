@@ -57,6 +57,7 @@ Alpine.data("webData", () => ({
         selected_province: "",
         initial_role_label: "",
         is_admin: false,
+        user_sso:"",
         selected_kabkot: "",
         errors: {
             usernameLength: false,
@@ -123,7 +124,9 @@ Alpine.data("webData", () => ({
             this.isPusat = userData.is_pusat;
             this.isProvinsi = userData.is_provinsi;
             this.kd_wilayah = userData.kd_wilayah || "0";
+
             this.wilayahLevel = userData.wilayah_level;
+
             if (this.wilayahLevel === "provinsi") {
                 this.selectedProvince = userData.kd_wilayah;
             } else if (this.wilayahLevel === "kabkot") {
@@ -177,7 +180,6 @@ Alpine.data("webData", () => ({
     },
 
     updateWilayahOptions() {
-        // EDIT HERE: Update to validate selections
         this.errors.kd_wilayah = false;
         this.updateKdWilayah();
     },
@@ -289,37 +291,45 @@ Alpine.data("webData", () => ({
 
     validateNewUserNamaLengkap() {
         if (this.newUser.isSSO) {
-            this.newUser.errors.nama_lengkap = !this.newUser.nama_lengkap
-                ? "Nama lengkap wajib diisi (pilih dari hasil pencarian SSO)."
-                : false;
-            return;
-        }
-        if (!this.newUser.nama_lengkap) {
-            this.newUser.errors.nama_lengkap = "Nama lengkap wajib diisi.";
-        } else if (this.newUser.nama_lengkap.length > 255) {
-            this.newUser.errors.nama_lengkap = "Nama lengkap terlalu panjang.";
+            if (!this.newUser.nama_lengkap) {
+                this.newUser.errors.nama_lengkap = "Nama lengkap dan username wajib diisi (dari hasil pencarian SSO).";
+                return;
+            }
         } else {
-            this.newUser.errors.nama_lengkap = false;
+            if (!this.newUser.nama_lengkap) {
+                this.newUser.errors.nama_lengkap = "Nama lengkap wajib diisi.";
+            } else if (this.newUser.nama_lengkap.length > 255) {
+                this.newUser.errors.nama_lengkap = "Nama lengkap terlalu panjang.";
+            } else {
+                this.newUser.errors.nama_lengkap = false;
+            }
         }
     },
 
     async validateNewUserUsername() {
         const regex = /^[a-zA-Z0-9_]+$/;
-        if (!this.newUser.username) {
-            this.newUser.errors.username = "Username wajib diisi.";
-        } else if (this.newUser.username.length < 5) {
-            this.newUser.errors.username =
-                "Username harus lebih dari 4 karakter.";
-        } else if (this.newUser.username.length > 20) {
-            this.newUser.errors.username = "Username terlalu panjang.";
-        } else if (!regex.test(this.newUser.username)) {
-            this.newUser.errors.username =
-                "Username hanya boleh berisi huruf, angka, dan underscore.";
-        } else {
+        if (this.newUser.isSSO) {
             await this.checkNewUserUsername();
             this.newUser.errors.username = this.newUser.usernameExists
                 ? "Username sudah digunakan."
                 : false;
+        } else {
+            if (!this.newUser.username) {
+                this.newUser.errors.username = "Username wajib diisi.";
+            } else if (this.newUser.username.length < 5) {
+                this.newUser.errors.username =
+                    "Username harus lebih dari 4 karakter.";
+            } else if (this.newUser.username.length > 20) {
+                this.newUser.errors.username = "Username terlalu panjang.";
+            } else if (!regex.test(this.newUser.username)) {
+                this.newUser.errors.username =
+                    "Username hanya boleh berisi huruf, angka, dan underscore.";
+            } else {
+                await this.checkNewUserUsername();
+                this.newUser.errors.username = this.newUser.usernameExists
+                    ? "Username sudah digunakan."
+                    : false;
+            }
         }
     },
 
@@ -419,6 +429,30 @@ Alpine.data("webData", () => ({
         }
     },
 
+    // async searchSSOUser() {
+    //     if (!this.newUser.searchSSOUsername.trim()) {
+    //         this.newUser.errors.username = "Masukkan username untuk mencari.";
+    //         return;
+    //     }
+
+    //     this.newUser.isSearching = true;
+    //     this.newUser.errors.username = false;
+    //     try {
+    //         const data = await this.fetchWrapper(
+    //             `/sso/search-username?username=${encodeURIComponent(this.newUser.searchSSOUsername.trim())}`
+    //         );
+    //         // Auto-fill fields on success
+    //         this.newUser.username = data.username;
+    //         this.newUser.nama_lengkap = data.nama_lengkap;
+    //         this.newUser.searchSSOUsername = ""; // Clear search input
+    //     } catch (error) {
+    //         console.error("Failed to search SSO user:", error);
+    //     } finally {
+    //         this.newUser.isSearching = false;
+    //     }
+    // },
+
+    // MOCK ENDPOINT
     async searchSSOUser() {
         if (!this.newUser.searchSSOUsername.trim()) {
             this.newUser.errors.username = "Masukkan username untuk mencari.";
@@ -427,31 +461,32 @@ Alpine.data("webData", () => ({
 
         this.newUser.isSearching = true;
         this.newUser.errors.username = false;
+
         try {
-            const data = await this.fetchWrapper(
-                `/sso/search-username?username=${encodeURIComponent(this.newUser.searchSSOUsername.trim())}`
-            );
+            // Simulate delay
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // Mocked data (pretending this came from the API)
+            const data = {
+                username: this.newUser.searchSSOUsername.trim(),
+                nama_lengkap: "Nama Contoh SSO"
+            };
+
             // Auto-fill fields on success
             this.newUser.username = data.username;
             this.newUser.nama_lengkap = data.nama_lengkap;
             this.newUser.searchSSOUsername = ""; // Clear search input
         } catch (error) {
-            console.error("Failed to search SSO user:", error);
+            console.error("Mocked SSO search failed:", error);
         } finally {
             this.newUser.isSearching = false;
         }
     },
+    // MOCK ENDPOINT
+
 
     async addUser() {
-        if (!this.newUser.isSSO) {
-            this.validateNewUserNamaLengkap();
-            this.validateNewUserPassword();
-        }
-        this.updateNewUserWilayah();
-        this.validateNewUserLevel();
-
-        if (this.newUserHasErrors) return;
-
+        
         // // Check username uniqueness before submission
         await this.checkNewUserUsername();
         if (this.newUser.usernameExists) {
@@ -459,14 +494,30 @@ Alpine.data("webData", () => ({
             return;
         }
 
+        this.validateNewUserNamaLengkap();
+
+        if (!this.newUser.isSSO) {
+            this.validateNewUserPassword();
+        }
+        this.updateNewUserWilayah();
+        this.validateNewUserLevel();
+
+        if (this.newUserHasErrors) return;
+
+        
+
         const userData = {
             nama_lengkap: this.newUser.nama_lengkap,
             username: this.newUser.username,
             kd_wilayah: this.newUser.kd_wilayah,
             level: this.newUser.level,
             user_sso: this.newUser.isSSO,
-            password: this.newUser.isSSO ? null : this.newUser.password,
         };
+
+        // Only include password if not SSO
+        if (!this.newUser.isSSO) {
+            userData.password = this.newUser.password;
+        }
 
         try {
             const data = await this.fetchWrapper("/user", {
@@ -475,7 +526,7 @@ Alpine.data("webData", () => ({
             }, "Berhasil menambah pengguna!", true);
             
             this.$dispatch("close");
-            // Only fetch users if kd_wilayah is not empty
+            // Only fetch users if kd_wilayah i s not empty
             if (this.wilayahLevel && this.kd_wilayah) {
             await this.getWilayahUsers();
         }
@@ -500,9 +551,11 @@ Alpine.data("webData", () => ({
             confirmPassword: "",
             initial_role_label: [0, 2, 4].includes(parseInt(user.kd_level)) ? "Ganti menjadi Operator" : "Ganti menjadi Admin",
             role_toggle: false,
+            user_sso: user.user_sso, 
             errors: {},
             usernameExists: false,
         };
+        // console.log("user_sso: ",this.editUser.user_sso);
         this.$dispatch("open-modal", "edit-user");
     },
 
@@ -511,8 +564,18 @@ Alpine.data("webData", () => ({
 
         // Validate input
         if (attribute === "username") {
-            if (this.editUser.username.length < 5) {
+            const regex = /^[a-zA-Z0-9_]+$/;
+            if (!this.editUser.username) {
+                this.editUser.errors.usernameLength = "Username wajib diisi.";
+                return;
+            } else if (this.editUser.username.length < 5) {
                 this.editUser.errors.usernameLength = "Username harus lebih dari 4 karakter.";
+                return;
+            } else if (this.editUser.username.length > 20) {
+                this.editUser.errors.usernameLength = "Username terlalu panjang.";
+                return;
+            } else if (!regex.test(this.editUser.username)) {
+                this.editUser.errors.usernameLength = "Username hanya boleh berisi huruf, angka, dan underscore.";
                 return;
             }
             await this.checkEditUserUsername();

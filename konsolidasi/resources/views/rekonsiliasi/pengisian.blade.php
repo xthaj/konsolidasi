@@ -9,27 +9,27 @@
                 <!-- Bulan & Tahun -->
                 <div class="flex gap-4">
                     <div class="w-1/2">
-                        <label class="block mb-2 text-sm font-medium text-gray-900">Bulan<span class="text-red-500 ml-1">*</span></label>
-                        <select name="bulan" x-model="bulan" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
+                        <label class="block mb-2 text-sm font-medium text-gray-900">Bulan</label>
+                        <select name="bulan" x-model="bulan" required disabled class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                             <template x-for="[nama, bln] in bulanOptions" :key="bln">
                                 <option :value="bln" :selected="bulan == bln" x-text="nama"></option>
                             </template>
                         </select>
                     </div>
                     <div class="w-1/2">
-                        <label class="block mb-2 text-sm font-medium text-gray-900">Tahun<span class="text-red-500 ml-1">*</span></label>
-                        <select name="tahun" x-model="tahun" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
+                        <label class="block mb-2 text-sm font-medium text-gray-900">Tahun</label>
+                        <select name="tahun" x-model="tahun" required disabled class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                             <template x-for="year in tahunOptions" :key="year">
                                 <option :value="year" :selected="year == tahun" x-text="year"></option>
                             </template>
                         </select>
                     </div>
                 </div>
-                <p x-show="isActivePeriod" class="text-sm text-gray-500">Periode aktif</p>
+                <!-- <p x-show="isActivePeriod" class="text-sm text-gray-500">Periode aktif</p> -->
 
                 <!-- Level Harga -->
                 <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-900">Level Harga<span class="text-red-500 ml-1">*</span></label>
+                    <label class="block mb-2 text-sm font-medium text-gray-900">Level Harga</label>
                     <select name="kd_level" x-model="selectedKdLevel" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                         <option value="01" :selected="selectedKdLevel == '01'">Harga Konsumen Kota</option>
                         <option value="02" :selected="selectedKdLevel == '02'">Harga Konsumen Desa</option>
@@ -41,7 +41,7 @@
 
                 <!-- Wilayah Selection -->
                 <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-900">Level Wilayah<span class="text-red-500 ml-1">*</span></label>
+                    <label class="block mb-2 text-sm font-medium text-gray-900">Level Wilayah</label>
                     <select name="level_wilayah" x-model="wilayahLevel" @change="updateWilayahOptions" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                         <option value="semua">Semua Provinsi dan Kab/Kota</option>
                         <option value="semua-provinsi">Semua Provinsi</option>
@@ -79,14 +79,14 @@
                     <select name="kd_komoditas" x-model="selectedKomoditas" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                         <option value="">Semua Komoditas</option>
                         <template x-for="komoditi in komoditas" :key="komoditi.kd_komoditas">
-                            <option :value="komoditi.kd_komoditas" x-text="komoditi.nama_komoditas" :selected="komoditi.kd_komoditas == selectedKomoditas"></option>
+                            <option :value="komoditi.kd_komoditas" x-text="komoditi.nama_komoditas"></option>
                         </template>
                     </select>
                 </div>
 
                 <!-- Status -->
                 <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-900">Status<span class="text-red-500 ml-1">*</span></label>
+                    <label class="block mb-2 text-sm font-medium text-gray-900">Status</label>
                     <select name="status_rekon" x-model="status_rekon" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                         <option value="00" :selected="status_rekon == '00'">Semua Status</option>
                         <option value="02" :selected="status_rekon == '02'">Sudah diisi</option>
@@ -229,7 +229,7 @@
 
 
                 <div class="flex justify-between items-center mb-2 mt-6">
-                    <label class="text-sm font-medium text-gray-900 ">Alasan</label>
+                    <label class="text-sm font-medium text-gray-900 ">Alasan<span class="text-red-500 ml-1">*</span></label>
                 </div>
                 <div class="bg-white rounded-lg shadow-sm border border-gray-300 ">
                     <div class="p-3">
@@ -264,7 +264,7 @@
                 </div>
 
                 <div>
-                    <label for="detail" class="block mb-2 text-sm font-medium text-gray-900 ">Detail</label>
+                    <label for="detail" class="block mb-2 text-sm font-medium text-gray-900 ">Detail<span class="text-red-500 ml-1">*</span></label>
                     <textarea
                         id="detail"
                         rows="6"

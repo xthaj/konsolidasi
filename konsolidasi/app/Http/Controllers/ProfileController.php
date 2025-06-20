@@ -9,10 +9,12 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\View\View;
 use App\Models\User;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+// ModelNotFoundException
 
 class ProfileController extends Controller
 {
@@ -114,7 +116,7 @@ class ProfileController extends Controller
                 'message' => 'Validasi gagal.',
                 'errors' => $e->errors(),
             ], 422);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             return response()->json([
                 'message' => 'Pengguna tidak ditemukan.',
             ], 404);

@@ -67,6 +67,8 @@
                 <li>1. Gunakan kode komoditas tanpa padding (contoh: 0, bukan 000)</li>
                 <li>2. Untuk kode wilayah nasional, gunakan 0 (jangan dikosongkan). Proses berhenti saat kode wilayah kosong.</li>
                 <li>3. Gunakan titik sebagai separator desimal (contoh: 1.23, bukan 1,23)</li>
+                <li>4. Apabila kombinasi kode komoditas dan kode wilayah inflasi sudah terdapat di dalam sistem, maka data akan dianggap sebagai pembaruan, terlepas dari apakah nilai final inflasi dan final andil sebelumnya sudah ada atau tidak, serta apakah nilainya sama atau berbeda.</li>
+                <li>5. Data final hanya bisa diisi jika data inflasi sudah ada.</li>
             </ul>
             <div class="tooltip-arrow" data-popper-arrow></div>
         </div>

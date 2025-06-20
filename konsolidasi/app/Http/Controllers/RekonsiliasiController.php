@@ -48,16 +48,29 @@ class RekonsiliasiController extends Controller
         Log::info('Confirm rekonsiliasi started', ['request' => $request->all()]);
 
         try {
+            // Validate input
             $validated = $request->validate([
-                'inflasi_ids' => 'required|array',
-                'inflasi_ids.*' => 'integer',
-                'bulan_tahun_ids' => 'required|array',
-                'bulan_tahun_ids.*' => 'integer',
+                'inflasi_ids' => 'required|array|min:1',
+                'inflasi_ids.*' => 'required|integer|exists:inflasi,inflasi_id',
+                'bulan_tahun_ids' => 'required|array|min:1',
+                'bulan_tahun_ids.*' => 'required|integer|exists:bulan_tahun,bulan_tahun_id', // Adjust table/column as needed
             ]);
+
+            // Ensure arrays have the same length
+            if (count($validated['inflasi_ids']) !== count($validated['bulan_tahun_ids'])) {
+                Log::warning('Mismatched array lengths', [
+                    'inflasi_ids_count' => count($validated['inflasi_ids']),
+                    'bulan_tahun_ids_count' => count($validated['bulan_tahun_ids'])
+                ]);
+                return response()->json([
+                    'message' => 'Jumlah inflasi_ids dan bulan_tahun_ids tidak sesuai.',
+                    'data' => null
+                ], 422);
+            }
 
             DB::beginTransaction();
 
-            // Check for duplicates based only on inflasi_id
+            // Check for duplicates based on inflasi_id
             $existingIds = Rekonsiliasi::whereIn('inflasi_id', $validated['inflasi_ids'])
                 ->pluck('inflasi_id')
                 ->toArray();
@@ -90,9 +103,15 @@ class RekonsiliasiController extends Controller
                     continue;
                 }
 
+                // Log each insert attempt
+                Log::debug('Attempting to insert Rekonsiliasi', [
+                    'inflasi_id' => $inflasi_id,
+                    'bulan_tahun_id' => $bulan_tahun_id
+                ]);
+
                 Rekonsiliasi::create([
                     'inflasi_id' => $inflasi_id,
-                    'bulan_id' => $bulan_tahun_id,
+                    'bulan_tahun_id' => $bulan_tahun_id,
                     'created_at' => now(),
                 ]);
                 $createdCount++;
@@ -100,11 +119,13 @@ class RekonsiliasiController extends Controller
 
             DB::commit();
 
+            // Prepare response
             if (!empty($duplicates)) {
                 $duplicateList = implode(', ', array_map(fn($d) => "{$d['nama_wilayah']} - {$d['nama_komoditas']}", $duplicates));
                 return response()->json([
                     'message' => "Pemilihan komoditas rekonsiliasi berhasil untuk {$createdCount} entri. " .
-                        count($duplicates) . " entri dilewati karena sudah ada: {$duplicateList}."
+                        count($duplicates) . " entri dilewati karena sudah ada: {$duplicateList}.",
+                    'data' => null
                 ], 200);
             }
 
@@ -113,7 +134,6 @@ class RekonsiliasiController extends Controller
                 'data' => null
             ], 200);
         } catch (ValidationException $e) {
-            // add here: Handle validation explicitly
             Log::warning('Validation failed in confirmRekonsiliasi', ['errors' => $e->errors()]);
             return response()->json([
                 'message' => 'Validation failed: ' . implode(', ', array_merge(...array_values($e->errors()))),
@@ -121,7 +141,10 @@ class RekonsiliasiController extends Controller
             ], 422);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error in confirmRekonsiliasi', ['message' => $e->getMessage()]);
+            Log::error('Error in confirmRekonsiliasi', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return response()->json([
                 'message' => 'Gagal melakukan pemilihan komoditas rekonsiliasi: ' . $e->getMessage(),
                 'data' => null
@@ -845,6 +868,9 @@ class RekonsiliasiController extends Controller
             $rekonsiliasi = Rekonsiliasi::findOrFail($id);
             $rekonsiliasi->delete();
 
+            $cacheKey = 'rekonsiliasi_aktif';
+            Cache::forget($cacheKey);
+
             return response()->json([
                 'message' => 'Rekonsiliasi berhasil dihapus.',
                 'data' => null
@@ -913,7 +939,7 @@ class RekonsiliasiController extends Controller
                 ], 200);
             }
 
-            // EDIT // Update with transaction and cache invalidation for active period
+            // Update with transaction and cache invalidation for active period
             DB::transaction(function () use ($rekonsiliasi, $user, $validated) {
                 $rekonsiliasi->update([
                     'user_id' => $user->user_id,
@@ -922,7 +948,7 @@ class RekonsiliasiController extends Controller
                     'media' => $validated['media'],
                 ]);
 
-                // ADD // Invalidate and pre-warm rekonsiliasi_aktif cache
+                // Invalidate and pre-warm rekonsiliasi_aktif cache
                 $cacheKey = 'rekonsiliasi_aktif';
                 Cache::forget($cacheKey);
                 Cache::forget('dashboard_data');

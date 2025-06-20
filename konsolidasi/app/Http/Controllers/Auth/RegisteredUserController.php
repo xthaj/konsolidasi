@@ -11,6 +11,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rules;
 use Illuminate\Validation\ValidationException;
@@ -52,11 +53,14 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        // Log incoming request data (optional)
+        // Log::debug('Register request data:', $request->all());
 
-        // dd($request->all());
-
-        // UserService to create user
+        // Call the user service
         $result = $this->userService->createUser($request);
+
+        // Log the result
+        // Log::info('UserService createUser result:', $result);
 
         if (!$result['success']) {
             return back()->withErrors($result['errors'])->withInput($result['input']);

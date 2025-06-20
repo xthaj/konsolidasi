@@ -106,8 +106,7 @@
                                 id="sso-search"
                                 x-model="newUser.searchSSOUsername"
                                 class="block w-full p-3 ps-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="Username"
-                                x-bind:required="newUser.isSSO">
+                                placeholder="Username">
                             <button
                                 type="button"
                                 @click="searchSSOUser()"
@@ -126,7 +125,8 @@
                             type="text"
                             x-model="newUser.username"
                             class="cursor-not-allowed bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-3"
-                            readonly>
+                            x-bind:required="newUser.isSSO"
+                            disabled>
                     </div>
                     <div class="mb-4">
                         <label class="block mb-2 text-sm font-medium text-gray-900">Nama Lengkap</label>
@@ -134,7 +134,11 @@
                             type="text"
                             x-model="newUser.nama_lengkap"
                             class="cursor-not-allowed bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-3"
-                            readonly>
+                            x-bind:required="newUser.isSSO"
+                            disabled>
+                        <template x-if="newUser.errors.nama_lengkap">
+                            <p class="mt-2 text-sm text-red-600" x-text="newUser.errors.nama_lengkap"></p>
+                        </template>
                     </div>
                 </div>
 
@@ -195,10 +199,7 @@
                 <!-- Buttons -->
                 <div class="mt-6 flex justify-end gap-3">
                     <x-secondary-button x-on:click="$dispatch('close')">Batal</x-secondary-button>
-                    <x-primary-button
-                        type="submit"
-                        x-bind:disabled="newUserHasErrors"
-                        x-bind:class="{ 'opacity-50 cursor-not-allowed': newUserHasErrors }">Tambah</x-primary-button>
+                    <x-primary-button type="submit">Tambah</x-primary-button>
                 </div>
             </form>
         </div>
@@ -211,19 +212,21 @@
                 <div class="mb-4">
                     <label class="block mb-2 text-sm font-medium text-gray-900">Username</label>
                     <input
+                        x-bind:disabled="editUser.user_sso === 1"
                         type="text"
                         x-model="editUser.username"
                         x-bind:class="{ 'border-red-600': editUser.errors.usernameLength || editUser.errors.usernameUnique }"
                         class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5"
                         placeholder="hatta45"
+                        maxlength="20"
                         required>
                     <template x-if="editUser.errors.usernameLength">
-                        <p class="mt-2 text-sm text-red-600">Username harus lebih dari 6 karakter.</p>
+                        <p class="mt-2 text-sm text-red-600" x-text="editUser.errors.usernameLength"></p>
                     </template>
                     <template x-if="editUser.errors.usernameUnique">
                         <p class="mt-2 text-sm text-red-600" x-text="editUser.errors.usernameUnique"></p>
                     </template>
-                    <div class="mt-2 flex justify-end">
+                    <div class="mt-2 flex justify-end" x-show="editUser.user_sso !== 1">
                         <x-primary-button type="submit">Update Username</x-primary-button>
                     </div>
                 </div>
@@ -234,20 +237,21 @@
                 <div class="mb-4">
                     <label class="block mb-2 text-sm font-medium text-gray-900">Nama Lengkap</label>
                     <input
+                        x-bind:disabled="editUser.user_sso === 1"
                         type="text"
                         x-model="editUser.nama_lengkap"
                         class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5"
                         placeholder="Muhammad Hatta"
-                        maxlength="255"
+                        maxlength="200"
                         required>
-                    <div class="mt-2 flex justify-end">
+                    <div class="mt-2 flex justify-end" x-show="editUser.user_sso !== 1">
                         <x-primary-button type="submit">Update Nama Lengkap</x-primary-button>
                     </div>
                 </div>
             </form>
 
             <!-- Password Form -->
-            <form @submit.prevent="updateUserAttribute('password')">
+            <form @submit.prevent="updateUserAttribute('password')" x-show="editUser.user_sso !== 1">
                 <div class="mb-4">
                     <label class="block mb-2 text-sm font-medium text-gray-900">Password</label>
                     <input
@@ -255,7 +259,8 @@
                         x-model="editUser.password"
                         x-bind:class="{ 'border-red-600': editUser.errors.password }"
                         class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5"
-                        placeholder="••••••••">
+                        placeholder="••••••••"
+                        maxlength="200">
                     <template x-if="editUser.errors.password">
                         <p class="mt-2 text-sm text-red-600">Password minimal sepanjang 6 karakter.</p>
                     </template>
@@ -392,7 +397,7 @@
                     </div>
                 </div>
                 <div>
-                    <!-- EDIT HERE: Add conditional logic for user roles -->
+                    <!-- Add conditional logic for user roles -->
                     @if (auth()->user()->isPusat())
                     <!-- Level Wilayah -->
                     <div class="mb-4">

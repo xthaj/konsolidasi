@@ -175,14 +175,16 @@ Alpine.data("webData", () => ({
     },
 
     checkEditFormValidity() {
+        // 1. Check if nilai inflasi is empty
         if (this.edit_nilai_inflasi === null || this.edit_nilai_inflasi === "") {
             this.modalMessage = "Data inflasi baru tidak boleh kosong.";
             this.$dispatch("open-modal", "error-modal");
             return false;
         }
 
+        // 2. Find original inflasi data
         const originalItem = this.data.inflasi?.find(
-            (item) => item.inflasi_id === this.inflasi_id 
+            (item) => item.inflasi_id === this.inflasi_id
         );
 
         if (!originalItem) {
@@ -191,21 +193,41 @@ Alpine.data("webData", () => ({
             return false;
         }
 
+        // 3. Check if nilai inflasi changed
         const nilaiInflasiChanged =
             parseFloat(this.edit_nilai_inflasi) !== parseFloat(originalItem.nilai_inflasi);
 
+        // 4. If wilayah is 0, also check andil
         if (this.data.kd_wilayah === "0") {
             if (this.edit_andil === null || this.edit_andil === "") {
                 this.modalMessage = "Data andil baru tidak boleh kosong.";
                 this.$dispatch("open-modal", "error-modal");
                 return false;
             }
-            const andilChanged = parseFloat(this.edit_andil) !== parseFloat(originalItem.andil || 0);
-            return nilaiInflasiChanged || andilChanged;
+
+            const andilChanged =
+                parseFloat(this.edit_andil) !== parseFloat(originalItem.andil || 0);
+
+            // ✅ If nothing changed, show message
+            if (!nilaiInflasiChanged && !andilChanged) {
+                this.modalMessage = "Tidak ada perubahan yang terdeteksi.";
+                this.$dispatch("open-modal", "error-modal");
+                return false;
+            }
+
+            return true;
         }
 
-        return nilaiInflasiChanged;
+        // 5. If wilayah is not 0, only check nilai inflasi
+        if (!nilaiInflasiChanged) {
+            this.modalMessage = "Tidak ada perubahan yang terdeteksi.";
+            this.$dispatch("open-modal", "error-modal");
+            return false;
+        }
+
+        return true;
     },
+
 
     async editData() {
         if (!this.checkEditFormValidity()) {
