@@ -9,6 +9,8 @@ use Exception;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\RedirectResponse;
 
@@ -95,6 +97,7 @@ class SSOController extends Controller
         }
     }
 
+
     public function logoutSSO(Request $request)
     {
         $provider = $this->getProvider();
@@ -110,5 +113,57 @@ class SSOController extends Controller
         // Session::forget('sso_user'); // Clear user session
 
         return redirect($provider->getLogoutUrl());
+    }
+
+    public function lookupPegawai(Request $request): JsonResponse
+    {
+        // Get username from 'username' or 'query' parameter
+        $username = $request->input('username', $request->input('query'));
+        if (!$username) {
+            return response()->json([
+                'message' => 'Username wajib diisi'
+            ], 400);
+        }
+
+        $base_url = rtrim(config('sso.authServerUrl'), '/') . '/auth/';
+        $realm = config('sso.realm');
+        $url_token = $base_url . "realms/{$realm}/protocol/openid-connect/token";
+        $url_api = $base_url . "realms/{$realm}/api-pegawai";
+        $client_id = config('sso.clientId');
+        $client_secret = config('sso.clientSecret');
+        $query_search = "/search/username/{$username}";
+
+        try {
+            // Mendapatkan access token
+            $response_token = Http::asForm()->withBasicAuth($client_id, $client_secret)
+                ->post($url_token, ['grant_type' => 'client_credentials'])
+                ->throw(function ($response) {
+                    throw new Exception("Gagal mendapatkan token: " . $response->body());
+                });
+            $access_token = $response_token->json('access_token');
+
+            // Mengambil data pengguna
+            $response = Http::withToken($access_token)
+                ->get($url_api . $query_search)
+                ->throw(function ($response) {
+                    throw new Exception("Gagal mengambil data pengguna: " . $response->body());
+                });
+            $json = $response->json();
+
+            if (!empty($json) && count($json) == 1) {
+                return response()->json([
+                    'username' => $json[0]['username'],
+                    'nama_lengkap' => $json[0]['attributes']['attribute-nama'][0],
+                ], 200);
+            }
+
+            return response()->json([
+                'message' => 'Pencarian user tidak ditemukan atau lebih dari 1 user ditemukan'
+            ], 404);
+        } catch (Exception $e) {
+            return response()->json([
+                'message' => 'Gagal mengambil data: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }
