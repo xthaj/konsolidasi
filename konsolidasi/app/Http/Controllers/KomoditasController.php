@@ -171,7 +171,7 @@ class KomoditasController extends Controller
         try {
             $komoditas = Komoditas::findOrFail($kd_komoditas);
 
-            // add here: Check for dependencies
+            // Check for dependencies
             if (DB::table('inflasi')->where('kd_komoditas', $kd_komoditas)->exists()) {
                 Log::warning('Cannot delete komoditas due to dependencies', ['kd_komoditas' => $kd_komoditas]);
                 return response()->json([
@@ -221,12 +221,11 @@ class KomoditasController extends Controller
     public function getAllKomoditas(): JsonResponse
     {
         try {
-            $data = Cache::remember('komoditas_data', now()->addHours(24), function () {
-                Log::info('Komoditas data fetched from database', ['timestamp' => now()]);
+            $data = Cache::rememberForever('komoditas_data', function () {
                 return Komoditas::orderBy('kd_komoditas', 'asc')->get();
             });
 
-            // edit here: Handle empty result
+            // Handle empty result
             if ($data->isEmpty()) {
                 return response()->json([
                     'message' => 'Tidak ada data komoditas tersedia.',

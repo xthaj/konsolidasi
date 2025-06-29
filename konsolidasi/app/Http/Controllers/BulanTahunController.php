@@ -43,7 +43,7 @@ class BulanTahunController extends Controller
             $bulan = $validated['bulan'];
             $tahun = $validated['tahun'];
 
-            // add here: Check for existing record
+            // Check for existing record
             $existing = BulanTahun::where('bulan', $bulan)->where('tahun', $tahun)->first();
             if ($existing && $existing->aktif == 1) {
                 Log::warning('Attempted to activate already active period', [
@@ -120,7 +120,7 @@ class BulanTahunController extends Controller
     public function get(): JsonResponse
     {
         try {
-            $data = Cache::remember('bt_aktif', now()->addHours(24), function () {
+            $data = Cache::rememberForever('bt_aktif', function () {
                 Log::info('BulanTahun aktif fetched from database', ['timestamp' => now()]);
 
                 $btAktif = BulanTahun::where('aktif', 1)->first();
@@ -129,11 +129,10 @@ class BulanTahunController extends Controller
 
                 return [
                     'bt_aktif' => $btAktif,
-                    'tahun' => range(max($minTahun - 2, 2000), $maxTahun + 2), // edit here: Prevent negative years
+                    'tahun' => range(max($minTahun - 2, 2000), $maxTahun + 2),
                 ];
             });
 
-            // edit here: Handle no active BulanTahun
             if (!$data['bt_aktif']) {
                 return response()->json([
                     'message' => 'Tidak ada periode aktif tersedia.',
@@ -146,7 +145,7 @@ class BulanTahunController extends Controller
 
             return response()->json([
                 'message' => 'Data bulan dan tahun aktif berhasil diambil.',
-                'data' => BulanTahunResource::make($data), // edit here: Use resource
+                'data' => BulanTahunResource::make($data),
             ], 200);
         } catch (\Exception $e) {
             Log::error('Error in getBulanTahun', [
@@ -169,6 +168,6 @@ class BulanTahunController extends Controller
         Cache::forget('bt_aktif');
         Cache::forget('rekonsiliasi_aktif');
         Cache::forget('dashboard_data');
-        Log::info('Cache cleared for bt_aktif & rekonsiliasi_aktif', ['timestamp' => now()]);
+        Log::info('Cache cleared for bt_aktif, rekonsiliasi_aktif, & dashboard_data', ['timestamp' => now()]);
     }
 }

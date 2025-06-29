@@ -129,6 +129,10 @@ class RekonsiliasiController extends Controller
                 ], 200);
             }
 
+            if (!$this->reloadRekonsiliasiCache()) {
+                Log::warning('Cache reload failed during adding rekonsiliasi');
+            }
+
             return response()->json([
                 'message' => "Pemilihan komoditas rekonsiliasi berhasil untuk {$createdCount} entri.",
                 'data' => null
@@ -294,7 +298,7 @@ class RekonsiliasiController extends Controller
      * - City user: Access their city only, active period only.
      * - Invalid inputs: Return error with appropriate HTTP status.
      */
-    private function fetchRekonsiliasiData(FetchRekonsiliasiDataRequest $request, bool $isApi = false, bool $unused = false)
+    private function fetchRekonsiliasiData(Request $request, bool $isApi = false, bool $unused = false)
     {
         try {
             $errorResponse = fn(string $message, int $code) => response()->json([
@@ -302,7 +306,7 @@ class RekonsiliasiController extends Controller
                 'data' => ['rekonsiliasi' => null, 'title' => 'Rekonsiliasi'],
             ], $code);
 
-            // Early region validation
+            // Early region validation (optional, can be skipped for testing)
             if (in_array($request->input('level_wilayah'), ['provinsi', 'kabkot']) && !$request->input('kd_wilayah')) {
                 return $errorResponse('Kode wilayah harus disediakan untuk provinsi atau kabupaten/kota.', 400);
             }
@@ -343,7 +347,7 @@ class RekonsiliasiController extends Controller
                 $user->isKabkot() => [
                     'bulan' => $activeBulanTahun->bulan,
                     'tahun' => $activeBulanTahun->tahun,
-                    'kd_level' => '00',
+                    'kd_level' => '01',
                     'level_wilayah' => 'kabkot',
                     'kd_wilayah' => $user->kd_wilayah,
                     'status_rekon' => '00',
@@ -352,8 +356,20 @@ class RekonsiliasiController extends Controller
                 default => $errorResponse('Invalid user region code.', 400),
             };
 
-            // Merge validated input
-            $input = array_merge($defaults, $request->validated());
+            // Merge defaults with request input and validate
+            $input = array_merge($defaults, $request->all()); // Use $request->all() before validation
+            $validated = $request->validate([
+                'bulan' => 'nullable|integer|between:1,12',
+                'tahun' => 'nullable|integer|between:2000,2100',
+                'kd_level' => 'nullable|in:00,01,02,03,04,05',
+                'level_wilayah' => 'nullable|in:semua,semua-provinsi,semua-kabkot,provinsi,kabkot',
+                'kd_wilayah' => 'nullable|string|max:4',
+                'status_rekon' => 'nullable|in:00,01,02',
+                'kd_komoditas' => 'nullable|string|max:10',
+                'user_id' => 'nullable|exists:user,user_id',
+            ]);
+
+            $input = array_merge($defaults, $validated); // Merge validated data with defaults
 
             // Validate region and level compatibility
             if ($input['level_wilayah'] === 'kabkot' && $input['kd_level'] !== '01') {
@@ -368,7 +384,6 @@ class RekonsiliasiController extends Controller
                 }
             }
 
-            // Cache all Rekonsiliasi data for active period
             $cacheKey = 'rekonsiliasi_aktif';
             $rekonsiliasi = Cache::remember($cacheKey, now()->addHours(1), function () use ($activeBulanTahun) {
                 return Rekonsiliasi::with([
@@ -381,19 +396,16 @@ class RekonsiliasiController extends Controller
                 ])->where('bulan_tahun_id', $activeBulanTahun->bulan_tahun_id)->get();
             });
 
-            // ADD // Log cache access
             Log::info('Cache access', ['key' => $cacheKey, 'hit' => Cache::has($cacheKey)]);
 
             $filteredRekonsiliasi = $rekonsiliasi->filter(function ($item) use ($input, $user) {
                 $inflasi = $item->inflasi;
                 $wilayah = $inflasi->wilayah ?? null;
 
-                // Filter by kd_level
                 if ($input['kd_level'] !== '00' && $inflasi->kd_level !== $input['kd_level']) {
                     return false;
                 }
 
-                // Filter by kd_wilayah and level_wilayah
                 if ($input['kd_wilayah'] !== '0') {
                     if ($inflasi->kd_wilayah !== $input['kd_wilayah']) {
                         return false;
@@ -412,12 +424,10 @@ class RekonsiliasiController extends Controller
                     }
                 }
 
-                // Filter by kd_komoditas
                 if (!is_null($input['kd_komoditas']) && $inflasi->kd_komoditas !== $input['kd_komoditas']) {
                     return false;
                 }
 
-                // Filter by status_rekon
                 if ($input['status_rekon'] !== '00') {
                     if ($input['status_rekon'] === '01' && !is_null($item->user_id)) {
                         return false;
@@ -429,10 +439,7 @@ class RekonsiliasiController extends Controller
                 return true;
             });
 
-            // Sort all level_wilayah by kd_komoditas ascending
             $filteredRekonsiliasi = $filteredRekonsiliasi->sortBy('inflasi.komoditas.kd_komoditas')->values();
-
-            // Transform data
             $rekonsiliasiData = $isApi ? PengisianRekonsiliasiResource::collection($filteredRekonsiliasi) : $filteredRekonsiliasi;
 
             return response()->json([
@@ -450,61 +457,6 @@ class RekonsiliasiController extends Controller
             ], 500);
         }
     }
-
-    /**
-     * Restrict access based on user's region and role.
-     *
-     * @param User $user
-     * @param string $userKdWilayah
-     * @param string $level_wilayah
-     * @param string $kd_wilayah
-     * @return \Illuminate\Http\JsonResponse|null
-     */
-    // private function restrictAccessByRegion($user, $userKdWilayah, $level_wilayah, $kd_wilayah)
-    // {
-    //     try {
-    //         $errorResponse = fn(string $message, string $status, int $code) => response()->json([
-    //             'message' => $message,
-    //             'status' => $status,
-    //             'data' => [
-    //                 'rekonsiliasi' => null,
-    //                 'title' => 'Rekonsiliasi'
-    //             ],
-    //         ], $code);
-
-    //         if (!$user->isPusat()) {
-    //             if ($user->isProvinsi()) {
-    //                 // Province users: restrict to their province or its cities (via parent_kd)
-    //                 if ($level_wilayah === 'semua-provinsi') {
-    //                     return $errorResponse('Akses semua provinsi tidak diizinkan untuk pengguna provinsi.', 'unauthorized', 403);
-    //                 }
-    //                 if ($kd_wilayah !== '0' && $kd_wilayah !== $userKdWilayah) {
-    //                     $wilayah = Wilayah::where('kd_wilayah', $kd_wilayah)->first();
-    //                     if (!$wilayah || $wilayah->parent_kd !== $userKdWilayah) {
-    //                         return $errorResponse('Akses dibatasi untuk provinsi atau kabupaten/kota di wilayah Anda.', 'unauthorized', 403);
-    //                     }
-    //                 }
-    //             } elseif ($user->isKabkot()) {
-    //                 // City users: restrict to their city and kabkot only
-    //                 if ($level_wilayah !== 'kabkot') {
-    //                     return $errorResponse('Akses dibatasi untuk kabupaten/kota Anda.', 'unauthorized', 403);
-    //                 }
-    //                 if ($kd_wilayah !== $userKdWilayah) {
-    //                     return $errorResponse('Akses dibatasi untuk kabupaten/kota Anda.', 'unauthorized', 403);
-    //                 }
-    //             }
-    //         }
-
-    //         return null;
-    //     } catch (\Exception $e) {
-    //         // add here: Handle unexpected errors
-    //         Log::error('Error in restrictAccessByRegion', ['message' => $e->getMessage()]);
-    //         return response()->json([
-    //             'message' => 'Gagal memeriksa akses: ' . $e->getMessage(),
-    //             'data' => ['rekonsiliasi' => [], 'title' => 'Rekonsiliasi']
-    //         ], 500);
-    //     }
-    // }
 
     /**
      * Generates a descriptive title for the reconciliation table based on request parameters.
@@ -559,7 +511,7 @@ class RekonsiliasiController extends Controller
 
             return $title;
         } catch (\Exception $e) {
-            // add here: Handle unexpected errors
+            // Handle unexpected errors
             Log::error('Error in generateRekonTableTitle', ['message' => $e->getMessage()]);
             return 'Rekonsiliasi';
         }
@@ -790,7 +742,7 @@ class RekonsiliasiController extends Controller
 
             return response()->json($response, 200);
         } catch (\Exception $e) {
-            // add here: Handle unexpected errors
+            // Handle unexpected errors
             Log::error('Error in fetchPembahasanData', ['message' => $e->getMessage()]);
             return response()->json([
                 'message' => 'Gagal memuat data: ' . $e->getMessage(),
@@ -811,8 +763,6 @@ class RekonsiliasiController extends Controller
             ],
         ], 200);
     }
-
-
 
     public function updatePembahasan(Request $request, $id)
     {
@@ -868,8 +818,10 @@ class RekonsiliasiController extends Controller
             $rekonsiliasi = Rekonsiliasi::findOrFail($id);
             $rekonsiliasi->delete();
 
-            $cacheKey = 'rekonsiliasi_aktif';
-            Cache::forget($cacheKey);
+            // Reload cache
+            if (!$this->reloadRekonsiliasiCache()) {
+                Log::warning('Cache reload failed during destroy', ['rekonsiliasi_id' => $id]);
+            }
 
             return response()->json([
                 'message' => 'Rekonsiliasi berhasil dihapus.',
@@ -897,11 +849,10 @@ class RekonsiliasiController extends Controller
     {
         try {
             // Cached user lookup
-            $user = Cache::remember("user_{$request->input('user_id', Auth::id())}", now()->addMinutes(10), function () use ($request) {
-                return $request->input('user_id')
-                    ? User::find($request->input('user_id')) ?? throw new ModelNotFoundException('User tidak ditemukan.')
-                    : Auth::user() ?? throw new \Exception('User tidak ditemukan atau belum login.');
-            });
+            $userId = $request->input('user_id');
+            $user = Cache::remember("user_{$userId}", now()->addMinutes(10), fn () => 
+                User::findOrFail($userId)
+            );
 
             // Find record
             $rekonsiliasi = Rekonsiliasi::findOrFail($id);
@@ -939,8 +890,17 @@ class RekonsiliasiController extends Controller
                 ], 200);
             }
 
-            // Update with transaction and cache invalidation for active period
+            // Update with transaction
             DB::transaction(function () use ($rekonsiliasi, $user, $validated) {
+                // Check inflasi data
+                $inflasi = $rekonsiliasi->inflasi;
+                if (!$inflasi || is_null($inflasi->nilai_inflasi)) {
+                    Log::error('Missing or invalid inflasi data', [
+                        'rekonsiliasi_id' => $rekonsiliasi->rekonsiliasi_id,
+                        'inflasi_id' => $rekonsiliasi->inflasi_id,
+                    ]);
+                }
+
                 $rekonsiliasi->update([
                     'user_id' => $user->user_id,
                     'alasan' => $validated['alasan'],
@@ -948,22 +908,10 @@ class RekonsiliasiController extends Controller
                     'media' => $validated['media'],
                 ]);
 
-                // Invalidate and pre-warm rekonsiliasi_aktif cache
-                $cacheKey = 'rekonsiliasi_aktif';
-                Cache::forget($cacheKey);
-                Cache::forget('dashboard_data');
-                Log::info('Cleared rekonsiliasi & dashboard cache', ['key' => $cacheKey]);
-
-                // Pre-warm cache with active period data
-                $activeBulanTahun = Cache::get('bt_aktif')['bt_aktif'] ?? throw new \Exception('Tidak ada periode aktif.');
-                Cache::put($cacheKey, Rekonsiliasi::with([
-                    'inflasi' => fn($query) => $query->select('inflasi_id', 'kd_wilayah', 'kd_komoditas', 'kd_level')
-                        ->with([
-                            'komoditas' => fn($query) => $query->select('kd_komoditas', 'nama_komoditas'),
-                            'wilayah' => fn($query) => $query->select('kd_wilayah', 'nama_wilayah', 'flag', 'parent_kd')
-                        ]),
-                    'user' => fn($query) => $query->select('user_id', 'nama_lengkap')
-                ])->where('bulan_tahun_id', $activeBulanTahun->bulan_tahun_id)->get(), now()->addHours(1));
+                // Reload cache
+                if (!$this->reloadRekonsiliasiCache()) {
+                    Log::warning('Cache reload failed during update', ['rekonsiliasi_id' => $rekonsiliasi->rekonsiliasi_id]);
+                }
             });
 
             return response()->json([
@@ -982,6 +930,69 @@ class RekonsiliasiController extends Controller
                 'message' => 'Gagal memperbarui data: ' . $e->getMessage(),
                 'data' => null
             ], 500);
+        }
+    }
+
+    /**
+     * Reloads the rekonsiliasi_aktif cache with fresh data for the active period.
+     *
+     * @return bool Returns true if cache reload is successful, false otherwise.
+     */
+    private function reloadRekonsiliasiCache(): bool
+    {
+        try {
+            // Invalidate dashboard cache
+            Cache::forget('dashboard_data');
+
+            $cacheKey = 'rekonsiliasi_aktif';
+            $activeBulanTahun = Cache::get('bt_aktif')['bt_aktif'] ?? throw new \Exception('Tidak ada periode aktif.');
+
+            // Use cache lock to prevent race conditions
+            $lock = Cache::lock('rekonsiliasi_aktif_lock', 10);
+            if (!$lock->get()) {
+                Log::warning('Failed to acquire lock for cache reload', ['key' => $cacheKey]);
+                return false; // Or retry, depending on requirements
+            }
+
+            try {
+                // Invalidate existing cache
+                Cache::forget($cacheKey);
+                Log::info('Cleared rekonsiliasi cache', ['key' => $cacheKey]);
+
+                // Fetch fresh data
+                $freshData = Rekonsiliasi::with([
+                    'inflasi' => fn($query) => $query->select('inflasi_id', 'kd_wilayah', 'kd_komoditas', 'kd_level', 'nilai_inflasi')
+                        ->with([
+                            'komoditas' => fn($query) => $query->select('kd_komoditas', 'nama_komoditas'),
+                            'wilayah' => fn($query) => $query->select('kd_wilayah', 'nama_wilayah', 'flag', 'parent_kd')
+                        ]),
+                    'user' => fn($query) => $query->select('user_id', 'nama_lengkap')
+                ])->where('bulan_tahun_id', $activeBulanTahun->bulan_tahun_id)->get();
+
+                // Log null nilai_inflasi for debugging
+                $freshData->each(function ($rekon) {
+                    if (is_null($rekon->inflasi?->nilai_inflasi)) {
+                        Log::warning('Nilai inflasi is null during cache reload', [
+                            'rekonsiliasi_id' => $rekon->rekonsiliasi_id,
+                            'inflasi_id' => $rekon->inflasi_id,
+                        ]);
+                    }
+                });
+
+                // Store in cache
+                Cache::put($cacheKey, $freshData, now()->addHours(1));
+                Log::info('dashboard_data cleared, rekonsiliasi_aktif pre-warmed', ['count' => $freshData->count()]);
+
+                return true;
+            } finally {
+                $lock->release();
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to reload rekonsiliasi cache', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return false;
         }
     }
 }

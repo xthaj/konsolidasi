@@ -10,6 +10,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\JsonResponse;
 use App\Services\UserService;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Rule;
@@ -29,17 +33,54 @@ class UserController extends Controller
         return view('user.index');
     }
 
+    /**
+     * Check if the authenticated user has region-based access to modify a target user.
+     *
+     * @param User $targetUser
+     * @param Request $request
+     * @return void
+     * @throws AuthorizationException
+     */
+    protected function checkRegionAccess(User $targetUser, Request $request)
+    {
+        // Get authenticated user
+        $authUser = Auth::user();
+        if (!$authUser) {
+            throw new AuthorizationException('User tidak ditemukan atau belum login.', 401);
+        }
+
+        // Region restriction logic
+        if (!$authUser->isPusat()) {
+            $userKdWilayah = $authUser->kd_wilayah;
+            $targetKdWilayah = $targetUser->kd_wilayah;
+            $kd_wilayah = $request->input('kd_wilayah', $targetKdWilayah); // Default to target user's kd_wilayah
+
+            // Region checks for provinsi users
+            if ($authUser->isProvinsi()) {
+                if ($kd_wilayah !== '0' && $kd_wilayah !== $userKdWilayah) {
+                    $wilayahData = Cache::get('all_wilayah_data');
+                    $wilayah = $wilayahData->firstWhere('kd_wilayah', $kd_wilayah);
+                    if (!$wilayah || $wilayah->parent_kd !== $userKdWilayah) {
+                        throw new AuthorizationException('Akses dibatasi untuk provinsi atau kabupaten/kota di wilayah Anda.');
+                    }
+                }
+            // Region checks for kabkot users
+            } elseif ($authUser->isKabkot()) {
+                if ($kd_wilayah !== $userKdWilayah || $targetKdWilayah !== $userKdWilayah) {
+                    throw new AuthorizationException('Akses dibatasi untuk kabupaten/kota Anda.');
+                }
+            }
+        }
+    }
+
     public function edit(Request $request, $id)
     {
         try {
-            // Authenticate user
-            $authUser = Auth::user();
-            if (!$authUser) {
-                return response()->json([
-                    'message' => 'User tidak ditemukan atau belum login.',
-                    'data' => null,
-                ], 401);
-            }
+            // Find the target user
+            $targetUser = User::findOrFail($id);
+
+            // Check region access
+            $this->checkRegionAccess($targetUser, $request);
 
             // Call UserService to update user
             $result = $this->userService->updateUser($id, $request, true);
@@ -52,6 +93,18 @@ class UserController extends Controller
                 'message' => $result['message'],
                 'data' => null,
             ], 200);
+        } catch (ModelNotFoundException $e) {
+            // ADD: Handle user not found
+            return response()->json([
+                'message' => 'User tidak ditemukan.',
+                'data' => null,
+            ], 404);
+        } catch (AuthorizationException $e) {
+            // Handle authorization failure
+            return response()->json([
+                'message' => $e->getMessage(),
+                'data' => null,
+            ], $e->getCode() ?: 403);
         } catch (ValidationException $e) {
             $errorMessages = collect($e->errors())->flatten()->implode(', ');
             return response()->json([
@@ -69,10 +122,37 @@ class UserController extends Controller
 
     public function destroy($user_id)
     {
-        $user = User::findOrFail($user_id);
-        $user->delete();
+        try {
+            // Find the target user
+            $targetUser = User::findOrFail($user_id);
 
-        return response()->json(['message' => 'User berhasil dihapus']);
+            $cacheKey = 'user_' . $user_id;
+            if (Cache::has($cacheKey)) {
+                Cache::forget($cacheKey);
+                Log::info('Removed user cache', ['user_id' => $user_id, 'cache_key' => $cacheKey]);
+            }
+
+            // Check region access
+            $this->checkRegionAccess($targetUser, request());
+
+            // Delete the user (unchanged)
+            $targetUser->delete();
+
+            return response()->json(['message' => 'User berhasil dihapus']);
+        } catch (AuthorizationException $e) {
+            // Handle authorization failure
+            return response()->json([
+                'message' => $e->getMessage(),
+                'data' => null,
+            ], $e->getCode() ?: 403);
+        } catch (\Exception $e) {
+            // Handle other exceptions
+            // Log::error('Delete user error: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'An unexpected error occurred: ' . $e->getMessage(),
+                'data' => null,
+            ], $e->getCode() ?: 500);
+        }
     }
 
 
@@ -133,29 +213,6 @@ class UserController extends Controller
         }
     }
 
-    // public function update(Request $request, $user_id)
-    // {
-    //     $user = User::findOrFail($user_id);
-
-    //     $validated = $request->validate([
-    //         'username' => ['required', 'string', 'max:255', Rule::unique('user', 'username')->ignore($user_id, 'user_id')],
-    //         'nama_lengkap' => ['required', 'string', 'max:255'],
-    //         'password' => ['nullable', 'string', 'min:8'],
-    //         'level' => ['required', 'integer', 'between:0,5'],
-    //         'kd_wilayah' => ['nullable', 'string', 'exists:wilayah,kd_wilayah'],
-    //     ]);
-
-    //     $user->update([
-    //         'username' => $validated['username'],
-    //         'nama_lengkap' => $validated['nama_lengkap'],
-    //         'password' => $request->password ? Hash::make($validated['password']) : $user->password,
-    //         'level' => $validated['level'],
-    //         'kd_wilayah' => $validated['kd_wilayah'] ?? $user->kd_wilayah,
-    //     ]);
-
-    //     return response()->json(new UserResource($user->load('wilayah')));
-    // }
-
     public function getUsers(GetUsersRequest $request): JsonResponse
     {
         // Helper: Return error response
@@ -171,7 +228,7 @@ class UserController extends Controller
             // Start query with eager-loaded wilayah
             $query = User::with(['wilayah']);
 
-            // ADD HERE: Apply level_wilayah filter
+            // Apply level_wilayah filter
             if (!empty($validated['level_wilayah'])) {
                 switch ($validated['level_wilayah']) {
                     case 'semua':
