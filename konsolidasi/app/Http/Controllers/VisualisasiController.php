@@ -285,11 +285,11 @@ class VisualisasiController extends Controller
 
                     // Validation: Prefer final_inflasi/final_andil if available and valid
                     $inflasi = $record && $finalInflasiMap[$id] && !is_null($record->final_inflasi)
-                        ? (float)$record->final_inflasi
-                        : ($record && !is_null($record->nilai_inflasi) ? (float)$record->nilai_inflasi : null);
+                        ? $record->final_inflasi
+                        : ($record && !is_null($record->nilai_inflasi) ? $record->nilai_inflasi : null);
                     $andil = $record && $finalInflasiMap[$id] && !is_null($record->final_andil)
-                        ? (float)$record->final_andil
-                        : ($record && !is_null($record->andil) ? (float)$record->andil : null);
+                        ? $record->final_andil
+                        : ($record && !is_null($record->andil) ? $record->andil : null);
 
                     $inflasiData[] = $inflasi;
                     $andilData[] = $andil;
@@ -338,7 +338,7 @@ class VisualisasiController extends Controller
             // Step 9: Prepare data for Heatmap, Stacked Bar, and Choropleth charts
             $provinces = Wilayah::where('flag', 2)->pluck('nama_wilayah', 'kd_wilayah')->toArray();
             $kabkots = Wilayah::where('flag', 3)->pluck('nama_wilayah', 'kd_wilayah')->toArray();
-            $latestMonthId = $monthsData['ids'][0]; // Use the latest month for these charts
+            $latestMonthId = $bulanTahunId;
 
             // Determine if final_inflasi should be used for the latest month
             $useFinalInflasi = $finalInflasiMap[$latestMonthId];
@@ -384,8 +384,8 @@ class VisualisasiController extends Controller
 
                     // Validation: Prefer final_inflasi if available
                     $inflasi = $record && $useFinalInflasi && !is_null($record->final_inflasi)
-                        ? (float)$record->final_inflasi
-                        : ($record && !is_null($record->nilai_inflasi) ? (float)$record->nilai_inflasi : null);
+                        ? $record->final_inflasi
+                        : ($record && !is_null($record->nilai_inflasi) ? $record->nilai_inflasi : null);
 
                     // Add data to heatmap
                     $xIndex = array_search($kdLevel, $kdLevels);
@@ -535,7 +535,7 @@ class VisualisasiController extends Controller
                 'errors' => $errors
             ];
         } catch (\Exception $e) {
-            // add here: Catch unexpected errors and include in message
+            // Catch unexpected errors and include in message
             Log::error('Unexpected error in fetchNationalCharts', ['error' => $e->getMessage()]);
             return [
                 'charts' => [],
@@ -627,8 +627,8 @@ class VisualisasiController extends Controller
                         ->first();
 
                     $inflasi = $record && $finalInflasiMap[$id] && !is_null($record->final_inflasi)
-                        ? (float)$record->final_inflasi
-                        : ($record && !is_null($record->nilai_inflasi) ? (float)$record->nilai_inflasi : null);
+                        ? $record->final_inflasi
+                        : ($record && !is_null($record->nilai_inflasi) ? $record->nilai_inflasi : null);
 
                     $inflasiData[] = $inflasi;
 
@@ -669,7 +669,7 @@ class VisualisasiController extends Controller
 
             // Kabkot Horizontal Bar and Choropleth
             $kabkots = Wilayah::where('flag', 3)->where('parent_kd', $kd_wilayah)->pluck('nama_wilayah', 'kd_wilayah')->toArray();
-            $latestMonthId = $monthsData['ids'][0];
+            $latestMonthId = $bulanTahunId;
 
             $useFinalInflasi = $finalInflasiMap[$latestMonthId];
             $kabkotHorizontalBarData = [];
