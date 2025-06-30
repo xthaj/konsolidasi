@@ -117,12 +117,9 @@ class SSOController extends Controller
 
     public function lookupPegawai(Request $request): JsonResponse
     {
-        // Get username from 'username' or 'query' parameter
         $username = $request->input('username', $request->input('query'));
         if (!$username) {
-            return response()->json([
-                'message' => 'Username wajib diisi'
-            ], 400);
+            return response()->json(['message' => 'Username wajib diisi'], 400);
         }
 
         $base_url = rtrim(config('sso.authServerUrl'), '/') . '/auth/';
@@ -131,39 +128,45 @@ class SSOController extends Controller
         $url_api = $base_url . "realms/{$realm}/api-pegawai";
         $client_id = config('sso.clientId');
         $client_secret = config('sso.clientSecret');
-        $query_search = "/search/username/{$username}";
+        $query_search = "/username/{$username}";
 
         try {
-            // Mendapatkan access token
-            $response_token = Http::asForm()->withBasicAuth($client_id, $client_secret)
-                ->post($url_token, ['grant_type' => 'client_credentials'])
-                ->throw(function ($response) {
-                    throw new Exception("Gagal mendapatkan token: " . $response->body());
-                });
-            $access_token = $response_token->json('access_token');
+            $response_token = Http::asForm()
+                ->withBasicAuth($client_id, $client_secret)
+                ->post($url_token, ['grant_type' => 'client_credentials']);
 
-            // Mengambil data pengguna
-            $response = Http::withToken($access_token)
-                ->get($url_api . $query_search)
-                ->throw(function ($response) {
-                    throw new Exception("Gagal mengambil data pengguna: " . $response->body());
-                });
+            if ($response_token->failed()) {
+                return response()->json(['message' => 'Gagal mendapatkan token'], 500);
+            }
+
+            $access_token = $response_token->json('access_token');
+            if (!$access_token) {
+                return response()->json(['message' => 'Token tidak ditemukan'], 500);
+            }
+
+            $target_url = $url_api . $query_search;
+
+            $response = Http::withToken($access_token)->get($target_url);
+
+            if ($response->failed()) {
+                return response()->json(['message' => 'Gagal mengambil data pengguna'], 500);
+            }
+
             $json = $response->json();
 
-            if (!empty($json) && count($json) == 1) {
+            if (!empty($json) && count($json) === 1) {
                 return response()->json([
                     'username' => $json[0]['username'],
                     'nama_lengkap' => $json[0]['attributes']['attribute-nama'][0],
-                ], 200);
+                ]);
             }
 
             return response()->json([
-                'message' => 'Pencarian user tidak ditemukan atau lebih dari 1 user ditemukan'
+                'message' => 'User tidak ditemukan'
             ], 404);
+
         } catch (Exception $e) {
-            return response()->json([
-                'message' => 'Gagal mengambil data: ' . $e->getMessage()
-            ], 500);
+            return response()->json(['message' => 'Gagal mengambil data: ' . $e->getMessage()], 500);
         }
     }
 }
