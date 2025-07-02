@@ -48,7 +48,7 @@
             <form id="edit-form" x-ref="editForm" @submit.prevent="editData()">
                 <div class="px-6 py-4 space-y-4">
                     <div>
-                        <label class="block mb-2 text-sm font-medium text-gray-900">Nilai Inflasi<span class="text-red-500 ml-1">*</span></label>
+                        <label class="block mb-2 text-sm font-medium text-gray-900">Inflasi (persen)<span class="text-red-500 ml-1">*</span></label>
                         <input
                             type="number"
                             step="0.01"
@@ -57,7 +57,7 @@
                             required>
                     </div>
                     <div x-show="kd_wilayah == '0'">
-                        <label class="block mb-2 text-sm font-medium text-gray-900">Andil</label>
+                        <label class="block mb-2 text-sm font-medium text-gray-900">Andil (persen)</label>
                         <input
                             type="number"
                             step="0.01"
@@ -300,7 +300,7 @@
                             <th scope="col" class="px-6 py-3">Komoditas</th>
                             <th scope="col" class="px-6 py-3">Inflasi</th>
                             <th scope="col" class="px-6 py-3" x-show="data.kd_wilayah === '0'">Andil</th>
-                            <th scope="col" class="px-6 py-3"><span class="sr-only">Actions</span></th>
+                            <th scope="col" class="px-6 py-3">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
