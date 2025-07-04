@@ -104,10 +104,10 @@ class RekonsiliasiController extends Controller
                 }
 
                 // Log each insert attempt
-                Log::debug('Attempting to insert Rekonsiliasi', [
-                    'inflasi_id' => $inflasi_id,
-                    'bulan_tahun_id' => $bulan_tahun_id
-                ]);
+                // Log::debug('Attempting to insert Rekonsiliasi', [
+                //     'inflasi_id' => $inflasi_id,
+                //     'bulan_tahun_id' => $bulan_tahun_id
+                // ]);
 
                 Rekonsiliasi::create([
                     'inflasi_id' => $inflasi_id,
@@ -446,7 +446,7 @@ class RekonsiliasiController extends Controller
                 'message' => $filteredRekonsiliasi->isEmpty() ? 'Tidak ada data untuk filter ini.' : 'Data berhasil dimuat.',
                 'data' => [
                     'rekonsiliasi' => $rekonsiliasiData,
-                    'title' => $this->generateRekonTableTitle($request),
+                    'title' => $this->generateRekonTableTitle($input),
                 ],
             ], 200);
         } catch (\Exception $e) {
@@ -464,17 +464,17 @@ class RekonsiliasiController extends Controller
      * @param Request $request HTTP request with input parameters.
      * @return string The formatted title for the reconciliation table.
      */
-    private function generateRekonTableTitle(Request $request): string
+    private function generateRekonTableTitle(array $input): string
     {
         try {
             $title = 'Rekonsiliasi';
 
-            $kdLevel = $request->input('kd_level', '01');
-            $kdKomoditas = $request->input('kd_komoditas');
-            $levelWilayah = $request->input('level_wilayah', 'semua-provinsi');
-            $kdWilayah = $request->input('kd_wilayah', '0');
-            $bulan = $request->input('bulan');
-            $tahun = $request->input('tahun');
+            $kdLevel = $input['kd_level'] ?? '01';
+            $kdKomoditas = $input['kd_komoditas'] ?? null;
+            $levelWilayah = $input['level_wilayah'] ?? 'semua-provinsi';
+            $kdWilayah = $input['kd_wilayah'] ?? '0';
+            $bulan = $input['bulan'] ?? null;
+            $tahun = $input['tahun'] ?? null;
 
             // Append level harga
             $levelHarga = LevelHarga::getLevelHargaNameComplete($kdLevel);
@@ -511,7 +511,6 @@ class RekonsiliasiController extends Controller
 
             return $title;
         } catch (\Exception $e) {
-            // Handle unexpected errors
             Log::error('Error in generateRekonTableTitle', ['message' => $e->getMessage()]);
             return 'Rekonsiliasi';
         }
@@ -824,7 +823,7 @@ class RekonsiliasiController extends Controller
             }
 
             return response()->json([
-                'message' => 'Rekonsiliasi berhasil dihapus.',
+                'message' => 'Komoditas rekonsiliasi berhasil dihapus.',
                 'data' => null
             ], 200);
         } catch (ModelNotFoundException $e) {

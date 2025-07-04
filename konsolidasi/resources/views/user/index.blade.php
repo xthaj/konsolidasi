@@ -612,9 +612,9 @@
     <!-- Display Users -->
     <div x-show="!usersData?.length" class="bg-white px-6 py-4 rounded-lg shadow-sm text-center text-gray-500">
         <div class="mb-1">
-    <h2 class="text-lg font-semibold mb-2" x-text="message"></h2>
-</div>
-<span>Klik "filter" untuk menampilkan data</span>
+            <h2 class="text-lg font-semibold mb-2" x-text="message"></h2>
+        </div>
+        <span>Klik "filter" untuk menampilkan data</span>
     </div>
 
     <div x-show="usersData?.length">

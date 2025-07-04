@@ -9,7 +9,9 @@
             @php
             $pageTitle = match (true) {
             request()->routeIs('dashboard') => 'Dashboard',
+            request()->routeIs('user.index') => 'Kelola Akun',
             request()->routeIs('visualisasi.create') => 'Harmonisasi',
+            request()->routeIs('data.create') => 'Upload Data',
             request()->routeIs('data.edit') => 'Edit Data',
             request()->routeIs('data.finalisasi') => 'Finalisasi Data',
             request()->routeIs('master.komoditas') => 'Master Komoditas',
@@ -17,6 +19,7 @@
             request()->routeIs('master.alasan') => 'Master Alasan',
             request()->routeIs('rekon.pemilihan') => 'Pemilihan Komoditas',
             request()->routeIs('rekon.pengisian') => 'Pengisian Rekonsiliasi',
+            request()->routeIs('rekon.pengisian-skl') => 'Pengisian Rekonsiliasi',
             request()->routeIs('rekon.pembahasan') => 'Pembahasan Rekonsiliasi',
             request()->routeIs('pengaturan') => 'Pengaturan',
             default => 'Dashboard',

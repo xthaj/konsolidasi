@@ -289,7 +289,6 @@ class DatabaseSeeder extends Seeder
         $this->call([
             TestSeeder::class,
             AlasanSeeder::class,
-            TestSeeder::class,
         ]);
     }
 }

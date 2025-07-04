@@ -68,7 +68,12 @@ Alpine.data("webData", () => ({
         ],
     },
 
-    async fetchWrapper(url, options = {}, successMessage = "Operasi berhasil", showSuccessModal = false) {
+    async fetchWrapper(
+        url,
+        options = {},
+        successMessage = "Operasi berhasil",
+        showSuccessModal = false
+    ) {
         try {
             const response = await fetch(url, {
                 method: "GET",
@@ -76,16 +81,22 @@ Alpine.data("webData", () => ({
                 headers: {
                     "Content-Type": "application/json",
                     Accept: "application/json",
-                    ...(options.method && options.method !== "GET" ? {
-                        "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]')?.content
-                    } : {}),
+                    ...(options.method && options.method !== "GET"
+                        ? {
+                              "X-CSRF-TOKEN": document.querySelector(
+                                  'meta[name="csrf-token"]'
+                              )?.content,
+                          }
+                        : {}),
                     ...options.headers,
                 },
             });
             const result = await response.json();
 
             if (!response.ok) {
-                this.modalMessage = result.message || "Terjadi kesalahan saat memproses permintaan.";
+                this.modalMessage =
+                    result.message ||
+                    "Terjadi kesalahan saat memproses permintaan.";
                 this.$dispatch("open-modal", "error-modal");
                 throw new Error(this.modalMessage);
             }
@@ -97,7 +108,9 @@ Alpine.data("webData", () => ({
             return result;
         } catch (error) {
             console.error(`Fetch error at ${url}:`, error);
-            this.modalMessage = result.message || "Terjadi kesalahan saat memproses permintaan.";
+            this.modalMessage =
+                result.message ||
+                "Terjadi kesalahan saat memproses permintaan.";
             this.$dispatch("open-modal", "error-modal");
             throw error;
         }
@@ -119,7 +132,8 @@ Alpine.data("webData", () => ({
 
     // Helper function to format percentages
     formatPercentage(value) {
-        return value != null ? `${value.toFixed(2)}%` : "N/A";
+        // Convert value to a number if it's a string, or return "N/A" if null/undefined
+        return value != null ? `${Number(value).toFixed(2)}%` : "N/A";
     },
 
     // Computed property to check if the selected period is active
@@ -141,25 +155,48 @@ Alpine.data("webData", () => ({
         this.loading = true;
         try {
             const [
-            wilayahResponse,
-            komoditasResponse,
-            bulanTahunResponse,
-            provGeo,
-            kabkotGeo,
+                wilayahResponse,
+                komoditasResponse,
+                bulanTahunResponse,
+                provGeo,
+                kabkotGeo,
             ] = await Promise.all([
-                this.fetchWrapper("/segmented-wilayah", {}, "Data wilayah berhasil dimuat", false),
-                this.fetchWrapper("/all-komoditas", {}, "Data komoditas berhasil dimuat", false),
-                this.fetchWrapper("/bulan-tahun", {}, "Data bulan dan tahun berhasil dimuat", false),
-                this.fetchWrapper("/geojson/provinsi.json", {}, "Provinsi GeoJSON berhasil dimuat", false)
-                    .catch((err) => {
-                        console.error("Failed to load Provinsi GeoJSON:", err);
-                        return null;
-                    }),
-                this.fetchWrapper("/geojson/kabkot.json", {}, "Kabkot GeoJSON berhasil dimuat", false)
-                    .catch((err) => {
-                        console.error("Failed to load Kabkot GeoJSON:", err);
-                        return null;
-                    }),
+                this.fetchWrapper(
+                    "/segmented-wilayah",
+                    {},
+                    "Data wilayah berhasil dimuat",
+                    false
+                ),
+                this.fetchWrapper(
+                    "/all-komoditas",
+                    {},
+                    "Data komoditas berhasil dimuat",
+                    false
+                ),
+                this.fetchWrapper(
+                    "/bulan-tahun",
+                    {},
+                    "Data bulan dan tahun berhasil dimuat",
+                    false
+                ),
+                this.fetchWrapper(
+                    "/geojson/provinsi.json",
+                    {},
+                    "Provinsi GeoJSON berhasil dimuat",
+                    false
+                ).catch((err) => {
+                    console.error("Failed to load Provinsi GeoJSON:", err);
+                    return null;
+                }),
+                this.fetchWrapper(
+                    "/geojson/kabkot.json",
+                    {},
+                    "Kabkot GeoJSON berhasil dimuat",
+                    false
+                ).catch((err) => {
+                    console.error("Failed to load Kabkot GeoJSON:", err);
+                    return null;
+                }),
             ]);
 
             this.provinces = wilayahResponse.data?.provinces || [];
@@ -201,7 +238,9 @@ Alpine.data("webData", () => ({
             this.loading = false;
 
             // Listen for sidebar toggle
-            window.addEventListener("sidebar-toggle", () => this.resizeCharts());
+            window.addEventListener("sidebar-toggle", () =>
+                this.resizeCharts()
+            );
             // Keep window resize for browser resizing
             window.addEventListener("resize", () => this.resizeCharts());
         } catch (error) {
@@ -337,12 +376,17 @@ Alpine.data("webData", () => ({
         const paddingX = 32;
         charts.forEach((chart, chartId) => {
             const chartDiv = document.getElementById(chartId);
-            if (chart && chartDiv && !chart.isDisposed() && chartDiv.offsetParent !== null) {
+            if (
+                chart &&
+                chartDiv &&
+                !chart.isDisposed() &&
+                chartDiv.offsetParent !== null
+            ) {
                 // Force layout recalculation
-                chartDiv.style.display = 'none';
+                chartDiv.style.display = "none";
                 chartDiv.offsetHeight; // Trigger reflow
-                chartDiv.style.display = '';
-                
+                chartDiv.style.display = "";
+
                 const container = chartDiv.parentElement;
                 const width = container.clientWidth - paddingX;
                 const height = chartDiv.clientHeight;
@@ -357,17 +401,16 @@ Alpine.data("webData", () => ({
     checkFormValidity() {
         // Check if required fields are filled
         if (!this.bulan || !this.tahun || !this.pendingWilayahLevel) {
-            this.errorMessage = "Harap isi bulan, tahun, dan level wilayah.";
-            // this.$dispatch("open-modal", "error-modal");
+            this.modalMessage = "Harap isi bulan, tahun, dan level wilayah.";
+            this.$dispatch("open-modal", "error-modal");
             return false;
         }
 
         // If level is Provinsi (2), ensure kd_wilayah is not "0" and a province is selected
         if (this.pendingWilayahLevel === "2") {
             if (!this.selectedProvince || this.kd_wilayah === "0") {
-                this.errorMessage = "Harap pilih provinsi yang valid.";
-                // this.$dispatch("open-modal", "error-modal");
-
+                this.modalMessage = "Harap pilih provinsi yang valid.";
+                this.$dispatch("open-modal", "error-modal");
                 return false;
             }
         }
@@ -375,7 +418,6 @@ Alpine.data("webData", () => ({
         // If level is Nasional (1), kd_wilayah should be "0"
         if (this.pendingWilayahLevel === "1") {
             this.kd_wilayah = "0";
-
             return true;
         }
 
@@ -451,7 +493,8 @@ Alpine.data("webData", () => ({
             this.resizeCharts();
         } catch (error) {
             console.error("Fetch data failed:", error);
-            this.errorMessage = this.modalMessage || "Gagal mengambil data dari server";
+            this.errorMessage =
+                this.modalMessage || "Gagal mengambil data dari server";
         } finally {
             charts.forEach((chart) => chart.hideLoading());
         }
@@ -482,7 +525,6 @@ Alpine.data("webData", () => ({
         this.data = data;
         const isNational = this.kd_wilayah === "0";
         const chartKey = "line";
-        
 
         const levelColorMap = {
             "01": this.colorPalette.HK,
@@ -496,22 +538,28 @@ Alpine.data("webData", () => ({
         const lineChart = charts.get("lineChart");
         if (lineChart && data?.chart_data?.[chartKey]) {
             const hasAndilData = data.chart_data[chartKey].series.some(
-                (s) => s.andil && s.andil.length > 0 && s.andil.some((v) => v != null)
+                (s) =>
+                    s.andil &&
+                    s.andil.length > 0 &&
+                    s.andil.some((v) => v != null)
             );
 
             // If at province level and showAndil is true but no andil data, reset to Inflasi
             if (this.wilayahLevel === "2" && this.showAndil && !hasAndilData) {
                 this.showAndil = false;
-                const toggleAndilBtn = document.getElementById("toggleAndilBtn");
+                const toggleAndilBtn =
+                    document.getElementById("toggleAndilBtn");
                 if (toggleAndilBtn) {
                     toggleAndilBtn.textContent = "Lihat Andil";
                 }
             }
 
             const seriesData = data.chart_data[chartKey].series.map((s) => ({
-                name: `${s.name} (${this.showAndil && hasAndilData ? "Andil" : "Inflasi"})`,
+                name: `${s.name} (${
+                    this.showAndil && hasAndilData ? "Andil" : "Inflasi"
+                })`,
                 type: "line",
-                data: (this.showAndil && hasAndilData) ? s.andil : s.inflasi,
+                data: this.showAndil && hasAndilData ? s.andil : s.inflasi,
                 itemStyle: {
                     color: this.colors[s.name] || this.colorPalette.HK,
                 },
@@ -536,9 +584,12 @@ Alpine.data("webData", () => ({
                     type: "category",
                     data: data.chart_data[chartKey].xAxis,
                 },
-                        yAxis: {
+                yAxis: {
                     type: "value",
-                    name: (this.showAndil && hasAndilData) ? "Andil (%)" : "Inflasi (%)",
+                    name:
+                        this.showAndil && hasAndilData
+                            ? "Andil (%)"
+                            : "Inflasi (%)",
                 },
                 series: seriesData,
             });
@@ -556,7 +607,10 @@ Alpine.data("webData", () => ({
         if (horizontalBarChart && data?.chart_data?.horizontalBar) {
             // Check if there is valid andil data
             const hasAndilData = data.chart_data.horizontalBar.datasets.some(
-                (d) => d.andil && d.andil.length > 0 && d.andil[d.andil.length - 1] != null
+                (d) =>
+                    d.andil &&
+                    d.andil.length > 0 &&
+                    d.andil[d.andil.length - 1] != null
             );
 
             // Prepare series data, including Andil only if it exists
@@ -600,7 +654,9 @@ Alpine.data("webData", () => ({
                 xAxis: { type: "value", name: "Nilai (%)" },
                 yAxis: {
                     type: "category",
-                    data: data.chart_data.horizontalBar.datasets.map((d) => d.label),
+                    data: data.chart_data.horizontalBar.datasets.map(
+                        (d) => d.label
+                    ),
                 },
                 series: series,
             });

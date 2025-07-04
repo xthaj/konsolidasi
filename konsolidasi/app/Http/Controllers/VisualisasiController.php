@@ -132,7 +132,7 @@ class VisualisasiController extends Controller
                 'line' => "Tren Inflasi dan Andil {$namaKomoditas} {$monthName} {$tahun}",
                 'horizontalBar' => "Perbandingan Inflasi dan Andil Antartingkat Harga {$namaKomoditas} {$monthName} {$tahun}",
                 'heatmap' => "Inflasi per Provinsi Antartingkat Harga {$namaKomoditas} {$monthName} {$tahun}",
-                'stackedBar' => "Distribusi Inflasi per Tingkat Harga {$namaKomoditas} {$monthName} {$tahun}",
+                'stackedBar' => "Distribusi Provinsi Menurut Inflasi per Tingkat Harga {$namaKomoditas} {$monthName} {$tahun}",
                 'provHorizontalBar' => "Inflasi per Provinsi {$namaKomoditas} {$monthName} {$tahun}",
                 'kabkotHorizontalBar' => "Inflasi per Kabupaten/Kota {$namaKomoditas} {$monthName} {$tahun}",
                 'provinsiChoropleth' => "Peta Inflasi Provinsi {$namaKomoditas} {$monthName} {$tahun}",

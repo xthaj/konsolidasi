@@ -175,7 +175,7 @@
                                     <span x-show="!item.sumber">-</span>
                                 </td>
                                 <td class="px-6 py-4 text-center">
-                                    <input type="checkbox" class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500" :checked="!!item.pembahasan" @change="togglePembahasan(item.rekonsiliasi_id, $event.target.checked)">
+                                    <input type="checkbox" class="rounded border-gray-300" :checked="!!item.pembahasan" @change="togglePembahasan(item.rekonsiliasi_id, $event.target.checked)">
                                 </td>
                             </tr>
                         </template>

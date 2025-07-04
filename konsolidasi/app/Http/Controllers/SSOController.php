@@ -57,7 +57,7 @@ class SSOController extends Controller
             $ssoUser = $provider->getResourceOwner($token);
 
             // Dump the user data to inspect it
-            dd($ssoUser);
+            // dd($ssoUser);
 
             // Get the username from SSO
             $username = $ssoUser->getUsername();
@@ -92,7 +92,7 @@ class SSOController extends Controller
             return redirect()->intended(route('dashboard'));
         } catch (Exception $e) {
             // Dump the exception if something goes wrong
-            dd($e);
+            // dd($e);
             return abort(500, 'SSO Error: ' . $e->getMessage());
         }
     }

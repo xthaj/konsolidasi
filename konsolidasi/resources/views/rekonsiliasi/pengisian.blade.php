@@ -10,7 +10,7 @@
                 <div class="flex gap-4">
                     <div class="w-1/2">
                         <label class="block mb-2 text-sm font-medium text-gray-900">Bulan</label>
-                        <select name="bulan" x-model="bulan" required disabled class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
+                        <select name="bulan" x-model="bulan" required disabled class="bg-gray-200 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                             <template x-for="[nama, bln] in bulanOptions" :key="bln">
                                 <option :value="bln" :selected="bulan == bln" x-text="nama"></option>
                             </template>
@@ -18,7 +18,7 @@
                     </div>
                     <div class="w-1/2">
                         <label class="block mb-2 text-sm font-medium text-gray-900">Tahun</label>
-                        <select name="tahun" x-model="tahun" required disabled class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
+                        <select name="tahun" x-model="tahun" required disabled class="bg-gray-200 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                             <template x-for="year in tahunOptions" :key="year">
                                 <option :value="year" :selected="year == tahun" x-text="year"></option>
                             </template>
@@ -183,7 +183,7 @@
                                         x-show="isPusat"
                                         @click="openDeleteModal(item.rekonsiliasi_id, item.nama_komoditas, item.nama_wilayah, item.kd_level)"
                                         class="font-medium text-red-600 hover:underline">
-                                        Delete
+                                        Hapus
                                     </button>
                                 </td>
 
@@ -253,14 +253,12 @@
                                         :value="alasan.keterangan"
                                         @change="selectedAlasan.includes(alasan.keterangan) ? selectedAlasan = selectedAlasan.filter(a => a !== alasan.keterangan) : selectedAlasan.push(alasan.keterangan)"
                                         :checked="selectedAlasan.includes(alasan.keterangan)"
-                                        class="w-4 h-4 bg-gray-100 border-gray-300 rounded-sm">
+                                        class="rounded border-gray-300">
                                     <label :for="'alasan-' + alasan.alasan_id" class="ms-2 text-sm font-medium text-gray-900" x-text="alasan.keterangan"></label>
                                 </div>
                             </li>
                         </template>
                     </ul>
-
-
                 </div>
 
                 <div>
@@ -280,9 +278,10 @@
                     </div>
                 </div>
                 <div>
-                    <label for="link_terkait" class="block mb-2 text-sm font-medium text-gray-900 ">Link media</label>
+                    <label for="link_terkait" class="block mb-2 text-sm font-medium text-gray-900 ">Sumber (opsional)</label>
                     <input
                         type="text"
+                        placeholder="https://www.kompas.com/artikel"
                         id="link_terkait"
                         x-model="linkTerkait"
                         class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5  " />
@@ -295,7 +294,7 @@
         </div>
     </x-modal>
 
-    <x-modal name="delete-rekonsiliasi" focusable title="Konfirmasi Hapus Rekonsiliasi" x-cloak>
+    <x-modal name="delete-rekonsiliasi" focusable title="Konfirmasi Hapus Komoditas Rekonsiliasi" x-cloak>
         <div class="px-6 py-4">
             <p x-text="'Hapus rekonsiliasi berikut?'"></p>
             <span x-text="

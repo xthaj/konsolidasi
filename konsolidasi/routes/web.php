@@ -17,12 +17,41 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Log;
 use App\Http\Middleware\isPusat;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Response;
 // SSOController
 
 // Route::get('/test', function () {
-//     abort(500);
+//     abort(403);
 // });
 
+Route::get('/geojson/{name}.json', function ($name) {
+    if (!in_array($name, ['provinsi', 'kabkot'])) {
+        abort(404);
+    }
+
+    $path = public_path("geojson/{$name}.json");
+
+    if (!file_exists($path)) {
+        abort(404, 'File not found.');
+    }
+
+    return Response::file($path, [
+        'Content-Type' => 'application/json',
+    ]);
+});
+
+Route::middleware('admin', 'pusat')->get('/clear-app-cache-23898', function () {
+    Cache::flush(); // Clears all cache stored via Cache facade
+
+    $userId = auth()->id(); // or auth()->user()->id
+    Log::info("Application cache flushed by user ID: {$userId}");
+
+    return 'Application cache cleared!';
+});
+
+// tested
+Route::get('/api/rekonsiliasi/pengisian', [RekonsiliasiController::class, 'apipengisian']);
+Route::put('/rekonsiliasi/update/{id}', [RekonsiliasiController::class, 'update'])->name('rekonsiliasi.update');
 
 // sso
 Route::get('/sso/login', [SSOController::class, 'redirectToSSO'])->name('sso.login');
@@ -123,10 +152,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/api/rekonsiliasi/pembahasan', [RekonsiliasiController::class, 'fetchPembahasanData']);
     Route::patch('/api/rekonsiliasi/{id}/pembahasan', [RekonsiliasiController::class, 'updatePembahasan']);
 
-    Route::get('/api/rekonsiliasi/pengisian', [RekonsiliasiController::class, 'apipengisian']);
+    // Route::get('/api/rekonsiliasi/pengisian', [RekonsiliasiController::class, 'apipengisian']);
 
     Route::post('/rekonsiliasi/confirm', [RekonsiliasiController::class, 'confirmRekonsiliasi'])->name('rekonsiliasi.confirm');
-    Route::put('/rekonsiliasi/update/{id}', [RekonsiliasiController::class, 'update'])->name('rekonsiliasi.update');
+    // Route::put('/rekonsiliasi/update/{id}', [RekonsiliasiController::class, 'update'])->name('rekonsiliasi.update');
     Route::delete('/rekonsiliasi/{id}', [RekonsiliasiController::class, 'destroy'])->name('rekon.destroy');
 
     // so far isi pengaturan hanyalah bulantahun

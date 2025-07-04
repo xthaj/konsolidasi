@@ -21,7 +21,7 @@
                 @else
                 <div>
                     <label class="block mb-2 text-sm font-medium text-gray-900">Level Harga</label>
-                    <select name="kd_level" x-model="selectedKdLevel" disabled class="cursor-not-allowed bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
+                    <select name="kd_level" x-model="selectedKdLevel" disabled class="cursor-not-allowed bg-gray-200 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                         <option value="01" selected :selected="selectedKdLevel == '01'">Harga Konsumen Kota</option>
                     </select>
                 </div>
@@ -38,12 +38,12 @@
                 </div>
                 <div x-show="wilayahLevel === 'provinsi' || wilayahLevel === 'kabkot'" class="mt-4">
                     <label class="block mb-2 text-sm font-medium text-gray-900">Provinsi</label>
-                    <select x-model="selectedProvince" @change="selectedKabkot = ''; updateKdWilayah()" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5" disabled>
+                    <select x-model="selectedProvince" @change="selectedKabkot = ''; updateKdWilayah()" disabled class="cursor-not-allowed bg-gray-200 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5" disabled>
                         <option value="{{ auth()->user()->kd_wilayah }}" x-text="provinces.find(p => p.kd_wilayah === '{{ auth()->user()->kd_wilayah }}')?.nama_wilayah || 'Pilih Provinsi'" selected></option>
                     </select>
                 </div>
                 <div x-show="wilayahLevel === 'kabkot' && selectedKdLevel === '01'" class="mt-4">
-                    <label class="block mb-2 text-sm font-medium text-gray-900">Kabupaten/Kota</label>
+                    <label class="block mb-2 text-sm font-medium text-gray-900">Kabupaten/Kota<span class="text-red-500 ml-1">*</span></label>
                     <select x-model="selectedKabkot" @change="updateKdWilayah()" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                         <option value="" selected>Pilih Kabupaten/Kota</option>
                         <template x-for="kabkot in filteredKabkots" :key="kabkot.kd_wilayah">
@@ -54,13 +54,13 @@
                 @else
                 <div>
                     <label class="block mb-2 text-sm font-medium text-gray-900">Level Wilayah</label>
-                    <select name="level_wilayah" x-model="wilayahLevel" disabled class="cursor-not-allowed bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
+                    <select name="level_wilayah" x-model="wilayahLevel" disabled class="cursor-not-allowed bg-gray-200 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                         <option value="kabkot" selected>Kabupaten/Kota</option>
                     </select>
                 </div>
                 <div x-show="selectedKdLevel === '01'" class="mt-4">
                     <label class="block mb-2 text-sm font-medium text-gray-900">Kabupaten/Kota</label>
-                    <select x-model="selectedKabkot" disabled class="cursor-not-allowed bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
+                    <select x-model="selectedKabkot" disabled class="cursor-not-allowed bg-gray-200 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                         <option value="{{ auth()->user()->kd_wilayah }}" x-text="kabkots.find(k => k.kd_wilayah === '{{ auth()->user()->kd_wilayah }}')?.nama_wilayah || 'Pilih Kabupaten/Kota'" selected></option>
                     </select>
                 </div>
@@ -206,7 +206,7 @@
                 </div>
 
                 <div class="flex justify-between items-center mb-2 mt-6">
-                    <label class="text-sm font-medium text-gray-900 ">Alasan</label>
+                    <label class="text-sm font-medium text-gray-900 ">Alasan<span class="text-red-500 ml-1">*</span></label>
                 </div>
                 <div class="bg-white rounded-lg shadow-sm border border-gray-300 ">
                     <div class="p-3">
@@ -229,7 +229,7 @@
                                         :value="alasan.keterangan"
                                         @change="selectedAlasan.includes(alasan.keterangan) ? selectedAlasan = selectedAlasan.filter(a => a !== alasan.keterangan) : selectedAlasan.push(alasan.keterangan)"
                                         :checked="selectedAlasan.includes(alasan.keterangan)"
-                                        class="w-4 h-4 bg-gray-100 border-gray-300 rounded-sm">
+                                        class="rounded border-gray-300">
                                     <label :for="'alasan-' + alasan.alasan_id" class="ms-2 text-sm font-medium text-gray-900 " x-text="alasan.keterangan"></label>
                                 </div>
                             </li>
@@ -238,7 +238,7 @@
                 </div>
 
                 <div>
-                    <label for="detail" class="block mb-2 text-sm font-medium text-gray-900 ">Detail</label>
+                    <label for="detail" class="block mb-2 text-sm font-medium text-gray-900 ">Detail<span class="text-red-500 ml-1">*</span></label>
                     <textarea
                         id="detail"
                         rows="6"
@@ -254,7 +254,7 @@
                     </div>
                 </div>
                 <div>
-                    <label for="link_terkait" class="block mb-2 text-sm font-medium text-gray-900 ">Link media</label>
+                    <label for="link_terkait" class="block mb-2 text-sm font-medium text-gray-900 ">Sumber (opsional)</label>
                     <input
                         type="text"
                         id="link_terkait"

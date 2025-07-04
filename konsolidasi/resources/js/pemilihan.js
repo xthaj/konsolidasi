@@ -43,26 +43,43 @@ Alpine.data("webData", () => ({
     modalMessage: "",
     hasUnconfirmedChanges: false,
 
-    async fetchWrapper(url, options = {}, successMessage = "Operasi berhasil", showSuccessModal = false) {
+    async fetchWrapper(
+        url,
+        options = {},
+        successMessage = "Operasi berhasil",
+        showSuccessModal = false
+    ) {
         try {
             const response = await fetch(url, {
                 method: "GET",
                 ...options,
                 headers: {
                     Accept: "application/json",
-                    ...(options.method && options.method !== "GET" && !options.body?.constructor?.name === "FormData" ? {
-                        "Content-Type": "application/json",
-                        "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]')?.content
-                    } : options.method && options.method !== "GET" ? {
-                        "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]')?.content
-                    } : {}),
+                    ...(options.method &&
+                    options.method !== "GET" &&
+                    !options.body?.constructor?.name === "FormData"
+                        ? {
+                              "Content-Type": "application/json",
+                              "X-CSRF-TOKEN": document.querySelector(
+                                  'meta[name="csrf-token"]'
+                              )?.content,
+                          }
+                        : options.method && options.method !== "GET"
+                        ? {
+                              "X-CSRF-TOKEN": document.querySelector(
+                                  'meta[name="csrf-token"]'
+                              )?.content,
+                          }
+                        : {}),
                     ...options.headers,
                 },
             });
             const result = await response.json();
 
             if (!response.ok) {
-                this.modalMessage = result.message || "Terjadi kesalahan saat memproses permintaan.";
+                this.modalMessage =
+                    result.message ||
+                    "Terjadi kesalahan saat memproses permintaan.";
                 this.$dispatch("open-modal", "error-modal");
                 throw new Error(this.modalMessage);
             }
@@ -74,7 +91,9 @@ Alpine.data("webData", () => ({
             return result;
         } catch (error) {
             console.error(`Fetch error at ${url}:`, error);
-            this.modalMessage = result?.message || "Terjadi kesalahan saat memproses permintaan.";
+            this.modalMessage =
+                result?.message ||
+                "Terjadi kesalahan saat memproses permintaan.";
             this.$dispatch("open-modal", "error-modal");
             throw error;
         }
@@ -94,9 +113,24 @@ Alpine.data("webData", () => ({
         try {
             const [wilayahResponse, komoditasResponse, bulanTahunResponse] =
                 await Promise.all([
-                    this.fetchWrapper("/segmented-wilayah", {}, "Data wilayah berhasil dimuat", false),
-                    this.fetchWrapper("/all-komoditas", {}, "Data komoditas berhasil dimuat", false),
-                    this.fetchWrapper("/bulan-tahun", {}, "Data bulan dan tahun berhasil dimuat", false),
+                    this.fetchWrapper(
+                        "/segmented-wilayah",
+                        {},
+                        "Data wilayah berhasil dimuat",
+                        false
+                    ),
+                    this.fetchWrapper(
+                        "/all-komoditas",
+                        {},
+                        "Data komoditas berhasil dimuat",
+                        false
+                    ),
+                    this.fetchWrapper(
+                        "/bulan-tahun",
+                        {},
+                        "Data bulan dan tahun berhasil dimuat",
+                        false
+                    ),
                 ]);
 
             // Process Data
@@ -310,7 +344,10 @@ Alpine.data("webData", () => ({
                 ? [...this.selectedProvinces, ...this.selectedKabkots]
                 : [...this.selectedProvinces];
 
-        if (selectedWilayah.length === 0 || this.selectedKomoditas.length === 0) {
+        if (
+            selectedWilayah.length === 0 ||
+            this.selectedKomoditas.length === 0
+        ) {
             this.errorMessage =
                 "Pilih minimal satu provinsi/kabupaten dan komoditas.";
             return;
@@ -333,7 +370,8 @@ Alpine.data("webData", () => ({
             "05": "Harga Produsen",
         };
 
-        const namaKdLevel = levelHargaMap[this.selectedKdLevel] || "Unknown Level Harga";
+        const namaKdLevel =
+            levelHargaMap[this.selectedKdLevel] || "Unknown Level Harga";
 
         const combinations = [];
         selectedWilayah.forEach((wilayah) => {
@@ -394,7 +432,12 @@ Alpine.data("webData", () => ({
                     });
                 } else {
                     missingItems.push(
-                        `${result.nama_wilayah || this.getWilayahName(result.kd_wilayah)} - ${combo?.nama_komoditas || 'Unknown'} tidak ditemukan`
+                        `${
+                            result.nama_wilayah ||
+                            this.getWilayahName(result.kd_wilayah)
+                        } - ${
+                            combo?.nama_komoditas || "Unknown"
+                        } tidak ditemukan`
                     );
                 }
             });
@@ -411,7 +454,10 @@ Alpine.data("webData", () => ({
                 success: false,
                 items: [],
                 missingItems: combinations.map(
-                    (c) => `${this.getWilayahName(c.kd_wilayah)} - ${c.nama_komoditas} tidak ditemukan`
+                    (c) =>
+                        `${this.getWilayahName(c.kd_wilayah)} - ${
+                            c.nama_komoditas
+                        } tidak ditemukan`
                 ),
             };
         }
@@ -419,7 +465,10 @@ Alpine.data("webData", () => ({
 
     confirmAddToTable() {
         const newItems = this.modalContent.items.filter(
-            item => !this.tableData.some(existing => existing.inflasi_id === item.inflasi_id)
+            (item) =>
+                !this.tableData.some(
+                    (existing) => existing.inflasi_id === item.inflasi_id
+                )
         );
         this.tableData = [...this.tableData, ...newItems];
         this.$dispatch("close");
@@ -438,13 +487,10 @@ Alpine.data("webData", () => ({
         const formData = new FormData();
         uniqueData.forEach((item) => {
             formData.append("inflasi_ids[]", item.inflasi_id);
-            formData.append(
-                "bulan_tahun_ids[]",
-                item.bulan_tahun_id
-            );
+            formData.append("bulan_tahun_ids[]", item.bulan_tahun_id);
         });
 
-         // Log FormData contents
+        // Log FormData contents
         // console.log("POST request to /rekonsiliasi/confirm - FormData contents:");
         // for (const [key, value] of formData.entries()) {
         //     console.log(`${key}: ${value}`);
@@ -458,7 +504,7 @@ Alpine.data("webData", () => ({
                     method: "POST",
                     body: formData,
                 },
-                "Rekonsiliasi berhasil dikonfirmasi",
+                "Komoditas rekonsiliasi berhasil dikonfirmasi",
                 true // Show success modal
             );
 
@@ -477,11 +523,11 @@ Alpine.data("webData", () => ({
     },
 
     formatInflasi(value) {
-        if (value === '-' || value === null) return '-';
+        if (value === "-" || value === null) return "-";
         const num = parseFloat(value);
-        if (isNaN(num)) return '-';
+        if (isNaN(num)) return "-";
         return num.toFixed(2);
-    }
+    },
 }));
 
 Alpine.start();

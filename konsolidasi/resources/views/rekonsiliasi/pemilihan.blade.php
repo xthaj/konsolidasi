@@ -114,7 +114,7 @@
 
             <!-- Level Harga -->
             <div>
-                <label class="block mb-2 text-sm font-medium text-gray-900">Level Harga<span class="text-red-500 ml-1">*</span></label>
+                <label class="block mb-2 text-sm font-medium text-gray-900">Level Harga</label>
                 <select name="kd_level" x-model="selectedKdLevel" @change="updateKdWilayah()" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                     <option value="01" :selected="selectedKdLevel === '01'">Harga Konsumen Kota</option>
                     <option value="02" :selected="selectedKdLevel === '02'">Harga Konsumen Desa</option>

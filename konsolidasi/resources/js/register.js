@@ -84,11 +84,11 @@ Alpine.data("webData", () => ({
     updateLevel() {
         // console.log("updateLevel: wilayah_level=", this.wilayah_level);
         if (this.wilayah_level === "pusat") {
-            this.level = 1;
+            this.level = 0;
         } else if (this.wilayah_level === "provinsi") {
-            this.level = 3;
+            this.level = 2;
         } else if (this.wilayah_level === "kabkot") {
-            this.level = 5;
+            this.level = 4;
         }
         // console.log("updateLevel: final level=", this.level);
     },

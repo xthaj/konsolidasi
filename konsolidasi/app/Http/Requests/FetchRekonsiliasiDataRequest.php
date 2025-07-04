@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -15,6 +16,13 @@ class FetchRekonsiliasiDataRequest extends FormRequest
      */
     public function authorize(): bool
     {
+        // Allow user_id in local environment without full authorization check
+        if (App::environment('local') && $this->filled('user_id')) {
+            $user = User::find($this->input('user_id'));
+            return $user !== null; // Ensure user_id exists
+        }
+
+        // Fallback to authentication and region-based checks for non-local or no user_id
         $userId = $this->input('user_id');
         if ($userId) {
             $user = User::find($userId);
@@ -72,12 +80,12 @@ class FetchRekonsiliasiDataRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'bulan' => 'required|integer|between:1,12',
-            'tahun' => 'required|integer|between:2000,2100',
-            'kd_level' => 'required|in:00,01,02,03,04,05',
-            'level_wilayah' => 'required|in:semua,semua-provinsi,semua-kabkot,provinsi,kabkot',
-            'kd_wilayah' => 'required|string|max:4',
-            'status_rekon' => 'required|in:00,01,02',
+            'bulan' => 'nullable|integer|between:1,12',
+            'tahun' => 'nullable|integer|between:2000,2100',
+            'kd_level' => 'nullable|in:00,01,02,03,04,05',
+            'level_wilayah' => 'nullable|in:semua,semua-provinsi,semua-kabkot,provinsi,kabkot',
+            'kd_wilayah' => 'nullable|string|max:4',
+            'status_rekon' => 'nullable|in:00,01,02',
             'kd_komoditas' => 'nullable|string|max:10',
             'user_id' => 'nullable|exists:user,user_id',
         ];
@@ -94,8 +102,8 @@ class FetchRekonsiliasiDataRequest extends FormRequest
 
     protected function failedAuthorization()
     {
-        throw new AuthorizationException($this->exception->getMessage(), 403, null, [
-            'message' => $this->exception->getMessage(),
+        throw new AuthorizationException('Akses tidak diizinkan.', 403, null, [
+            'message' => 'Akses tidak diizinkan.',
             'data' => ['rekonsiliasi' => null, 'title' => 'Rekonsiliasi'],
         ]);
     }

@@ -11,7 +11,7 @@
         <!-- Bulan & Tahun -->
         <div class="flex gap-4">
             <div class="w-1/2">
-                <label class="block mb-2 text-sm font-medium text-gray-900">Bulan<span class="text-red-500 ml-1">*</span></label>
+                <label class="block mb-2 text-sm font-medium text-gray-900">Bulan</label>
                 <select name="bulan" x-model="bulan" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                     <template x-for="[nama, bln] in bulanOptions" :key="bln">
                         <option :value="bln" :selected="bulan == bln" x-text="nama"></option>
@@ -19,7 +19,7 @@
                 </select>
             </div>
             <div class="w-1/2">
-                <label class="block mb-2 text-sm font-medium text-gray-900">Tahun<span class="text-red-500 ml-1">*</span></label>
+                <label class="block mb-2 text-sm font-medium text-gray-900">Tahun</label>
                 <select name="tahun" x-model="tahun" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                     <template x-for="year in tahunOptions" :key="year">
                         <option :value="year" :selected="year == tahun" x-text="year"></option>
@@ -45,7 +45,7 @@
                 <span class="block text-sm font-medium text-gray-800">Pusat</span>
                 <ul class="list-disc list-outside ml-5 mt-1 text-xs text-gray-600 ">
                     <li>Default bulan tahun untuk tiap halaman</li>
-                    <li>Penambahan komoditas rekonsiliasi hanya di bulan tahun aktif</li>
+                    <li>Menu rekonsiliasi (Pemilihan, Pengisian, dan Pembahasan) tampil di bulan tahun aktif</li>
                 </ul>
                 <span class="block text-sm font-medium text-gray-800 mt-3">Satuan Kerja Lainnya</span>
                 <ul class="list-disc list-outside ml-5 mt-1 text-xs text-gray-600 ">

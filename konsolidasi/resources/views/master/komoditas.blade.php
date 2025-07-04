@@ -21,7 +21,7 @@
             </thead>
             <tbody>
                 <template x-for="komoditas in komoditasData" :key="komoditas.kd_komoditas">
-                    <tr class="bg-white border-b border-gray-200">
+                    <tr class="bg-white border-b border-gray-200 hover:bg-gray-50">
                         <td class="px-6 py-4" x-text="komoditas.kd_komoditas"></td>
                         <td class="px-6 py-4" x-text="komoditas.nama_komoditas"></td>
                         <td class="px-6 py-4">

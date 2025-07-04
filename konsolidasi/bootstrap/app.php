@@ -53,10 +53,11 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         // Exclude /rekonsiliasi/update/* from CSRF protection
-        $middleware->validateCsrfTokens(except: [
-            // '/rekonsiliasi/update/*',
-            // '/rekonsiliasi/pengisian',
-        ]);
+        // $middleware->validateCsrfTokens(except: [
+        //     '/rekonsiliasi/update/*',
+        //     '/rekonsiliasi/pengisian/*',
+        //     '/user/*',
+        // ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         $exceptions->renderable(function (PostTooLargeException $e, Request $request) {

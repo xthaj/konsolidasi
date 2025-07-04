@@ -94,7 +94,7 @@ class UserController extends Controller
                 'data' => null,
             ], 200);
         } catch (ModelNotFoundException $e) {
-            // ADD: Handle user not found
+            // Handle user not found
             return response()->json([
                 'message' => 'User tidak ditemukan.',
                 'data' => null,
@@ -125,6 +125,9 @@ class UserController extends Controller
         try {
             // Find the target user
             $targetUser = User::findOrFail($user_id);
+            
+            // Check region access
+            $this->checkRegionAccess($targetUser, request());
 
             $cacheKey = 'user_' . $user_id;
             if (Cache::has($cacheKey)) {
@@ -132,10 +135,11 @@ class UserController extends Controller
                 Log::info('Removed user cache', ['user_id' => $user_id, 'cache_key' => $cacheKey]);
             }
 
-            // Check region access
-            $this->checkRegionAccess($targetUser, request());
+            Log::info('Deleting user', [
+                'user_id' => $user_id,
+                'nama_lengkap' => $targetUser->nama_lengkap
+            ]);
 
-            // Delete the user (unchanged)
             $targetUser->delete();
 
             return response()->json(['message' => 'User berhasil dihapus']);

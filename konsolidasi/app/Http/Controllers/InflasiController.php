@@ -70,6 +70,17 @@ class InflasiController extends Controller
                 ->where('kd_level', $request->level)
                 ->delete();
 
+            Cache::forget("rekonsiliasi_aktif");
+            Cache::forget("dashboard_data");
+
+            Log::info("Cache cleared & data deleted", [
+                'bulan' => $request->bulan,
+                'tahun' => $request->tahun,
+                'level' => $request->level,
+                'bulan_tahun_id' => $bulanTahun->bulan_tahun_id,
+                'user_id' => auth()->id(),
+            ]);
+
             if ($deletedRows > 0) {
                 return redirect()->back()->with('success', "$title berhasil dihapus: {$deletedRows} data dihapus.");
             } else {
@@ -144,7 +155,7 @@ class InflasiController extends Controller
 
             if (!$bulanTahun) {
                 Log::warning('BulanTahun not found for upload', ['bulan' => $validated['bulan'], 'tahun' => $validated['tahun']]);
-                return redirect()->back()->withErrors(['bulan' => 'Periode tidak ditemukan untuk bulan dan tahun yang dipilih.']);
+                return redirect()->back()->withErrors(['bulan' => 'Periode tidak ditemukan untuk bulan dan tahun yang dipilih. Harap aktifkan periode ini terlebih dahulu.']);
             }
 
             // Verify file is valid
@@ -159,6 +170,11 @@ class InflasiController extends Controller
             $import = new DataImport($validated['bulan'], $validated['tahun'], $validated['level']);
             Excel::import($import, $request->file('file'));
             $summary = $import->getSummary();
+
+            Cache::forget("rekonsiliasi_aktif");
+            Cache::forget("dashboard_data");
+
+            Log::info("Cache rekonsiliasi_aktif & dashboard_data flushed, data import");
 
             return $this->handleImportResult($import, $summary, $validated, false); // Pass false for regular import
         } catch (\App\Exceptions\EarlyHaltException $e) {
@@ -360,8 +376,10 @@ class InflasiController extends Controller
 
             DB::commit();
 
-            $cacheKey = 'rekonsiliasi_aktif';
-            Cache::forget($cacheKey);
+            Cache::forget("rekonsiliasi_aktif");
+            Cache::forget("dashboard_data");
+
+            Log::info("Cache rekonsiliasi_aktif & dashboard_data flushed, data import");
 
             return response()->json([
                 'message' => 'Data inflasi berhasil diperbarui',
@@ -648,8 +666,10 @@ class InflasiController extends Controller
             $inflasi = Inflasi::findOrFail($id);
             $inflasi->delete();
 
-            $cacheKey = 'rekonsiliasi_aktif';
-            Cache::forget($cacheKey);
+            Cache::forget("rekonsiliasi_aktif");
+            Cache::forget("dashboard_data");
+
+            Log::info("Cache rekonsiliasi_aktif & dashboard_data flushed, delete single inflasi");
 
             return response()->json([
                 'message' => 'Data inflasi berhasil dihapus.',
