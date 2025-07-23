@@ -336,8 +336,15 @@ class VisualisasiController extends Controller
             $chart_status['line'] = $chart_status['horizontalBar'] = $hasCompleteData ? 'complete' : 'incomplete';
 
             // Step 9: Prepare data for Heatmap, Stacked Bar, and Choropleth charts
-            $provinces = Wilayah::where('flag', 2)->pluck('nama_wilayah', 'kd_wilayah')->toArray();
-            $kabkots = Wilayah::where('flag', 3)->pluck('nama_wilayah', 'kd_wilayah')->toArray();
+            $provinces = Wilayah::where('flag', 2)
+                ->pluck('nama_wilayah', 'kd_wilayah')
+                ->toArray();
+
+            $kabkots = Wilayah::where('flag', 3)
+                ->where('inflasi_tracked', 1)
+                ->pluck('nama_wilayah', 'kd_wilayah')
+                ->toArray();
+
             $latestMonthId = $bulanTahunId;
 
             // Determine if final_inflasi should be used for the latest month
@@ -422,8 +429,10 @@ class VisualisasiController extends Controller
                     array_map(fn($val) => $val === null ? PHP_INT_MAX : 0, $provInflasi),
                     SORT_ASC,
                     $provRegions,
+                    SORT_DESC,
                     $provNames
                 );
+
                 $provHorizontalBarData[] = [
                     'kd_level' => $kdLevel,
                     'regions' => $provRegions,
@@ -469,6 +478,7 @@ class VisualisasiController extends Controller
                         array_map(fn($val) => $val === null ? PHP_INT_MAX : 0, $kabkotInflasi),
                         SORT_ASC,
                         $kabkotRegions,
+                        SORT_DESC,
                         $kabkotNames
                     );
                     $kabkotHorizontalBarData[] = [
@@ -669,7 +679,11 @@ class VisualisasiController extends Controller
             $chart_status['line'] = $chart_status['horizontalBar'] = $hasCompleteData ? 'complete' : 'incomplete';
 
             // Kabkot Horizontal Bar and Choropleth
-            $kabkots = Wilayah::where('flag', 3)->where('parent_kd', $kd_wilayah)->pluck('nama_wilayah', 'kd_wilayah')->toArray();
+            $kabkots = Wilayah::where('flag', 3)
+                ->where('inflasi_tracked', 1)
+                ->where('parent_kd', $kd_wilayah)
+                ->pluck('nama_wilayah', 'kd_wilayah')
+                ->toArray();
             $latestMonthId = $bulanTahunId;
 
             $useFinalInflasi = $finalInflasiMap[$latestMonthId];
@@ -716,6 +730,7 @@ class VisualisasiController extends Controller
                     array_map(fn($val) => $val === null ? PHP_INT_MAX : 0, $kabkotInflasi),
                     SORT_ASC,
                     $kabkotRegions,
+                    SORT_DESC,
                     $kabkotNames
                 );
 
