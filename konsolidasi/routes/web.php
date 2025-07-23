@@ -130,6 +130,8 @@ Route::middleware(['pusat'])->group(function () {
 
     // wilayah section
     Route::get('/master/wilayah', [WilayahController::class, 'index'])->name('master.wilayah');
+    Route::put('/wilayah/{kd_wilayah}', [WilayahController::class, 'update']); // Edit Wilayah
+    // Route::patch('/wilayah/{kd_wilayah}/tracking', [WilayahController::class, 'updateTrackedInflasi']);
 
     // bulan tahun section
     Route::post('/bulan-tahun', [BulanTahunController::class, 'update']);

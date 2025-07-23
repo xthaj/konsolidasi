@@ -13,7 +13,8 @@ class Wilayah extends Model
     protected $primaryKey = 'kd_wilayah';
     public $incrementing = false;
     protected $keyType = 'string';
-    protected $fillable = ['kd_wilayah', 'nama_wilayah', 'flag', 'parent_kd'];
+    public $timestamps = false;
+    protected $fillable = ['kd_wilayah', 'nama_wilayah', 'flag', 'parent_kd', 'inflasi_tracked'];
 
     public function parent()
     {
