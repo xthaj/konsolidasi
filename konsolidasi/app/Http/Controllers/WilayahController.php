@@ -55,25 +55,38 @@ class WilayahController extends Controller
         }
     }
 
-    /**
-     * Fetch segmented wilayah (provinces and kabkots) with caching.
-     */
     public function getSegmentedWilayah(): JsonResponse
     {
+        return $this->getSegmentedWilayahData(false);
+    }
+
+    public function getInflasiSegmentedWilayah(): JsonResponse
+    {
+        return $this->getSegmentedWilayahData(true);
+    }
+
+    private function getSegmentedWilayahData(bool $inflasiOnly): JsonResponse
+    {
         try {
-            $data = Cache::rememberForever('wilayah_data', function () {
-                Log::info('Wilayah data fetched from database for wilayah_data', ['timestamp' => now()]);
+            $cacheKey = $inflasiOnly ? 'wilayah_data_inflasi' : 'wilayah_data';
+
+            $data = Cache::rememberForever($cacheKey, function () use ($inflasiOnly) {
+                Log::info('Wilayah data fetched from database for ' . ($inflasiOnly ? 'wilayah_data_inflasi' : 'wilayah_data'), ['timestamp' => now()]);
 
                 Cache::forever('all_wilayah_data', Wilayah::orderBy('kd_wilayah', 'asc')->get());
                 Log::info('Wilayah data also cached for all_wilayah_data inside getSegmentedWilayah', ['timestamp' => now()]);
 
+                $kabkotQuery = Wilayah::where('flag', 3);
+                if ($inflasiOnly) {
+                    $kabkotQuery->where('inflasi_tracked', 1);
+                }
+
                 return [
-                    'provinces' => Wilayah::where('flag', 2)->orderBy('nama_wilayah', 'asc')->get(),
-                    'kabkots' => Wilayah::where('flag', 3)->orderBy('nama_wilayah', 'asc')->get(),
+                    'provinces' => Wilayah::where('flag', 2)->orderBy('kd_wilayah', 'asc')->get(),
+                    'kabkots'   => $kabkotQuery->orderBy('kd_wilayah', 'asc')->get(),
                 ];
             });
 
-            // Handle empty result
             if ($data['provinces']->isEmpty() && $data['kabkots']->isEmpty()) {
                 return response()->json([
                     'message' => 'Tidak ada data wilayah tersedia.',
@@ -85,14 +98,15 @@ class WilayahController extends Controller
                 'message' => 'Data wilayah berhasil diambil.',
                 'data' => [
                     'provinces' => WilayahResource::collection($data['provinces']),
-                    'kabkots' => WilayahResource::collection($data['kabkots']),
+                    'kabkots'   => WilayahResource::collection($data['kabkots']),
                 ],
             ], 200);
         } catch (\Exception $e) {
-            Log::error('Error in getSegmentedWilayah', [
+            Log::error('Error in getSegmentedWilayahData', [
                 'message' => $e->getMessage(),
-                'stack' => $e->getTraceAsString(),
+                'stack'   => $e->getTraceAsString(),
             ]);
+
             return response()->json([
                 'message' => 'Gagal mengambil data wilayah: ' . $e->getMessage(),
                 'data' => ['provinces' => [], 'kabkots' => []],
@@ -233,6 +247,7 @@ class WilayahController extends Controller
     {
         Cache::forget('all_wilayah_data');
         Cache::forget('wilayah_data');
-        Log::info('Cache cleared for wilayah_data and all_wilayah_data', ['timestamp' => now()]);
+        Cache::forget('wilayah_data_inflasi');
+        Log::info('Cache cleared for wilayah_data, all_wilayah_data, and wilayah_data_inflasi', ['timestamp' => now()]);
     }
 }

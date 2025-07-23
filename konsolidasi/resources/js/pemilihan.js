@@ -114,7 +114,7 @@ Alpine.data("webData", () => ({
             const [wilayahResponse, komoditasResponse, bulanTahunResponse] =
                 await Promise.all([
                     this.fetchWrapper(
-                        "/segmented-wilayah",
+                        "/inflasi-segmented-wilayah",
                         {},
                         "Data wilayah berhasil dimuat",
                         false

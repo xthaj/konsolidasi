@@ -166,7 +166,7 @@ Alpine.data("webData", () => ({
                 kabkotGeo,
             ] = await Promise.all([
                 this.fetchWrapper(
-                    "/segmented-wilayah",
+                    "/inflasi-segmented-wilayah",
                     {},
                     "Data wilayah berhasil dimuat",
                     false

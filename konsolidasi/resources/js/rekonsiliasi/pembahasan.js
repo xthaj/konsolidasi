@@ -47,7 +47,12 @@ Alpine.data("webData", () => ({
         "05": "HP",
     },
 
-    async fetchWrapper(url, options = {}, successMessage = "Operasi berhasil", showSuccessModal = false) {
+    async fetchWrapper(
+        url,
+        options = {},
+        successMessage = "Operasi berhasil",
+        showSuccessModal = false
+    ) {
         try {
             const response = await fetch(url, {
                 method: "GET",
@@ -55,16 +60,22 @@ Alpine.data("webData", () => ({
                 headers: {
                     "Content-Type": "application/json",
                     Accept: "application/json",
-                    ...(options.method && options.method !== "GET" ? {
-                        "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]')?.content
-                    } : {}),
+                    ...(options.method && options.method !== "GET"
+                        ? {
+                              "X-CSRF-TOKEN": document.querySelector(
+                                  'meta[name="csrf-token"]'
+                              )?.content,
+                          }
+                        : {}),
                     ...options.headers,
                 },
             });
             const result = await response.json();
 
             if (!response.ok) {
-                this.modalMessage = result.message || "Terjadi kesalahan saat memproses permintaan.";
+                this.modalMessage =
+                    result.message ||
+                    "Terjadi kesalahan saat memproses permintaan.";
                 this.$dispatch("open-modal", "error-modal");
                 throw new Error(this.modalMessage);
             }
@@ -76,7 +87,9 @@ Alpine.data("webData", () => ({
             return result;
         } catch (error) {
             console.error(`Fetch error at ${url}:`, error);
-            this.modalMessage = result.message || "Terjadi kesalahan saat memproses permintaan.";
+            this.modalMessage =
+                result.message ||
+                "Terjadi kesalahan saat memproses permintaan.";
             this.$dispatch("open-modal", "error-modal");
             throw error;
         }
@@ -85,11 +98,27 @@ Alpine.data("webData", () => ({
     async init() {
         this.loading = true;
         try {
-            const [wilayahResponse, komoditasResponse, bulanTahunResponse] = await Promise.all([
-                this.fetchWrapper("/segmented-wilayah", {}, "Data wilayah berhasil dimuat", false),
-                this.fetchWrapper("/all-komoditas", {}, "Data komoditas berhasil dimuat", false),
-                this.fetchWrapper("/bulan-tahun", {}, "Data bulan dan tahun berhasil dimuat", false),
-            ]);
+            const [wilayahResponse, komoditasResponse, bulanTahunResponse] =
+                await Promise.all([
+                    this.fetchWrapper(
+                        "/inflasi-segmented-wilayah",
+                        {},
+                        "Data wilayah berhasil dimuat",
+                        false
+                    ),
+                    this.fetchWrapper(
+                        "/all-komoditas",
+                        {},
+                        "Data komoditas berhasil dimuat",
+                        false
+                    ),
+                    this.fetchWrapper(
+                        "/bulan-tahun",
+                        {},
+                        "Data bulan dan tahun berhasil dimuat",
+                        false
+                    ),
+                ]);
 
             this.provinces = wilayahResponse.data.provinces || [];
             this.kabkots = wilayahResponse.data.kabkots || [];
@@ -224,7 +253,7 @@ Alpine.data("webData", () => ({
             this.data.rekonsiliasi = result.data.rekonsiliasi || [];
             this.data.title = result.data.title || "Pembahasan Rekonsiliasi";
             this.message = result.message || "Data berhasil dimuat.";
-            
+
             const title =
                 this.kdLevelTitles[this.selectedKdLevel] ||
                 "Pembahasan Rekonsiliasi";

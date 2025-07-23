@@ -60,11 +60,36 @@ Alpine.data("webData", () => ({
                 bulanTahunResponse,
                 alasanResponse,
             ] = await Promise.all([
-                this.fetchWrapper("/rekonsiliasi/user-provinsi", {}, "User data berhasil dimuat", false),
-                this.fetchWrapper("/segmented-wilayah", {}, "Data wilayah berhasil dimuat", false),
-                this.fetchWrapper("/all-komoditas", {}, "Data komoditas berhasil dimuat", false),
-                this.fetchWrapper("/bulan-tahun", {}, "Data bulan dan tahun berhasil dimuat", false),
-                this.fetchWrapper("/all-alasan", {}, "Data alasan berhasil dimuat", false),
+                this.fetchWrapper(
+                    "/rekonsiliasi/user-provinsi",
+                    {},
+                    "User data berhasil dimuat",
+                    false
+                ),
+                this.fetchWrapper(
+                    "/inflasi-segmented-wilayah",
+                    {},
+                    "Data wilayah berhasil dimuat",
+                    false
+                ),
+                this.fetchWrapper(
+                    "/all-komoditas",
+                    {},
+                    "Data komoditas berhasil dimuat",
+                    false
+                ),
+                this.fetchWrapper(
+                    "/bulan-tahun",
+                    {},
+                    "Data bulan dan tahun berhasil dimuat",
+                    false
+                ),
+                this.fetchWrapper(
+                    "/all-alasan",
+                    {},
+                    "Data alasan berhasil dimuat",
+                    false
+                ),
             ]);
 
             // Process user data
@@ -109,7 +134,12 @@ Alpine.data("webData", () => ({
         }
     },
 
-    async fetchWrapper(url, options = {}, successMessage = "Operasi berhasil", showSuccessModal = false) {
+    async fetchWrapper(
+        url,
+        options = {},
+        successMessage = "Operasi berhasil",
+        showSuccessModal = false
+    ) {
         try {
             const response = await fetch(url, {
                 method: "GET",
@@ -117,16 +147,22 @@ Alpine.data("webData", () => ({
                 headers: {
                     "Content-Type": "application/json",
                     Accept: "application/json",
-                    ...(options.method && options.method !== "GET" ? {
-                        "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]')?.content
-                    } : {}),
+                    ...(options.method && options.method !== "GET"
+                        ? {
+                              "X-CSRF-TOKEN": document.querySelector(
+                                  'meta[name="csrf-token"]'
+                              )?.content,
+                          }
+                        : {}),
                     ...options.headers,
                 },
             });
             const result = await response.json();
 
             if (!response.ok) {
-                this.modalMessage = result.message || "Terjadi kesalahan saat memproses permintaan.";
+                this.modalMessage =
+                    result.message ||
+                    "Terjadi kesalahan saat memproses permintaan.";
                 this.$dispatch("open-modal", "error-modal");
                 throw new Error(this.modalMessage);
             }
@@ -138,7 +174,9 @@ Alpine.data("webData", () => ({
             return result;
         } catch (error) {
             console.error(`Fetch error at ${url}:`, error);
-            this.modalMessage = result.message || "Terjadi kesalahan saat memproses permintaan.";
+            this.modalMessage =
+                result.message ||
+                "Terjadi kesalahan saat memproses permintaan.";
             this.$dispatch("open-modal", "error-modal");
             throw error;
         }
@@ -214,12 +252,12 @@ Alpine.data("webData", () => ({
                 kd_komoditas: this.selectedKomoditas,
                 status_rekon: this.status_rekon,
             });
-            
+
             const result = await this.fetchWrapper(
                 `/api/rekonsiliasi/pengisian?${params}`,
                 {},
                 "Data rekonsiliasi berhasil dimuat",
-                false 
+                false
             );
 
             this.data.rekonsiliasi = result.data.rekonsiliasi || [];

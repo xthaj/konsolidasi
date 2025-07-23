@@ -2,11 +2,10 @@ import "flowbite";
 import Alpine from "alpinejs";
 window.Alpine = Alpine;
 
-
 Alpine.data("webData", () => ({
     loading: true,
 
-    modalMessage: "", 
+    modalMessage: "",
     message: "Silakan pilih filter untuk menampilkan data.",
     data: { inflasi: [], title: null, kd_level: null, kd_wilayah: null },
 
@@ -33,7 +32,7 @@ Alpine.data("webData", () => ({
     direction: "asc",
     deleteRekonsiliasi: false,
     modalData: { id: "", komoditas: "" },
-    inflasi_id:null,
+    inflasi_id: null,
     bulanOptions: [
         ["Januari", 1],
         ["Februari", 2],
@@ -49,7 +48,12 @@ Alpine.data("webData", () => ({
         ["Desember", 12],
     ],
 
-    async fetchWrapper(url, options = {}, successMessage = "Operasi berhasil", showSuccessModal = false) {
+    async fetchWrapper(
+        url,
+        options = {},
+        successMessage = "Operasi berhasil",
+        showSuccessModal = false
+    ) {
         try {
             const response = await fetch(url, {
                 method: "GET",
@@ -57,16 +61,22 @@ Alpine.data("webData", () => ({
                 headers: {
                     "Content-Type": "application/json",
                     Accept: "application/json",
-                    ...(options.method && options.method !== "GET" ? {
-                        "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]')?.content
-                    } : {}),
+                    ...(options.method && options.method !== "GET"
+                        ? {
+                              "X-CSRF-TOKEN": document.querySelector(
+                                  'meta[name="csrf-token"]'
+                              )?.content,
+                          }
+                        : {}),
                     ...options.headers,
                 },
             });
             const result = await response.json();
 
             if (!response.ok) {
-                this.modalMessage = result.message || "Terjadi kesalahan saat memproses permintaan.";
+                this.modalMessage =
+                    result.message ||
+                    "Terjadi kesalahan saat memproses permintaan.";
                 this.$dispatch("open-modal", "error-modal");
                 throw new Error(this.modalMessage);
             }
@@ -78,7 +88,9 @@ Alpine.data("webData", () => ({
             return result;
         } catch (error) {
             console.error(`Fetch error at ${url}:`, error);
-            this.modalMessage = result.message || "Terjadi kesalahan saat memproses permintaan.";
+            this.modalMessage =
+                result.message ||
+                "Terjadi kesalahan saat memproses permintaan.";
             this.$dispatch("open-modal", "error-modal");
             throw error;
         }
@@ -87,11 +99,27 @@ Alpine.data("webData", () => ({
     async init() {
         this.loading = true;
         try {
-            const [wilayahResponse, komoditasResponse, bulanTahunResponse] = await Promise.all([
-                this.fetchWrapper("/segmented-wilayah", {}, "Data wilayah berhasil dimuat", false),
-                this.fetchWrapper("/all-komoditas", {}, "Data komoditas berhasil dimuat", false),
-                this.fetchWrapper("/bulan-tahun", {}, "Data bulan dan tahun berhasil dimuat", false),
-            ]);
+            const [wilayahResponse, komoditasResponse, bulanTahunResponse] =
+                await Promise.all([
+                    this.fetchWrapper(
+                        "/inflasi-segmented-wilayah",
+                        {},
+                        "Data wilayah berhasil dimuat",
+                        false
+                    ),
+                    this.fetchWrapper(
+                        "/all-komoditas",
+                        {},
+                        "Data komoditas berhasil dimuat",
+                        false
+                    ),
+                    this.fetchWrapper(
+                        "/bulan-tahun",
+                        {},
+                        "Data bulan dan tahun berhasil dimuat",
+                        false
+                    ),
+                ]);
 
             this.provinces = wilayahResponse.data.provinces || [];
             this.kabkots = wilayahResponse.data.kabkots || [];
@@ -169,14 +197,17 @@ Alpine.data("webData", () => ({
 
     openEditModal(inflasi_id, nilai_inflasi, andil) {
         this.inflasi_id = inflasi_id;
-        this.edit_nilai_inflasi = nilai_inflasi; 
-        this.edit_andil = andil; 
+        this.edit_nilai_inflasi = nilai_inflasi;
+        this.edit_andil = andil;
         this.$dispatch("open-modal", "edit-modal");
     },
 
     checkEditFormValidity() {
         // 1. Check if nilai inflasi is empty
-        if (this.edit_nilai_inflasi === null || this.edit_nilai_inflasi === "") {
+        if (
+            this.edit_nilai_inflasi === null ||
+            this.edit_nilai_inflasi === ""
+        ) {
             this.modalMessage = "Data inflasi baru tidak boleh kosong.";
             this.$dispatch("open-modal", "error-modal");
             return false;
@@ -195,7 +226,8 @@ Alpine.data("webData", () => ({
 
         // 3. Check if nilai inflasi changed
         const nilaiInflasiChanged =
-            parseFloat(this.edit_nilai_inflasi) !== parseFloat(originalItem.nilai_inflasi);
+            parseFloat(this.edit_nilai_inflasi) !==
+            parseFloat(originalItem.nilai_inflasi);
 
         // 4. If wilayah is 0, also check andil
         if (this.data.kd_wilayah === "0") {
@@ -206,7 +238,8 @@ Alpine.data("webData", () => ({
             }
 
             const andilChanged =
-                parseFloat(this.edit_andil) !== parseFloat(originalItem.andil || 0);
+                parseFloat(this.edit_andil) !==
+                parseFloat(originalItem.andil || 0);
 
             // ✅ If nothing changed, show message
             if (!nilaiInflasiChanged && !andilChanged) {
@@ -227,7 +260,6 @@ Alpine.data("webData", () => ({
 
         return true;
     },
-
 
     async editData() {
         if (!this.checkEditFormValidity()) {
@@ -259,12 +291,11 @@ Alpine.data("webData", () => ({
                 true
             );
 
-            this.$dispatch("close-modal", "edit-modal"); 
+            this.$dispatch("close-modal", "edit-modal");
             this.inflasi_id = null;
             this.edit_nilai_inflasi = "";
             this.edit_andil = "";
             await this.fetchData();
-            
         } catch (error) {
             console.error("Failed to update data:", error);
         }
@@ -319,7 +350,7 @@ Alpine.data("webData", () => ({
     },
 
     async fetchData() {
-        if (!this.checkFormValidity()) { 
+        if (!this.checkFormValidity()) {
             return;
         }
         try {
@@ -332,7 +363,7 @@ Alpine.data("webData", () => ({
                 sort: this.sort,
                 direction: this.direction,
             });
-            
+
             const result = await this.fetchWrapper(
                 `/api/data/edit?${params.toString()}`,
                 {},
@@ -347,11 +378,15 @@ Alpine.data("webData", () => ({
                 kd_level: this.selectedKdLevel,
                 kd_wilayah: this.kd_wilayah,
             };
-
         } catch (error) {
             console.error("Failed to fetch data:", error);
             this.message = this.modalMessage || "Gagal memuat data."; // EDIT HERE: Use modalMessage
-            this.data = { inflasi: [], title: null, kd_level: null, kd_wilayah: null };
+            this.data = {
+                inflasi: [],
+                title: null,
+                kd_level: null,
+                kd_wilayah: null,
+            };
         }
     },
 

@@ -66,6 +66,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/bulan-tahun', [BulanTahunController::class, 'get']);
 
     Route::get('/segmented-wilayah', [WilayahController::class, 'getSegmentedWilayah']);
+    Route::get('/inflasi-segmented-wilayah', [WilayahController::class, 'getInflasiSegmentedWilayah']);
     // tested
     Route::get('/api/rekonsiliasi/pengisian', [RekonsiliasiController::class, 'apipengisian']);
     Route::put('/rekonsiliasi/update/{id}', [RekonsiliasiController::class, 'update'])->name('rekonsiliasi.update');

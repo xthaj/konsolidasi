@@ -16,7 +16,7 @@ class WilayahResource extends JsonResource
     {
         return [
             'kd_wilayah' => $this->kd_wilayah,
-            'nama_wilayah' => $this->nama_wilayah,
+            'nama_wilayah' => "{$this->kd_wilayah} - {$this->nama_wilayah}",
             'parent_kd' => $this->parent_kd,
         ];
     }
