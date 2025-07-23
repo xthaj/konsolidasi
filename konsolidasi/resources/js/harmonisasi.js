@@ -91,6 +91,7 @@ Alpine.data("webData", () => ({
                     ...options.headers,
                 },
             });
+
             const result = await response.json();
 
             if (!response.ok) {
@@ -105,13 +106,16 @@ Alpine.data("webData", () => ({
                 this.modalMessage = result.message || successMessage;
                 this.$dispatch("open-modal", "success-modal");
             }
+
             return result;
         } catch (error) {
             console.error(`Fetch error at ${url}:`, error);
+
             this.modalMessage =
-                result.message ||
+                error?.message ||
                 "Terjadi kesalahan saat memproses permintaan.";
             this.$dispatch("open-modal", "error-modal");
+
             throw error;
         }
     },
@@ -180,7 +184,7 @@ Alpine.data("webData", () => ({
                     false
                 ),
                 this.fetchWrapper(
-                    "/geojson/provinsi.json",
+                    "/geojson-api/provinsi",
                     {},
                     "Provinsi GeoJSON berhasil dimuat",
                     false
@@ -189,7 +193,7 @@ Alpine.data("webData", () => ({
                     return null;
                 }),
                 this.fetchWrapper(
-                    "/geojson/kabkot.json",
+                    "/geojson-api/kabkot",
                     {},
                     "Kabkot GeoJSON berhasil dimuat",
                     false

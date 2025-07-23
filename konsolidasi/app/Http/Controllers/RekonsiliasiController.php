@@ -13,7 +13,6 @@ use App\Models\User;
 use App\Models\Rekonsiliasi;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
@@ -446,7 +445,7 @@ class RekonsiliasiController extends Controller
                 'message' => $filteredRekonsiliasi->isEmpty() ? 'Tidak ada data untuk filter ini.' : 'Data berhasil dimuat.',
                 'data' => [
                     'rekonsiliasi' => $rekonsiliasiData,
-                    'title' => $this->generateRekonTableTitle($input),
+                    'title' => $this->generateRekonTableTitle($request),
                 ],
             ], 200);
         } catch (\Exception $e) {
@@ -459,33 +458,29 @@ class RekonsiliasiController extends Controller
     }
 
     /**
-     * Generates a descriptive title for the reconciliation table based on request parameters.
-     *
-     * @param Request $request HTTP request with input parameters.
-     * @return string The formatted title for the reconciliation table.
-     */
-    private function generateRekonTableTitle(array $input): string
+ * Generates a descriptive title for the reconciliation table based on request parameters.
+ *
+ * @param Request $request HTTP request with input parameters.
+ * @return string The formatted title for the reconciliation table.
+ */
+    private function generateRekonTableTitle(Request $request): string
     {
         try {
             $title = 'Rekonsiliasi';
-
-            $kdLevel = $input['kd_level'] ?? '01';
-            $kdKomoditas = $input['kd_komoditas'] ?? null;
-            $levelWilayah = $input['level_wilayah'] ?? 'semua-provinsi';
-            $kdWilayah = $input['kd_wilayah'] ?? '0';
-            $bulan = $input['bulan'] ?? null;
-            $tahun = $input['tahun'] ?? null;
-
+            $kdLevel = $request->input('kd_level', '01');
+            $kdKomoditas = $request->input('kd_komoditas');
+            $levelWilayah = $request->input('level_wilayah', 'semua-provinsi');
+            $kdWilayah = $request->input('kd_wilayah', '0');
+            $bulan = $request->input('bulan');
+            $tahun = $request->input('tahun');
             // Append level harga
             $levelHarga = LevelHarga::getLevelHargaNameComplete($kdLevel);
             $title .= $levelHarga ? ' ' . $levelHarga : ' Semua Level Harga';
-
             // Append nama komoditas
             if ($kdKomoditas) {
                 $namaKomoditas = Komoditas::getKomoditasName($kdKomoditas);
                 $title .= $namaKomoditas ? ' ' . $namaKomoditas : ' - Semua Komoditas';
             }
-
             // Append wilayah
             if ($levelWilayah === 'semua') {
                 $title .= ' Semua Provinsi dan Kabupaten/Kota';
@@ -499,7 +494,6 @@ class RekonsiliasiController extends Controller
             } else {
                 $title .= ' Wilayah Tidak Valid';
             }
-
             // Append bulan dan tahun
             if ($bulan && $tahun) {
                 $namaBulan = BulanTahun::getBulanName($bulan);
@@ -508,9 +502,9 @@ class RekonsiliasiController extends Controller
                 $namaBulan = BulanTahun::getBulanName($bulan);
                 $title .= $namaBulan ? ' - ' . $namaBulan : ' - Bulan Tidak Dikenal';
             }
-
             return $title;
         } catch (\Exception $e) {
+            // Handle unexpected errors
             Log::error('Error in generateRekonTableTitle', ['message' => $e->getMessage()]);
             return 'Rekonsiliasi';
         }
@@ -849,7 +843,10 @@ class RekonsiliasiController extends Controller
         try {
             // Cached user lookup
             $userId = $request->input('user_id');
-            $user = Cache::remember("user_{$userId}", now()->addMinutes(10), fn () => 
+            $user = Cache::remember(
+                "user_{$userId}",
+                now()->addMinutes(10),
+                fn() =>
                 User::findOrFail($userId)
             );
 

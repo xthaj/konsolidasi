@@ -291,8 +291,8 @@ class VisualisasiController extends Controller
                         ? $record->final_andil
                         : ($record && !is_null($record->andil) ? $record->andil : null);
 
-                    $inflasiData[] = $inflasi;
-                    $andilData[] = $andil;
+                    $inflasiData[] = is_numeric($inflasi) ? number_format($inflasi, 2, '.', '') : null;
+                    $andilData[] = is_numeric($andil) ? number_format($andil, 2, '.', '') : null;
 
                     // Validation: Mark data as incomplete if either inflasi or andil is missing
                     if (!$record || is_null($inflasi) || is_null($andil)) {
@@ -390,9 +390,10 @@ class VisualisasiController extends Controller
                     // Add data to heatmap
                     $xIndex = array_search($kdLevel, $kdLevels);
                     $yIndex = array_search($provName, $provNames);
-                    $heatmapData['values'][] = [$xIndex, $yIndex, $inflasi];
+                    $heatmapData['values'][] = [$xIndex, $yIndex, is_numeric($inflasi) ? number_format($inflasi, 2, '.', '') : null];
 
-                    $provInflasi[] = $inflasi;
+                    $provInflasi[] = is_numeric($inflasi) ? number_format($inflasi, 2, '.', '') : null;
+
                     if (is_null($inflasi)) {
                         // Track missing province data
                         $missingRegions[$latestMonthId][$kdLevel][] = $provName;
@@ -443,14 +444,14 @@ class VisualisasiController extends Controller
                 if ($kdLevel === '01') {
                     $kabkotRegions = array_keys($kabkots);
                     $kabkotNames = array_values($kabkots);
-                    $kabkotInflasi = array_map(
-                        fn($kabKd) => Inflasi::where('bulan_tahun_id', $latestMonthId)
+                    $kabkotInflasi = array_map(function ($kabKd) use ($latestMonthId, $kd_komoditas, $useFinalInflasi) {
+                        $value = Inflasi::where('bulan_tahun_id', $latestMonthId)
                             ->where('kd_wilayah', $kabKd)
                             ->where('kd_level', '01')
                             ->where('kd_komoditas', $kd_komoditas)
-                            ->value($useFinalInflasi ? 'final_inflasi' : 'nilai_inflasi'),
-                        $kabkotRegions
-                    );
+                            ->value($useFinalInflasi ? 'final_inflasi' : 'nilai_inflasi');
+                        return is_numeric($value) ? number_format($value, 2, '.', '') : null;
+                    }, $kabkotRegions);
 
                     // Validation: Check for missing kabkot data
                     foreach ($kabkotInflasi as $index => $inflasi) {
@@ -630,7 +631,7 @@ class VisualisasiController extends Controller
                         ? $record->final_inflasi
                         : ($record && !is_null($record->nilai_inflasi) ? $record->nilai_inflasi : null);
 
-                    $inflasiData[] = $inflasi;
+                    $inflasiData[] = is_numeric($inflasi) ? number_format($inflasi, 2, '.', '') : null;
 
                     if (is_null($inflasi)) {
                         $missingLevels[$id][$kd] = [

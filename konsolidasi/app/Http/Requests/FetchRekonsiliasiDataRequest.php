@@ -2,9 +2,7 @@
 
 namespace App\Http\Requests;
 
-use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -16,25 +14,10 @@ class FetchRekonsiliasiDataRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        // Allow user_id in local environment without full authorization check
-        if (App::environment('local') && $this->filled('user_id')) {
-            $user = User::find($this->input('user_id'));
-            return $user !== null; // Ensure user_id exists
+        if (!Auth::check()) {
+            return false;
         }
-
-        // Fallback to authentication and region-based checks for non-local or no user_id
-        $userId = $this->input('user_id');
-        if ($userId) {
-            $user = User::find($userId);
-            if (!$user) {
-                return false;
-            }
-        } else {
-            if (!Auth::check()) {
-                return false;
-            }
-            $user = Auth::user();
-        }
+        $user = Auth::user();
 
         $userKdWilayah = $user->kd_wilayah;
         $level_wilayah = $this->input('level_wilayah');
@@ -87,7 +70,6 @@ class FetchRekonsiliasiDataRequest extends FormRequest
             'kd_wilayah' => 'nullable|string|max:4',
             'status_rekon' => 'nullable|in:00,01,02',
             'kd_komoditas' => 'nullable|string|max:10',
-            'user_id' => 'nullable|exists:user,user_id',
         ];
     }
 

@@ -24,22 +24,6 @@ use Illuminate\Support\Facades\Response;
 //     abort(403);
 // });
 
-Route::get('/geojson/{name}.json', function ($name) {
-    if (!in_array($name, ['provinsi', 'kabkot'])) {
-        abort(404);
-    }
-
-    $path = public_path("geojson/{$name}.json");
-
-    if (!file_exists($path)) {
-        abort(404, 'File not found.');
-    }
-
-    return Response::file($path, [
-        'Content-Type' => 'application/json',
-    ]);
-});
-
 Route::middleware('admin', 'pusat')->get('/clear-app-cache-23898', function () {
     Cache::flush(); // Clears all cache stored via Cache facade
 
@@ -49,15 +33,23 @@ Route::middleware('admin', 'pusat')->get('/clear-app-cache-23898', function () {
     return 'Application cache cleared!';
 });
 
-// tested
-Route::get('/api/rekonsiliasi/pengisian', [RekonsiliasiController::class, 'apipengisian']);
-Route::put('/rekonsiliasi/update/{id}', [RekonsiliasiController::class, 'update'])->name('rekonsiliasi.update');
+Route::get('/geojson-api/provinsi', function () {
+    return response()->file(public_path('geojson/provinsi.json'), [
+        'Content-Type' => 'application/json',
+    ]);
+});
+
+Route::get('/geojson-api/kabkot', function () {
+    return response()->file(public_path('geojson/kabkot.json'), [
+        'Content-Type' => 'application/json',
+    ]);
+});
+
 
 // sso
 Route::get('/sso/login', [SSOController::class, 'redirectToSSO'])->name('sso.login');
 Route::get('/sso/callback', [SSOController::class, 'handleSSOCallback'])->name('sso.callback');
 
-Route::get('/segmented-wilayah', [WilayahController::class, 'getSegmentedWilayah']);
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/sso/logout', [SSOController::class, 'logoutSSO'])->name('sso.logout');
@@ -72,6 +64,11 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/rekonsiliasi/user-provinsi', [UserController::class, 'getUserWilayah'])->name('rekon.get_provinsi');
     Route::get('/bulan-tahun', [BulanTahunController::class, 'get']);
+
+    Route::get('/segmented-wilayah', [WilayahController::class, 'getSegmentedWilayah']);
+    // tested
+    Route::get('/api/rekonsiliasi/pengisian', [RekonsiliasiController::class, 'apipengisian']);
+    Route::put('/rekonsiliasi/update/{id}', [RekonsiliasiController::class, 'update'])->name('rekonsiliasi.update');
 });
 
 Route::middleware('auth')->group(function () {
