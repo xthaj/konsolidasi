@@ -34,11 +34,12 @@
                     <select name="level_wilayah" x-model="wilayahLevel" @change="updateWilayahOptions" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                         <option value="provinsi">Provinsi</option>
                         <option value="kabkot">Kabupaten/Kota</option>
+                        <option value="provinsi-kabkot">Provinsi dan Kabupaten/Kota</option>
                     </select>
                 </div>
-                <div x-show="wilayahLevel === 'provinsi' || wilayahLevel === 'kabkot'" class="mt-4">
+                <div x-show="wilayahLevel === 'provinsi' || wilayahLevel === 'kabkot' || wilayahLevel === 'provinsi-kabkot'" class="mt-4">
                     <label class="block mb-2 text-sm font-medium text-gray-900">Provinsi</label>
-                    <select x-model="selectedProvince" @change="selectedKabkot = ''; updateKdWilayah()" disabled class="cursor-not-allowed bg-gray-200 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5" disabled>
+                    <select x-model="selectedProvince" @change="selectedKabkot = ''; updateKdWilayah()" disabled class="cursor-not-allowed bg-gray-200 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                         <option value="{{ auth()->user()->kd_wilayah }}" x-text="provinces.find(p => p.kd_wilayah === '{{ auth()->user()->kd_wilayah }}')?.nama_wilayah || 'Pilih Provinsi'" selected></option>
                     </select>
                 </div>

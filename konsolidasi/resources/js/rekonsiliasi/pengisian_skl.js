@@ -200,15 +200,26 @@ Alpine.data("webData", () => ({
     },
 
     updateKdWilayah() {
-        this.kd_wilayah = !this.isProvinsi
-            ? this.selectedKabkot
-            : this.wilayahLevel === "provinsi"
-            ? this.selectedProvince
-            : this.wilayahLevel === "kabkot" &&
-              this.selectedKabkot &&
-              this.selectedKdLevel === "01"
-            ? this.selectedKabkot
-            : "";
+        if (!this.isProvinsi) {
+            // Pusat user: always use kabkot selection
+            this.kd_wilayah = this.selectedKabkot;
+        } else if (
+            this.wilayahLevel === "provinsi" ||
+            this.wilayahLevel === "provinsi-kabkot"
+        ) {
+            // Provinsi user: use selected province for both provinsi and provinsi-kabkot
+            this.kd_wilayah = this.selectedProvince;
+        } else if (
+            this.wilayahLevel === "kabkot" &&
+            this.selectedKabkot &&
+            this.selectedKdLevel === "01"
+        ) {
+            // Provinsi user drilling down to kabkot with special level
+            this.kd_wilayah = this.selectedKabkot;
+        } else {
+            // Fallback
+            this.kd_wilayah = "";
+        }
     },
 
     checkFormValidity() {

@@ -91,6 +91,25 @@
                         <option value="01" :selected="status_rekon == '01'">Belum diisi</option>
                     </select>
                 </div>
+
+                <!-- Sorting -->
+                <div x-show="selectedKdLevel !== '00'" class="flex gap-4">
+                    <div class="w-1/2">
+                        <label class="block mb-2 text-sm font-medium text-gray-900">Urut Berdasarkan</label>
+                        <select name="sort" x-model="sort" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
+                            <option value="kd_komoditas" :selected="sort === 'kd_komoditas'">Kode Komoditas</option>
+                            <option value="nilai_inflasi" :selected="sort === 'nilai_inflasi'">Nilai Inflasi</option>
+                        </select>
+                    </div>
+                    <div class="w-1/2">
+                        <label class="block mb-2 text-sm font-medium text-gray-900">Pengurutan</label>
+                        <select name="direction" x-model="direction" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
+                            <option value="asc" :selected="direction === 'asc'">Naik</option>
+                            <option value="desc" :selected="direction === 'desc'">Turun</option>
+                        </select>
+                    </div>
+                </div>
+
                 <div x-show="errorMessage" class="my-2 text-sm text-red-600" x-text="errorMessage"></div>
                 <x-primary-button type="submit" x-bind:disabled="!checkFormValidity()" class="w-full">
                     <span x-show="!loading">Filter</span>

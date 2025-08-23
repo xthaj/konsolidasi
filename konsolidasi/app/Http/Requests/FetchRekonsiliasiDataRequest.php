@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -66,10 +68,11 @@ class FetchRekonsiliasiDataRequest extends FormRequest
             'bulan' => 'nullable|integer|between:1,12',
             'tahun' => 'nullable|integer|between:2000,2100',
             'kd_level' => 'nullable|in:00,01,02,03,04,05',
-            'level_wilayah' => 'nullable|in:semua,semua-provinsi,semua-kabkot,provinsi,kabkot',
+            'level_wilayah' => 'nullable|in:semua,semua-provinsi,semua-kabkot,provinsi,kabkot,provinsi-kabkot',
             'kd_wilayah' => 'nullable|string|max:4',
             'status_rekon' => 'nullable|in:00,01,02',
             'kd_komoditas' => 'nullable|string|max:10',
+            'user_id' => 'nullable|exists:user,user_id',
         ];
     }
 

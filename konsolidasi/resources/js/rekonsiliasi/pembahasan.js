@@ -34,6 +34,8 @@ Alpine.data("webData", () => ({
     selectedKomoditas: "",
     selectedKdLevel: "01",
     pendingKdLevel: "01",
+    sort: "kd_komoditas",
+    direction: "asc",
     wilayahLevel: "",
     kd_wilayah: "",
     status_rekon: "00",
@@ -142,6 +144,8 @@ Alpine.data("webData", () => ({
             this.isPusat = true;
             this.selectedProvince = "";
             this.selectedKabkot = "";
+            this.sort = "kd_komoditas";
+            this.direction = "asc";
 
             this.updateKdWilayah();
             await this.fetchData();
@@ -240,6 +244,8 @@ Alpine.data("webData", () => ({
                 kd_wilayah: this.kd_wilayah,
                 kd_komoditas: this.selectedKomoditas,
                 status_rekon: this.status_rekon,
+                sort: this.sort,
+                direction: this.direction,
             });
 
             const result = await this.fetchWrapper(

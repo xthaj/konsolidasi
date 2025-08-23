@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Models\Rekonsiliasi;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
@@ -39,6 +40,11 @@ class RekonsiliasiController extends Controller
     public function pemilihan()
     {
         return view('rekonsiliasi.pemilihan');
+    }
+
+    public function laporan()
+    {
+        return view('rekonsiliasi.laporan');
     }
 
     // konfirmasi komoditas rekon
@@ -306,7 +312,7 @@ class RekonsiliasiController extends Controller
             ], $code);
 
             // Early region validation (optional, can be skipped for testing)
-            if (in_array($request->input('level_wilayah'), ['provinsi', 'kabkot']) && !$request->input('kd_wilayah')) {
+            if (in_array($request->input('level_wilayah'), ['provinsi', 'provinsi-kabkot', 'kabkot']) && !$request->input('kd_wilayah')) {
                 return $errorResponse('Kode wilayah harus disediakan untuk provinsi atau kabupaten/kota.', 400);
             }
             if (in_array($request->input('level_wilayah'), ['semua-provinsi', 'semua-kabkot']) && $request->input('kd_wilayah') !== '0') {
@@ -361,7 +367,7 @@ class RekonsiliasiController extends Controller
                 'bulan' => 'nullable|integer|between:1,12',
                 'tahun' => 'nullable|integer|between:2000,2100',
                 'kd_level' => 'nullable|in:00,01,02,03,04,05',
-                'level_wilayah' => 'nullable|in:semua,semua-provinsi,semua-kabkot,provinsi,kabkot',
+                'level_wilayah' => 'nullable|in:semua,semua-provinsi,semua-kabkot,provinsi,kabkot,provinsi-kabkot',
                 'kd_wilayah' => 'nullable|string|max:4',
                 'status_rekon' => 'nullable|in:00,01,02',
                 'kd_komoditas' => 'nullable|string|max:10',
@@ -401,38 +407,47 @@ class RekonsiliasiController extends Controller
                 $inflasi = $item->inflasi;
                 $wilayah = $inflasi->wilayah ?? null;
 
+                // Filter by level (kd_level) first
                 if ($input['kd_level'] !== '00' && $inflasi->kd_level !== $input['kd_level']) {
                     return false;
                 }
 
-                if ($input['kd_wilayah'] !== '0') {
-                    if ($inflasi->kd_wilayah !== $input['kd_wilayah']) {
-                        return false;
-                    }
-                } elseif ($input['level_wilayah'] === 'semua-provinsi') {
-                    if (!$wilayah || $wilayah->flag != 2) {
-                        return false;
-                    }
-                } elseif ($input['level_wilayah'] === 'semua-kabkot') {
-                    if (!$wilayah || $wilayah->flag != 3) {
-                        return false;
-                    }
-                } elseif (!$user->isPusat() && strlen($user->kd_wilayah) === 2 && $input['level_wilayah'] === 'kabkot') {
+                if ($input['level_wilayah'] === 'provinsi-kabkot') {
+                    if (!$wilayah) return false;
+
+                    $isProvinsi = $wilayah->kd_wilayah === $input['kd_wilayah'];
+                    $isKabkotUnderProv = $wilayah->parent_kd === $input['kd_wilayah'];
+
+                    if (!$isProvinsi && !$isKabkotUnderProv) return false;
+                }
+                // Exact kd_wilayah filter (for single province/kabkot selection)
+                elseif ($input['kd_wilayah'] !== '0') {
+                    if ($inflasi->kd_wilayah !== $input['kd_wilayah']) return false;
+                }
+                // All provinces
+                elseif ($input['level_wilayah'] === 'semua-provinsi') {
+                    if (!$wilayah || $wilayah->flag != 2) return false;
+                }
+                // All kabkots
+                elseif ($input['level_wilayah'] === 'semua-kabkot') {
+                    if (!$wilayah || $wilayah->flag != 3) return false;
+                }
+                // Kabkot under province for province users
+                elseif (!$user->isPusat() && strlen($user->kd_wilayah) === 2 && $input['level_wilayah'] === 'kabkot') {
                     if (!$wilayah || ($wilayah->kd_wilayah !== $user->kd_wilayah && $wilayah->parent_kd !== $user->kd_wilayah)) {
                         return false;
                     }
                 }
 
+                // Filter by commodity if specified
                 if (!is_null($input['kd_komoditas']) && $inflasi->kd_komoditas !== $input['kd_komoditas']) {
                     return false;
                 }
 
+                // Filter by reconciliation status
                 if ($input['status_rekon'] !== '00') {
-                    if ($input['status_rekon'] === '01' && !is_null($item->user_id)) {
-                        return false;
-                    } elseif ($input['status_rekon'] === '02' && is_null($item->user_id)) {
-                        return false;
-                    }
+                    if ($input['status_rekon'] === '01' && !is_null($item->user_id)) return false;
+                    if ($input['status_rekon'] === '02' && is_null($item->user_id)) return false;
                 }
 
                 return true;
@@ -458,15 +473,16 @@ class RekonsiliasiController extends Controller
     }
 
     /**
- * Generates a descriptive title for the reconciliation table based on request parameters.
- *
- * @param Request $request HTTP request with input parameters.
- * @return string The formatted title for the reconciliation table.
- */
-    private function generateRekonTableTitle(Request $request): string
+     * Generates a descriptive title for the reconciliation table based on request parameters.
+     *
+     * @param Request $request HTTP request with input parameters.
+     * @return string The formatted title for the reconciliation table.
+     */
+    private function generateRekonTableTitle(array $request): string
     {
         try {
             $title = 'Rekonsiliasi';
+
             $kdLevel = $request->input('kd_level', '01');
             $kdKomoditas = $request->input('kd_komoditas');
             $levelWilayah = $request->input('level_wilayah', 'semua-provinsi');
@@ -476,11 +492,13 @@ class RekonsiliasiController extends Controller
             // Append level harga
             $levelHarga = LevelHarga::getLevelHargaNameComplete($kdLevel);
             $title .= $levelHarga ? ' ' . $levelHarga : ' Semua Level Harga';
+
             // Append nama komoditas
             if ($kdKomoditas) {
                 $namaKomoditas = Komoditas::getKomoditasName($kdKomoditas);
                 $title .= $namaKomoditas ? ' ' . $namaKomoditas : ' - Semua Komoditas';
             }
+
             // Append wilayah
             if ($levelWilayah === 'semua') {
                 $title .= ' Semua Provinsi dan Kabupaten/Kota';
@@ -488,12 +506,16 @@ class RekonsiliasiController extends Controller
                 $title .= ' Semua Provinsi';
             } elseif ($levelWilayah === 'semua-kabkot') {
                 $title .= ' Semua Kabupaten/Kota';
+            } elseif ($levelWilayah === 'provinsi-kabkot' && $kdWilayah && $kdWilayah !== '0') {
+                $namaWilayah = Wilayah::getWilayahName($kdWilayah);
+                $title .= ' Provinsi' . $namaWilayah ? ' ' . $namaWilayah . ' dan Kabupaten/Kota' : ' - Wilayah Tidak Dikenal';
             } elseif ($kdWilayah && $kdWilayah !== '0') {
                 $namaWilayah = Wilayah::getWilayahName($kdWilayah);
                 $title .= $namaWilayah ? ' ' . $namaWilayah : ' - Wilayah Tidak Dikenal';
             } else {
                 $title .= ' Wilayah Tidak Valid';
             }
+
             // Append bulan dan tahun
             if ($bulan && $tahun) {
                 $namaBulan = BulanTahun::getBulanName($bulan);
@@ -502,9 +524,9 @@ class RekonsiliasiController extends Controller
                 $namaBulan = BulanTahun::getBulanName($bulan);
                 $title .= $namaBulan ? ' - ' . $namaBulan : ' - Bulan Tidak Dikenal';
             }
+
             return $title;
         } catch (\Exception $e) {
-            // Handle unexpected errors
             Log::error('Error in generateRekonTableTitle', ['message' => $e->getMessage()]);
             return 'Rekonsiliasi';
         }
@@ -545,7 +567,9 @@ class RekonsiliasiController extends Controller
                 'kd_wilayah',
                 'status_rekon',
                 'kd_komoditas',
-                'level_wilayah'
+                'level_wilayah',
+                'sort',
+                'direction',
             ]);
             $input = array_merge([
                 'kd_level' => '01',
@@ -553,6 +577,8 @@ class RekonsiliasiController extends Controller
                 'status_rekon' => '00',
                 'kd_komoditas' => '',
                 'level_wilayah' => 'semua',
+                'sort' => 'kd_komoditas',
+                'direction' => 'asc',
             ], $input);
 
             // Validate request
@@ -582,6 +608,8 @@ class RekonsiliasiController extends Controller
                 'status_rekon' => 'required|in:00,01,02',
                 'kd_komoditas' => 'nullable|string|max:10',
                 'level_wilayah' => 'required|in:semua,semua-provinsi,semua-kabkot,provinsi,kabkot',
+                'sort' => 'in:kd_komoditas,nilai_inflasi',
+                'direction' => 'in:asc,desc',
             ]);
 
             if ($validator->fails()) {
@@ -602,6 +630,8 @@ class RekonsiliasiController extends Controller
             $status_rekon = $input['status_rekon'];
             $kd_komoditas = $input['kd_komoditas'];
             $level_wilayah = $input['level_wilayah'];
+            $sortColumn = $input['sort'];
+            $sortDirection = $input['direction'];
 
             // Fetch BulanTahun record
             $bulanTahun = BulanTahun::where('bulan', $bulan)->where('tahun', $tahun)->first();
@@ -640,7 +670,7 @@ class RekonsiliasiController extends Controller
                 $rekonQuery->where('rekonsiliasi.user_id', $status_rekon === '01' ? null : '!=', null);
             }
 
-            $rekonQuery->orderBy('inflasi.kd_komoditas', 'ASC');
+            $rekonQuery->orderBy($sortColumn, $sortDirection);
 
             // Eager load relationships
             $rekonQuery->with(['inflasi.komoditas', 'inflasi.wilayah', 'user']);
@@ -729,7 +759,7 @@ class RekonsiliasiController extends Controller
                 'message' => $rekonsiliasi->isEmpty() ? 'Tidak ada data untuk filter ini.' : 'Data berhasil dimuat.',
                 'data' => [
                     'rekonsiliasi' => PembahasanDataResource::collection($rekonsiliasi),
-                    'title' => 'Pembahasan ' . $this->generateRekonTableTitle($request),
+                    'title' => 'Pembahasan ',
                 ],
             ];
 
