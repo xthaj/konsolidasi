@@ -4,7 +4,6 @@ window.Alpine = Alpine;
 
 Alpine.data("webData", () => ({
     loading: true,
-
     komoditasData: [],
 
     newKomoditas: { nama_komoditas: "" },
