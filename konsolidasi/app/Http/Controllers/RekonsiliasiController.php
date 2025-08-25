@@ -344,7 +344,7 @@ class RekonsiliasiController extends Controller
                     'bulan' => $activeBulanTahun->bulan,
                     'tahun' => $activeBulanTahun->tahun,
                     'kd_level' => '00',
-                    'level_wilayah' => 'provinsi',
+                    'level_wilayah' => 'provinsi-kabkot',
                     'kd_wilayah' => $user->kd_wilayah,
                     'status_rekon' => '00',
                     'kd_komoditas' => null,
@@ -478,11 +478,10 @@ class RekonsiliasiController extends Controller
      * @param Request $request HTTP request with input parameters.
      * @return string The formatted title for the reconciliation table.
      */
-    private function generateRekonTableTitle(array $request): string
+    private function generateRekonTableTitle(Request $request): string
     {
         try {
             $title = 'Rekonsiliasi';
-
             $kdLevel = $request->input('kd_level', '01');
             $kdKomoditas = $request->input('kd_komoditas');
             $levelWilayah = $request->input('level_wilayah', 'semua-provinsi');
@@ -492,13 +491,11 @@ class RekonsiliasiController extends Controller
             // Append level harga
             $levelHarga = LevelHarga::getLevelHargaNameComplete($kdLevel);
             $title .= $levelHarga ? ' ' . $levelHarga : ' Semua Level Harga';
-
             // Append nama komoditas
             if ($kdKomoditas) {
                 $namaKomoditas = Komoditas::getKomoditasName($kdKomoditas);
                 $title .= $namaKomoditas ? ' ' . $namaKomoditas : ' - Semua Komoditas';
             }
-
             // Append wilayah
             if ($levelWilayah === 'semua') {
                 $title .= ' Semua Provinsi dan Kabupaten/Kota';
@@ -508,14 +505,13 @@ class RekonsiliasiController extends Controller
                 $title .= ' Semua Kabupaten/Kota';
             } elseif ($levelWilayah === 'provinsi-kabkot' && $kdWilayah && $kdWilayah !== '0') {
                 $namaWilayah = Wilayah::getWilayahName($kdWilayah);
-                $title .= ' Provinsi' . $namaWilayah ? ' ' . $namaWilayah . ' dan Kabupaten/Kota' : ' - Wilayah Tidak Dikenal';
+                $title .= ' Provinsi' . ($namaWilayah ? ' ' . $namaWilayah . ' dan Kabupaten/Kota' : ' - Wilayah Tidak Dikenal');
             } elseif ($kdWilayah && $kdWilayah !== '0') {
                 $namaWilayah = Wilayah::getWilayahName($kdWilayah);
                 $title .= $namaWilayah ? ' ' . $namaWilayah : ' - Wilayah Tidak Dikenal';
             } else {
                 $title .= ' Wilayah Tidak Valid';
             }
-
             // Append bulan dan tahun
             if ($bulan && $tahun) {
                 $namaBulan = BulanTahun::getBulanName($bulan);
@@ -524,9 +520,9 @@ class RekonsiliasiController extends Controller
                 $namaBulan = BulanTahun::getBulanName($bulan);
                 $title .= $namaBulan ? ' - ' . $namaBulan : ' - Bulan Tidak Dikenal';
             }
-
             return $title;
         } catch (\Exception $e) {
+            // Handle unexpected errors
             Log::error('Error in generateRekonTableTitle', ['message' => $e->getMessage()]);
             return 'Rekonsiliasi';
         }

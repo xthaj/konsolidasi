@@ -5,6 +5,10 @@ namespace App\Http\Requests;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\App;
+
+//del later
+use App\Models\User;
 
 class UpdateRekonsiliasiRequest extends FormRequest
 {

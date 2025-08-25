@@ -23,7 +23,7 @@ class PembahasanDataResource extends JsonResource
         return [
             'rekonsiliasi_id' => $this->rekonsiliasi_id,
             'kd_wilayah' => $inflasi->kd_wilayah,
-            'nama_wilayah' => $inflasi->wilayah ? strtoupper($inflasi->wilayah->nama_wilayah) : 'Tidak Dikenal',
+            'nama_wilayah' => $inflasi->kd_wilayah . ' - ' . ($inflasi->wilayah ? strtoupper($inflasi->wilayah->nama_wilayah) : 'Tidak Dikenal'),
             'kd_komoditas' => $inflasi->kd_komoditas,
             'nama_komoditas' => $inflasi->komoditas->nama_komoditas ?? 'N/A',
             'kd_level' => $inflasi->kd_level,
