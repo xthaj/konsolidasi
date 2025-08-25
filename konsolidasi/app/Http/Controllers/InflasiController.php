@@ -16,8 +16,7 @@ use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exceptions\EarlyHaltException;
-
-
+use App\Exports\RekonsiliasiMultiLevelExport;
 use App\Imports\DataImport;
 use App\Models\BulanTahun;
 use App\Imports\FinalImport;
@@ -453,6 +452,53 @@ class InflasiController extends Controller
         } catch (\Exception $e) {
             $response['message'] = ["Terjadi kesalahan saat mengunduh data: {$e->getMessage()}"];
             Log::error("Export final error: {$e->getMessage()}", ['trace' => $e->getTraceAsString()]);
+            return $request->wantsJson()
+                ? response()->json($response)
+                : redirect()->back()->with('response', $response);
+        }
+    }
+
+    public function export_rekonsiliasi(Request $request)
+    {
+        Log::info('Export rekonsiliasi method started', $request->all());
+
+        $request->merge(['bulan' => (int) $request->bulan]);
+
+        $validated = $request->validate([
+            'bulan' => 'required|integer|between:1,12',
+            'tahun' => 'required|integer|min:2000|max:2100',
+            'level' => 'required|string|in:01,02,03,04,05',
+        ]);
+
+        $response = [
+            'success' => false,
+            'message' => [],
+            'data' => [],
+        ];
+
+        try {
+            $bulanTahun = BulanTahun::where('bulan', $validated['bulan'])
+                ->where('tahun', $validated['tahun'])
+                ->first();
+
+            if (!$bulanTahun) {
+                $response['message'] = ["Tidak ada data tersedia untuk periode tersebut."];
+                return $request->wantsJson()
+                    ? response()->json($response)
+                    : redirect()->back()->with('response', $response);
+            }
+
+            $namaBulan = BulanTahun::getBulanName($validated['bulan']);
+            $namaLevel = LevelHarga::getLevelHargaNameShortened($validated['level']);
+            $timestamp = now()->format('Ymd_His');
+            $fileName = "Rekonsiliasi_{$namaBulan}_{$validated['tahun']}_{$namaLevel}_{$timestamp}.xlsx";
+            return Excel::download(
+                new RekonsiliasiMultiLevelExport($validated['bulan'], $validated['tahun']),
+                $fileName
+            );
+        } catch (\Exception $e) {
+            $response['message'] = ["Terjadi kesalahan saat mengunduh data: {$e->getMessage()}"];
+            Log::error("Export rekonsiliasi error: {$e->getMessage()}", ['trace' => $e->getTraceAsString()]);
             return $request->wantsJson()
                 ? response()->json($response)
                 : redirect()->back()->with('response', $response);

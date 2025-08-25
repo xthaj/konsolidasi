@@ -21,6 +21,7 @@ export default defineConfig({
                 "resources/js/rekonsiliasi/pembahasan.js",
                 "resources/js/rekonsiliasi/pengisian_skl.js",
                 "resources/js/rekonsiliasi/pengisian.js",
+                "resources/js/rekonsiliasi/laporan.js",
                 "resources/js/alpine.js",
                 "resources/js/app.js",
                 "resources/js/bootstrap.js",

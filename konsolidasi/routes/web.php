@@ -98,6 +98,7 @@ Route::middleware(['pusat'])->group(function () {
     Route::post('/data/hapus', [InflasiController::class, 'hapus'])->name('data.hapus');
     // export
     Route::post('/data/export/final', [InflasiController::class, 'export_final'])->name('data.export.final');
+
     // ui, single inflasi
     Route::delete('/data/delete/{id}', [InflasiController::class, 'delete']);
     Route::patch('/data/update/{id}', [InflasiController::class, 'update']);
@@ -149,6 +150,11 @@ Route::middleware('auth')->group(function () {
     // Rekonsiliasi
     Route::get('/rekonsiliasi/pemilihan', [RekonsiliasiController::class, 'pemilihan'])->name('rekon.pemilihan');
     Route::get('/rekonsiliasi/pembahasan', [RekonsiliasiController::class, 'pembahasan'])->name('rekon.pembahasan');
+    Route::get('/rekonsiliasi/laporan', [RekonsiliasiController::class, 'laporan'])->name('rekon.laporan');
+
+    // export
+    Route::post('/data/export/rekonsiliasi', [InflasiController::class, 'export_rekonsiliasi'])->name('data.export.rekonsiliasi');
+
     Route::get('/api/rekonsiliasi/pembahasan', [RekonsiliasiController::class, 'fetchPembahasanData']);
     Route::patch('/api/rekonsiliasi/{id}/pembahasan', [RekonsiliasiController::class, 'updatePembahasan']);
 
