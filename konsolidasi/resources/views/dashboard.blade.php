@@ -48,7 +48,7 @@
                         </h2>
 
                         {{-- Percentage progress bar --}}
-                        @if ($percentage > 0)
+                        @if ($percentage >= 0)
                         <div class="w-full h-6 bg-gray-200 rounded-full">
                             <div
                                 class="h-6 bg-primary-600 rounded-full text-xs font-medium text-white text-center p-0.5"

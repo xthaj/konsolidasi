@@ -106,8 +106,8 @@
                             <li><a href="{{ route('rekon.pembahasan') }}" class="block px-4 py-2 hover:bg-gray-100">Pembahasan</a></li>
                             @else
                             <li><a href="{{ route('rekon.pengisian-skl') }}" class="block px-4 py-2 hover:bg-gray-100">Pengisian</a></li>
-                            <li><a href="{{ route('rekon.laporan') }}" class="block px-4 py-2 hover:bg-gray-100">Laporan</a></li>
                             @endif
+                            <li><a href="{{ route('rekon.laporan') }}" class="block px-4 py-2 hover:bg-gray-100">Laporan</a></li>
                         </ul>
                     </div>
                 </li>

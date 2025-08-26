@@ -467,7 +467,6 @@ class InflasiController extends Controller
         $validated = $request->validate([
             'bulan' => 'required|integer|between:1,12',
             'tahun' => 'required|integer|min:2000|max:2100',
-            'level' => 'required|string|in:01,02,03,04,05',
         ]);
 
         $response = [
@@ -489,9 +488,9 @@ class InflasiController extends Controller
             }
 
             $namaBulan = BulanTahun::getBulanName($validated['bulan']);
-            $namaLevel = LevelHarga::getLevelHargaNameShortened($validated['level']);
             $timestamp = now()->format('Ymd_His');
-            $fileName = "Rekonsiliasi_{$namaBulan}_{$validated['tahun']}_{$namaLevel}_{$timestamp}.xlsx";
+            $fileName = "Rekonsiliasi_{$namaBulan}_{$validated['tahun']}_{$timestamp}.xlsx";
+
             return Excel::download(
                 new RekonsiliasiMultiLevelExport($validated['bulan'], $validated['tahun']),
                 $fileName

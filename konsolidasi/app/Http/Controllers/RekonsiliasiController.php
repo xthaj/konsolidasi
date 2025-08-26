@@ -755,7 +755,7 @@ class RekonsiliasiController extends Controller
                 'message' => $rekonsiliasi->isEmpty() ? 'Tidak ada data untuk filter ini.' : 'Data berhasil dimuat.',
                 'data' => [
                     'rekonsiliasi' => PembahasanDataResource::collection($rekonsiliasi),
-                    'title' => 'Pembahasan ',
+                    'title' => 'Pembahasan ' . $this->generateRekonTableTitle($request),
                 ],
             ];
 

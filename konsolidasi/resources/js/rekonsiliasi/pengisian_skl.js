@@ -99,7 +99,11 @@ Alpine.data("webData", () => ({
             const userData = userResponse.data;
             this.isProvinsi = userData.is_provinsi;
             this.kd_wilayah = userData.kd_wilayah;
-            this.wilayahLevel = userData.wilayah_level;
+            // this.wilayahLevel = userData.wilayah_level;
+            this.wilayahLevel =
+                userData.wilayah_level === "provinsi"
+                    ? "provinsi-kabkot"
+                    : userData.wilayah_level;
             this.selectedProvince = userData.kd_wilayah;
             this.selectedKabkot = userData.is_provinsi
                 ? ""
@@ -201,7 +205,7 @@ Alpine.data("webData", () => ({
 
     updateKdWilayah() {
         if (!this.isProvinsi) {
-            // Pusat user: always use kabkot selection
+            // Kabkot user: always use kabkot selection
             this.kd_wilayah = this.selectedKabkot;
         } else if (
             this.wilayahLevel === "provinsi" ||
