@@ -155,7 +155,9 @@
                             <th class="px-6 py-3">No</th>
                             <th class="px-6 py-3">Wilayah</th>
                             <th class="px-6 py-3">Komoditas</th>
-                            <th class="px-6 py-3" x-show="['03', '04', '05'].includes(selectedKdLevel)">Inflasi</th>
+                            <th class="px-6 py-3" x-show="['03', '05'].includes(selectedKdLevel)">Inflasi</th>
+                            <th class="px-6 py-3" x-show="selectedKdLevel === '04'">Inflasi Produsen Desa</th>
+                            <th class="px-6 py-3" x-show="selectedKdLevel === '04'">Inflasi Konsumen Desa</th>
                             <th class="px-6 py-3" x-show="selectedKdLevel === '01' || selectedKdLevel === '02'">Inflasi Kota</th>
                             <th class="px-6 py-3" x-show="selectedKdLevel === '01' || selectedKdLevel === '02'">Inflasi Desa</th>
                             <th class="px-6 py-3 min-w-[175px]">Alasan</th>
@@ -170,7 +172,17 @@
                                 <td class="px-6 py-4" x-text="index + 1"></td>
                                 <td class="px-6 py-4" x-text="item.nama_wilayah || 'Tidak Dikenal'"></td>
                                 <td class="px-6 py-4" x-text="item.nama_komoditas || 'N/A'"></td>
-                                <td class="px-6 py-4" x-show="['03', '04', '05'].includes(selectedKdLevel)" x-text="item.nilai_inflasi"></td>
+                                <td class="px-6 py-4" x-show="['03', '05'].includes(selectedKdLevel)" x-text="item.nilai_inflasi"></td>
+                                <td class="px-6 py-4 text-right"
+                                    x-show="selectedKdLevel === '04'"
+                                    :class="item.inflasi_produsen_desa === '-' ? 'text-red-500' : ''"
+                                    x-text="item.inflasi_produsen_desa">
+                                </td>
+                                <td class="px-6 py-4 text-right"
+                                    x-show="selectedKdLevel === '04'"
+                                    :class="item.inflasi_konsumen_desa === '-' ? 'text-red-500' : ''"
+                                    x-text="item.inflasi_konsumen_desa">
+                                </td>
                                 <td class="px-6 py-4 text-right" x-show="selectedKdLevel === '01' || selectedKdLevel === '02'" :class="item.inflasi_kota === null && selectedKdLevel === '01' ? 'text-red-500' : ''" x-text="item.inflasi_kota !== null ? item.inflasi_kota : '-'"></td>
                                 <td class="px-6 py-4 text-right" x-show="selectedKdLevel === '01' || selectedKdLevel === '02'" :class="item.inflasi_desa === null && selectedKdLevel === '01' ? 'text-red-500' : ''" x-text="item.inflasi_desa !== null ? item.inflasi_desa : '-'"></td>
                                 <td class="px-6 py-4">

@@ -647,6 +647,7 @@ class RekonsiliasiController extends Controller
                 ->join('inflasi', 'rekonsiliasi.inflasi_id', '=', 'inflasi.inflasi_id')
                 ->join('wilayah', 'inflasi.kd_wilayah', '=', 'wilayah.kd_wilayah')
                 ->where('rekonsiliasi.bulan_tahun_id', $bulanTahun->bulan_tahun_id)
+                // just the kd_level
                 ->where('inflasi.kd_level', $kd_level);
 
             // Apply filters
@@ -675,7 +676,7 @@ class RekonsiliasiController extends Controller
             $rekonsiliasi = $rekonQuery->get();
 
             // Enrich data based on kd_level
-            if ($kd_level === '01') {
+            if (in_array($kd_level, ['01', '02'])) {
                 $inflasiData = Inflasi::where('bulan_tahun_id', $bulanTahun->bulan_tahun_id)
                     ->whereIn('kd_level', ['01', '02'])
                     ->whereIn('kd_wilayah', $rekonsiliasi->pluck('inflasi.kd_wilayah')->unique())
@@ -687,26 +688,44 @@ class RekonsiliasiController extends Controller
                     });
 
                 // Updated loop to use keyBy structure
-                $rekonsiliasi->each(function ($rekon) use ($inflasiData) {
+                $rekonsiliasi->each(function ($rekon) use ($inflasiData, $kd_level) {
                     $wilayah = $rekon->inflasi->kd_wilayah;
                     $komoditas = $rekon->inflasi->kd_komoditas;
 
-                    $rekon->inflasi_kota = $inflasiData["{$wilayah}-{$komoditas}-01"]->nilai_inflasi ?? null; // edit
-                    if ($rekon->inflasi_kota === null) {
-                        Log::error('Missing or invalid inflasi_kota for Rekonsiliasi', [
-                            'rekonsiliasi_id' => $rekon->rekonsiliasi_id,
-                            'kd_wilayah' => $wilayah,
-                            'kd_komoditas' => $komoditas,
-                            'kd_level' => '01',
-                            'bulan_tahun_id' => $rekon->bulan_tahun_id,
-                        ]);
+                    if ($kd_level === '01') {
+                        $rekon->inflasi_kota = $inflasiData["{$wilayah}-{$komoditas}-01"]->nilai_inflasi ?? null;
+                        $rekon->inflasi_desa = $inflasiData["{$wilayah}-{$komoditas}-02"]->nilai_inflasi ?? null;
+
+                        if ($rekon->inflasi_kota === null) {
+                            Log::error('Missing or invalid inflasi_kota for Rekonsiliasi', [
+                                'rekonsiliasi_id' => $rekon->rekonsiliasi_id,
+                                'kd_wilayah' => $wilayah,
+                                'kd_komoditas' => $komoditas,
+                                'kd_level' => '01',
+                                'bulan_tahun_id' => $rekon->bulan_tahun_id,
+                            ]);
+                        }
+                    } elseif ($kd_level === '02') {
+                        $rekon->inflasi_desa = $inflasiData["{$wilayah}-{$komoditas}-02"]->nilai_inflasi ?? null;
+                        $rekon->inflasi_kota = $inflasiData["{$wilayah}-{$komoditas}-01"]->nilai_inflasi ?? null;
+
+                        if ($rekon->inflasi_desa === null) {
+                            Log::error('Missing or invalid inflasi_desa for Rekonsiliasi', [
+                                'rekonsiliasi_id' => $rekon->rekonsiliasi_id,
+                                'kd_wilayah' => $wilayah,
+                                'kd_komoditas' => $komoditas,
+                                'kd_level' => '02',
+                                'bulan_tahun_id' => $rekon->bulan_tahun_id,
+                            ]);
+                        }
                     }
 
-                    $rekon->inflasi_desa = $inflasiData["{$wilayah}-{$komoditas}-02"]->nilai_inflasi ?? null; // edit
+                    $rekon->inflasi_produsen_desa = null;
+                    $rekon->inflasi_konsumen_desa = null;
                 });
-            } elseif ($kd_level === '02') {
+            } elseif ($kd_level === '04') {
                 $inflasiData = Inflasi::where('bulan_tahun_id', $bulanTahun->bulan_tahun_id)
-                    ->whereIn('kd_level', ['01', '02'])
+                    ->whereIn('kd_level', ['04', '02'])
                     ->whereIn('kd_wilayah', $rekonsiliasi->pluck('inflasi.kd_wilayah')->unique())
                     ->whereIn('kd_komoditas', $rekonsiliasi->pluck('inflasi.kd_komoditas')->unique())
                     ->select('kd_wilayah', 'kd_komoditas', 'kd_level', 'nilai_inflasi')
@@ -720,9 +739,11 @@ class RekonsiliasiController extends Controller
                     $wilayah = $rekon->inflasi->kd_wilayah;
                     $komoditas = $rekon->inflasi->kd_komoditas;
 
-                    $rekon->inflasi_desa = $inflasiData["{$wilayah}-{$komoditas}-02"]->nilai_inflasi ?? null; // edit
-                    if ($rekon->inflasi_desa === null) {
-                        Log::error('Missing or invalid inflasi_desa for Rekonsiliasi', [
+                    $rekon->inflasi_produsen_desa = $rekon->inflasi->nilai_inflasi ?? null;
+                    $rekon->inflasi_konsumen_desa = $inflasiData["{$wilayah}-{$komoditas}-02"]->nilai_inflasi ?? null;
+
+                    if ($rekon->inflasi_konsumen_desa  === null) {
+                        Log::error('Missing or invalid inflasi_konsumen_desa  for Rekonsiliasi', [
                             'rekonsiliasi_id' => $rekon->rekonsiliasi_id,
                             'kd_wilayah' => $wilayah,
                             'kd_komoditas' => $komoditas,
@@ -731,15 +752,19 @@ class RekonsiliasiController extends Controller
                         ]);
                     }
 
-                    $rekon->inflasi_kota = $inflasiData["{$wilayah}-{$komoditas}-01"]->nilai_inflasi ?? null; // edit
+                    $rekon->inflasi_kota = null;
+                    $rekon->inflasi_desa = null;
                 });
             } else {
+                // 03, 05
                 $rekonsiliasi->each(function ($rekon) {
-                    $rekon->inflasi_kota = $rekon->inflasi->nilai_inflasi ?? null;
+                    $rekon->inflasi_produsen_desa = $rekon->inflasi->nilai_inflasi ?? null;
+                    $rekon->inflasi_konsumen_desa = null;
+                    $rekon->inflasi_kota = null;
                     $rekon->inflasi_desa = null;
 
-                    if ($rekon->inflasi_kota === null) {
-                        Log::error('Missing or invalid inflasi_kota for Rekonsiliasi', [
+                    if ($rekon->inflasi_produsen_desa === null) {
+                        Log::error('Missing or invalid inflasi_produsen_desa for Rekonsiliasi', [
                             'rekonsiliasi_id' => $rekon->rekonsiliasi_id,
                             'kd_wilayah' => $rekon->inflasi->kd_wilayah,
                             'kd_komoditas' => $rekon->inflasi->kd_komoditas,

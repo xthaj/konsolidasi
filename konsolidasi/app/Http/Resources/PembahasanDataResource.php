@@ -20,6 +20,9 @@ class PembahasanDataResource extends JsonResource
         // Helper to convert inflation value to status (Naik, Stabil, Turun)
         $toStatus = fn($value) => $value === null ? '-' : ($value > 0 ? 'Naik' : ($value == 0 ? 'Stabil' : 'Turun'));
 
+        // Helper to format numeric inflation value
+        $formatInflasi = fn($value) => $value !== null ? number_format($value, 2, '.', '') : '-';
+
         return [
             'rekonsiliasi_id' => $this->rekonsiliasi_id,
             'kd_wilayah' => $inflasi->kd_wilayah,
@@ -27,15 +30,22 @@ class PembahasanDataResource extends JsonResource
             'kd_komoditas' => $inflasi->kd_komoditas,
             'nama_komoditas' => $inflasi->komoditas->nama_komoditas ?? 'N/A',
             'kd_level' => $inflasi->kd_level,
+
+            'inflasi_produsen_desa' => $kdLevel === '04'
+                ? $formatInflasi($this->inflasi_produsen_desa)
+                : null,
+            'inflasi_konsumen_desa' => $kdLevel === '04'
+                ? $formatInflasi($this->inflasi_konsumen_desa)
+                : null,
             'inflasi_kota' => in_array($kdLevel, ['01', '02'])
-                ? ($this->inflasi_kota !== null ? number_format($this->inflasi_kota, 2, '.', '') : '-')
+                ? $formatInflasi($this->inflasi_kota)
                 : null,
             'inflasi_desa' => in_array($kdLevel, ['01', '02'])
                 ? $toStatus($this->inflasi_desa)
                 : null,
-            'nilai_inflasi' => $inflasi->nilai_inflasi !== null
-                ? number_format($inflasi->nilai_inflasi, 2, '.', '')
-                : '-',
+            'nilai_inflasi' => in_array($kdLevel, ['03', '05'])
+                ? $formatInflasi($inflasi->nilai_inflasi)
+                : null,
             'alasan' => $this->alasan,
             'detail' => $this->detail ?? '-',
             'sumber' => $this->media,
