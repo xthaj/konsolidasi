@@ -207,19 +207,19 @@
                                     </ul>
                                     <span x-show="!item.alasan">-</span>
                                 </td>
-                                <td class="px-6 py-4"
+                                <td class="px-6 py-4 min-w-[300px]"
                                     x-data="{
-        openDetailModal(text) {
-            this.detailModalText = text || '';
-            this.$dispatch('open-modal', 'detail-modal');
-        }
-    }">
+                                        openDetailModal(text) {
+                                            this.detailModalText = text || '';
+                                            this.$dispatch('open-modal', 'detail-modal');
+                                        }
+                                    }">
                                     <span class="text-sm">
                                         <span
                                             x-text="(item.detail || '').length > 85
-                ? (item.detail.substring(0, 85) + '...')
-                : item.detail"></span>
-
+                                            ? (item.detail.substring(0, 85) + '...')
+                                            : item.detail">
+                                        </span>
                                         <button
                                             class="text-blue-600 underline text-sm"
                                             x-show="(item.detail || '').length > 85"

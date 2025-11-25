@@ -667,11 +667,13 @@ class RekonsiliasiController extends Controller
                 $rekonQuery->where('rekonsiliasi.user_id', $status_rekon === '01' ? null : '!=', null);
             }
 
-            if ($sortColumn === 'kd_wilayah') {
-                $rekonQuery->orderBy('inflasi.kd_wilayah', $sortDirection);
-            } else {
-                $rekonQuery->orderBy($sortColumn, $sortDirection);
-            }
+            $resolvedSort = [
+                'kd_wilayah'    => 'inflasi.kd_wilayah',
+                'kd_komoditas'  => 'kd_komoditas',
+                'nilai_inflasi' => 'nilai_inflasi',
+            ][$sortColumn];
+
+            $rekonQuery->orderBy($resolvedSort, $sortDirection);
 
             // Eager load relationships
             $rekonQuery->with(['inflasi.komoditas', 'inflasi.wilayah', 'user']);
