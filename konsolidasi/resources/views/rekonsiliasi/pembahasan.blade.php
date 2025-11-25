@@ -138,6 +138,17 @@
         </div>
     </x-modal>
 
+    <x-modal name="detail-modal" title="Detail" maxWidth="md">
+        <div class="text-gray-900">
+            <div class="whitespace-pre-line" x-text="detailModalText"></div>
+
+            <div class="mt-4 text-right">
+                <x-primary-button x-on:click="$dispatch('close')">Tutup</x-primary-button>
+            </div>
+        </div>
+    </x-modal>
+
+
     <div x-show="!data.rekonsiliasi?.length && message" class="bg-white px-6 py-4 rounded-lg shadow-sm text-center text-gray-500">
         <div class="mb-1">
             <h2 class="text-lg font-semibold mb-2" x-text="data.title || 'Pembahasan Rekonsiliasi'"></h2>
@@ -196,14 +207,28 @@
                                     </ul>
                                     <span x-show="!item.alasan">-</span>
                                 </td>
-                                <td class="px-6 py-4 min-w-[300px]" x-data="{ showFull: false }">
-                                    <span x-text="showFull || (item.detail || '').length <= 85 ? (item.detail || '-') : (item.detail || '').slice(0, 85) + '...'"></span>
-                                    <template x-if="item.detail && item.detail !== '-' && item.detail.length > 85">
-                                        <button @click="showFull = !showFull" class="text-blue-500 underline ml-2">
-                                            <span x-text="showFull ? 'Sembunyikan' : 'Selengkapnya'"></span>
+                                <td class="px-6 py-4"
+                                    x-data="{
+        openDetailModal(text) {
+            this.detailModalText = text || '';
+            this.$dispatch('open-modal', 'detail-modal');
+        }
+    }">
+                                    <span class="text-sm">
+                                        <span
+                                            x-text="(item.detail || '').length > 85
+                ? (item.detail.substring(0, 85) + '...')
+                : item.detail"></span>
+
+                                        <button
+                                            class="text-blue-600 underline text-sm"
+                                            x-show="(item.detail || '').length > 85"
+                                            @click="openDetailModal(item.detail)">
+                                            Selengkapnya
                                         </button>
-                                    </template>
+                                    </span>
                                 </td>
+
                                 <td class="px-3 py-4 w-[80px] truncate">
                                     <a x-show="item.sumber" :href="item.sumber" class="text-blue-600 hover:underline" target="_blank"
                                         x-text="(() => { try { return new URL(item.sumber).host; } catch { return item.sumber; } })()"></a>

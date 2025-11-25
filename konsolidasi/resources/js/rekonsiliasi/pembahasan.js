@@ -48,6 +48,12 @@ Alpine.data("webData", () => ({
         "04": "HPed",
         "05": "HP",
     },
+    detailModalText: "",
+
+    openDetailModal(text) {
+        this.detailModalText = text || "";
+        this.$dispatch("open-modal", "detail-modal");
+    },
 
     async fetchWrapper(
         url,
