@@ -604,7 +604,7 @@ class RekonsiliasiController extends Controller
                 'status_rekon' => 'required|in:00,01,02',
                 'kd_komoditas' => 'nullable|string|max:10',
                 'level_wilayah' => 'required|in:semua,semua-provinsi,semua-kabkot,provinsi,kabkot',
-                'sort' => 'in:kd_komoditas,nilai_inflasi',
+                'sort' => 'in:kd_komoditas,nilai_inflasi,kd_wilayah',
                 'direction' => 'in:asc,desc',
             ]);
 
@@ -667,7 +667,11 @@ class RekonsiliasiController extends Controller
                 $rekonQuery->where('rekonsiliasi.user_id', $status_rekon === '01' ? null : '!=', null);
             }
 
-            $rekonQuery->orderBy($sortColumn, $sortDirection);
+            if ($sortColumn === 'kd_wilayah') {
+                $rekonQuery->orderBy('inflasi.kd_wilayah', $sortDirection);
+            } else {
+                $rekonQuery->orderBy($sortColumn, $sortDirection);
+            }
 
             // Eager load relationships
             $rekonQuery->with(['inflasi.komoditas', 'inflasi.wilayah', 'user']);

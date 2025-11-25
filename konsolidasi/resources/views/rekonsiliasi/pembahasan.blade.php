@@ -97,6 +97,7 @@
                     <div class="w-1/2">
                         <label class="block mb-2 text-sm font-medium text-gray-900">Urut Berdasarkan</label>
                         <select name="sort" x-model="sort" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
+                            <option value="kd_wilayah" :selected="sort === 'kd_wilayah'">Kode Wilayah</option>
                             <option value="kd_komoditas" :selected="sort === 'kd_komoditas'">Kode Komoditas</option>
                             <option value="nilai_inflasi" :selected="sort === 'nilai_inflasi'">Nilai Inflasi</option>
                         </select>
@@ -161,9 +162,11 @@
                             <th class="px-6 py-3" x-show="selectedKdLevel === '01' || selectedKdLevel === '02'">Inflasi Kota</th>
                             <th class="px-6 py-3" x-show="selectedKdLevel === '01' || selectedKdLevel === '02'">Inflasi Desa</th>
                             <th class="px-6 py-3 min-w-[175px]">Alasan</th>
-                            <th class="px-6 py-3">Detail</th>
-                            <th class="px-6 py-3">Sumber</th>
-                            <th class="px-6 py-3">Pembahasan</th>
+                            <th class="px-6 py-3 min-w-[300px]">Detail</th>
+                            <th class="px-2 py-3 w-[80px]">Sumber</th>
+                            <th class="px-2 py-3 w-[80px] whitespace-normal break-words text-center">
+                                Pembahasan
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
@@ -193,19 +196,20 @@
                                     </ul>
                                     <span x-show="!item.alasan">-</span>
                                 </td>
-                                <td class="px-6 py-4" x-data="{ showFull: false }">
-                                    <span x-text="showFull || (item.detail || '').length <= 50 ? (item.detail || '-') : (item.detail || '').slice(0, 50) + '...'"></span>
-                                    <template x-if="item.detail && item.detail !== '-' && item.detail.length > 50">
+                                <td class="px-6 py-4 min-w-[300px]" x-data="{ showFull: false }">
+                                    <span x-text="showFull || (item.detail || '').length <= 85 ? (item.detail || '-') : (item.detail || '').slice(0, 85) + '...'"></span>
+                                    <template x-if="item.detail && item.detail !== '-' && item.detail.length > 85">
                                         <button @click="showFull = !showFull" class="text-blue-500 underline ml-2">
                                             <span x-text="showFull ? 'Sembunyikan' : 'Selengkapnya'"></span>
                                         </button>
                                     </template>
                                 </td>
-                                <td class="px-6 py-4">
-                                    <a x-show="item.sumber" :href="item.sumber" class="text-blue-600 hover:underline" target="_blank" x-text="(() => { try { return new URL(item.sumber).host; } catch { return item.sumber; } })()"></a>
+                                <td class="px-3 py-4 w-[80px] truncate">
+                                    <a x-show="item.sumber" :href="item.sumber" class="text-blue-600 hover:underline" target="_blank"
+                                        x-text="(() => { try { return new URL(item.sumber).host; } catch { return item.sumber; } })()"></a>
                                     <span x-show="!item.sumber">-</span>
                                 </td>
-                                <td class="px-6 py-4 text-center">
+                                <td class="px-3 py-4 w-[80px] text-center break-words">
                                     <input type="checkbox" class="rounded border-gray-300" :checked="!!item.pembahasan" @change="togglePembahasan(item.rekonsiliasi_id, $event.target.checked)">
                                 </td>
                             </tr>
