@@ -223,16 +223,20 @@ class VisualisasiController extends Controller
             }
 
             // Step 4: Check availability of final_inflasi for each month
+            // CHANGED: fetch all months in ONE query instead of 1 query per month
+            $finalInflasiRecords = Inflasi::whereIn('bulan_tahun_id', $monthsData['ids'])
+                ->where('kd_wilayah', $kd_wilayah)
+                ->where('kd_komoditas', '0')
+                ->where('kd_level', '01')
+                ->select('bulan_tahun_id', 'final_inflasi')
+                ->get()
+                ->keyBy('bulan_tahun_id');
+
             $finalInflasiMap = [];
             $errors = [];
             foreach ($monthsData['ids'] as $index => $id) {
-                // Query the Inflasi table for final_inflasi where kd_komoditas is '000' and kd_level is '01'
-                $record = Inflasi::where('bulan_tahun_id', $id)
-                    ->where('kd_wilayah', $kd_wilayah)
-                    ->where('kd_komoditas', '0')
-                    ->where('kd_level', '01')
-                    ->select('final_inflasi')
-                    ->first();
+                // CHANGED: lookup from collection instead of querying DB
+                $record = $finalInflasiRecords[$id] ?? null;
 
                 // Validation: Check if final_inflasi is available and numeric
                 $finalInflasiMap[$id] = $record && !is_null($record->final_inflasi) && is_numeric($record->final_inflasi);
@@ -269,19 +273,23 @@ class VisualisasiController extends Controller
             $missingLevels = [];
 
             // Step 7: Fetch inflation and contribution (andil) data for each price level
+            // CHANGED: fetch all months x levels in ONE query instead of 1 query per month per level
+            $trendInflasiRecords = Inflasi::whereIn('bulan_tahun_id', $monthsData['ids'])
+                ->where('kd_wilayah', $kd_wilayah)
+                ->whereIn('kd_level', $kdLevels)
+                ->where('kd_komoditas', $kd_komoditas)
+                ->select('bulan_tahun_id', 'kd_level', 'nilai_inflasi', 'andil', 'final_inflasi', 'final_andil')
+                ->get()
+                ->keyBy(fn($item) => "{$item->bulan_tahun_id}-{$item->kd_level}");
+
             foreach ($kdLevels as $kd) {
                 $name = LevelHarga::getLevelHargaNameComplete($kd);
                 $inflasiData = [];
                 $andilData = [];
 
                 foreach ($monthsData['ids'] as $index => $id) {
-                    // Query inflation data for the specific month, region, level, and commodity
-                    $record = Inflasi::where('bulan_tahun_id', $id)
-                        ->where('kd_wilayah', $kd_wilayah)
-                        ->where('kd_level', $kd)
-                        ->where('kd_komoditas', $kd_komoditas)
-                        ->select('nilai_inflasi', 'andil', 'final_inflasi', 'final_andil')
-                        ->first();
+                    // CHANGED: lookup from collection instead of querying DB
+                    $record = $trendInflasiRecords["{$id}-{$kd}"] ?? null;
 
                     // Validation: Prefer final_inflasi/final_andil if available and valid
                     $inflasi = $record && $finalInflasiMap[$id] && !is_null($record->final_inflasi)
@@ -350,6 +358,24 @@ class VisualisasiController extends Controller
             // Determine if final_inflasi should be used for the latest month
             $useFinalInflasi = $finalInflasiMap[$latestMonthId];
 
+            // CHANGED: fetch all provinces x levels in ONE query instead of 1 query per province per level
+            $provinceInflasiRecords = Inflasi::where('bulan_tahun_id', $latestMonthId)
+                ->whereIn('kd_wilayah', array_keys($provinces))
+                ->whereIn('kd_level', $kdLevels)
+                ->where('kd_komoditas', $kd_komoditas)
+                ->select('kd_wilayah', 'kd_level', 'nilai_inflasi', 'final_inflasi')
+                ->get()
+                ->keyBy(fn($item) => "{$item->kd_wilayah}-{$item->kd_level}");
+
+            // CHANGED: fetch all kabkot inflasi in ONE query instead of 1 query per kabkot
+            $kabkotInflasiRecords = Inflasi::where('bulan_tahun_id', $latestMonthId)
+                ->whereIn('kd_wilayah', array_keys($kabkots))
+                ->where('kd_level', '01')
+                ->where('kd_komoditas', $kd_komoditas)
+                ->select('kd_wilayah', 'nilai_inflasi', 'final_inflasi')
+                ->get()
+                ->keyBy('kd_wilayah');
+
             // Initialize heatmap data structure
             $heatmapData = [
                 'xAxis' => array_map(fn($kd) => LevelHarga::getLevelHargaNameShortened($kd), $kdLevels),
@@ -382,12 +408,8 @@ class VisualisasiController extends Controller
 
                 // Step 10: Fetch province-level inflation data
                 foreach ($provinces as $provKd => $provName) {
-                    $record = Inflasi::where('bulan_tahun_id', $latestMonthId)
-                        ->where('kd_wilayah', $provKd)
-                        ->where('kd_level', $kdLevel)
-                        ->where('kd_komoditas', $kd_komoditas)
-                        ->select('nilai_inflasi', 'final_inflasi')
-                        ->first();
+                    // CHANGED: lookup from collection instead of querying DB
+                    $record = $provinceInflasiRecords["{$provKd}-{$kdLevel}"] ?? null;
 
                     // Validation: Prefer final_inflasi if available
                     $inflasi = $record && $useFinalInflasi && !is_null($record->final_inflasi)
@@ -453,12 +475,12 @@ class VisualisasiController extends Controller
                 if ($kdLevel === '01') {
                     $kabkotRegions = array_keys($kabkots);
                     $kabkotNames = array_values($kabkots);
-                    $kabkotInflasi = array_map(function ($kabKd) use ($latestMonthId, $kd_komoditas, $useFinalInflasi) {
-                        $value = Inflasi::where('bulan_tahun_id', $latestMonthId)
-                            ->where('kd_wilayah', $kabKd)
-                            ->where('kd_level', '01')
-                            ->where('kd_komoditas', $kd_komoditas)
-                            ->value($useFinalInflasi ? 'final_inflasi' : 'nilai_inflasi');
+                    $kabkotInflasi = array_map(function ($kabKd) use ($kabkotInflasiRecords, $useFinalInflasi) {
+                        // CHANGED: lookup from collection instead of querying DB
+                        $record = $kabkotInflasiRecords[$kabKd] ?? null;
+                        $value = $record
+                            ? ($useFinalInflasi ? $record->final_inflasi : $record->nilai_inflasi)
+                            : null;
                         return is_numeric($value) ? number_format($value, 2, '.', '') : null;
                     }, $kabkotRegions);
 
@@ -587,15 +609,20 @@ class VisualisasiController extends Controller
             }
 
             // Check final_inflasi for kd_komoditas = '000' for all relevant bulan_tahun_id
+            // CHANGED: fetch all months in ONE query instead of 1 query per month
+            $finalInflasiRecords = Inflasi::whereIn('bulan_tahun_id', $monthsData['ids'])
+                ->where('kd_wilayah', $kd_wilayah)
+                ->where('kd_komoditas', '000')
+                ->where('kd_level', '01')
+                ->select('bulan_tahun_id', 'final_inflasi')
+                ->get()
+                ->keyBy('bulan_tahun_id');
+
             $finalInflasiMap = [];
             $errors = [];
             foreach ($monthsData['ids'] as $index => $id) {
-                $record = Inflasi::where('bulan_tahun_id', $id)
-                    ->where('kd_wilayah', $kd_wilayah)
-                    ->where('kd_komoditas', '000')
-                    ->where('kd_level', '01')
-                    ->select('final_inflasi')
-                    ->first();
+                // CHANGED: lookup from collection instead of querying DB
+                $record = $finalInflasiRecords[$id] ?? null;
                 $finalInflasiMap[$id] = $record && !is_null($record->final_inflasi) && is_numeric($record->final_inflasi);
                 Log::info('Final Inflasi Check', [
                     'bulan_tahun_id' => $id,
@@ -625,17 +652,22 @@ class VisualisasiController extends Controller
             }
 
             // Track missing levels for grouped error message
+            // CHANGED: fetch all months x levels in ONE query instead of 1 query per month per level
+            $trendInflasiRecords = Inflasi::whereIn('bulan_tahun_id', $monthsData['ids'])
+                ->where('kd_wilayah', $kd_wilayah)
+                ->whereIn('kd_level', array_keys($levelNames))
+                ->where('kd_komoditas', $kd_komoditas)
+                ->select('bulan_tahun_id', 'kd_level', 'nilai_inflasi', 'final_inflasi')
+                ->get()
+                ->keyBy(fn($item) => "{$item->bulan_tahun_id}-{$item->kd_level}");
+
             $missingLevels = [];
             foreach ($levelNames as $kd => $name) {
                 $inflasiData = [];
 
                 foreach ($monthsData['ids'] as $index => $id) {
-                    $record = Inflasi::where('bulan_tahun_id', $id)
-                        ->where('kd_wilayah', $kd_wilayah)
-                        ->where('kd_level', $kd)
-                        ->where('kd_komoditas', $kd_komoditas)
-                        ->select('nilai_inflasi', 'final_inflasi')
-                        ->first();
+                    // CHANGED: lookup from collection instead of querying DB
+                    $record = $trendInflasiRecords["{$id}-{$kd}"] ?? null;
 
                     $inflasi = $record && $finalInflasiMap[$id] && !is_null($record->final_inflasi)
                         ? $record->final_inflasi
@@ -695,12 +727,24 @@ class VisualisasiController extends Controller
                 $kabkotRegions = array_keys($kabkots);
                 $kabkotNames = array_values($kabkots);
 
+                // CHANGED: fetch all kabkot inflasi in ONE query instead of 1 query per kabkot
+                $kabkotInflasiRecords = Inflasi::where('bulan_tahun_id', $latestMonthId)
+                    ->whereIn('kd_wilayah', $kabkotRegions)
+                    ->where('kd_level', '01')
+                    ->where('kd_komoditas', $kd_komoditas)
+                    ->select('kd_wilayah', 'nilai_inflasi', 'final_inflasi')
+                    ->get()
+                    ->keyBy('kd_wilayah');
+
                 $kabkotInflasi = array_map(
-                    fn($kabKd) => Inflasi::where('bulan_tahun_id', $latestMonthId)
-                        ->where('kd_wilayah', $kabKd)
-                        ->where('kd_level', '01')
-                        ->where('kd_komoditas', $kd_komoditas)
-                        ->value($useFinalInflasi ? 'final_inflasi' : 'nilai_inflasi'),
+                    function ($kabKd) use ($kabkotInflasiRecords, $useFinalInflasi) {
+                        // CHANGED: lookup from collection instead of querying DB
+                        $record = $kabkotInflasiRecords[$kabKd] ?? null;
+                        $value = $record
+                            ? ($useFinalInflasi ? $record->final_inflasi : $record->nilai_inflasi)
+                            : null;
+                        return is_numeric($value) ? number_format($value, 2, '.', '') : null;
+                    },
                     $kabkotRegions
                 );
 
