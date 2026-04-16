@@ -1,5 +1,6 @@
 import "flowbite";
 import Alpine from "alpinejs";
+import collapse from "@alpinejs/collapse";
 import * as echarts from "echarts";
 
 // Make Alpine globally available
@@ -7,6 +8,8 @@ window.Alpine = Alpine;
 
 // Non-reactive container for eCharts instances
 const charts = new Map();
+
+Alpine.plugin(collapse);
 
 Alpine.data("webData", () => ({
     loading: false,
@@ -72,7 +75,7 @@ Alpine.data("webData", () => ({
         url,
         options = {},
         successMessage = "Operasi berhasil",
-        showSuccessModal = false
+        showSuccessModal = false,
     ) {
         try {
             const response = await fetch(url, {
@@ -84,7 +87,7 @@ Alpine.data("webData", () => ({
                     ...(options.method && options.method !== "GET"
                         ? {
                               "X-CSRF-TOKEN": document.querySelector(
-                                  'meta[name="csrf-token"]'
+                                  'meta[name="csrf-token"]',
                               )?.content,
                           }
                         : {}),
@@ -122,11 +125,11 @@ Alpine.data("webData", () => ({
 
     get priceLevels() {
         return [
+            "Harga Produsen",
+            "Harga Produsen Desa",
+            "Harga Perdagangan Besar",
             "Harga Konsumen Kota",
             "Harga Konsumen Desa",
-            "Harga Perdagangan Besar",
-            "Harga Produsen Desa",
-            "Harga Produsen",
         ];
     },
     // Computed property for summary data
@@ -169,25 +172,25 @@ Alpine.data("webData", () => ({
                     "/inflasi-segmented-wilayah",
                     {},
                     "Data wilayah berhasil dimuat",
-                    false
+                    false,
                 ),
                 this.fetchWrapper(
                     "/all-komoditas",
                     {},
                     "Data komoditas berhasil dimuat",
-                    false
+                    false,
                 ),
                 this.fetchWrapper(
                     "/bulan-tahun",
                     {},
                     "Data bulan dan tahun berhasil dimuat",
-                    false
+                    false,
                 ),
                 this.fetchWrapper(
                     "/geojson-api/provinsi",
                     {},
                     "Provinsi GeoJSON berhasil dimuat",
-                    false
+                    false,
                 ).catch((err) => {
                     console.error("Failed to load Provinsi GeoJSON:", err);
                     return null;
@@ -196,7 +199,7 @@ Alpine.data("webData", () => ({
                     "/geojson-api/kabkot",
                     {},
                     "Kabkot GeoJSON berhasil dimuat",
-                    false
+                    false,
                 ).catch((err) => {
                     console.error("Failed to load Kabkot GeoJSON:", err);
                     return null;
@@ -243,7 +246,7 @@ Alpine.data("webData", () => ({
 
             // Listen for sidebar toggle
             window.addEventListener("sidebar-toggle", () =>
-                this.resizeCharts()
+                this.resizeCharts(),
             );
             // Keep window resize for browser resizing
             window.addEventListener("resize", () => this.resizeCharts());
@@ -358,7 +361,7 @@ Alpine.data("webData", () => ({
 
         chartConfigs.forEach((config) => {
             const chartDiv = document.getElementById(config.id);
-            if (chartDiv && chartDiv.offsetParent !== null) {
+            if (chartDiv) {
                 const chart = echarts.init(chartDiv);
                 charts.set(config.id, chart);
                 chart.showLoading({
@@ -482,7 +485,7 @@ Alpine.data("webData", () => ({
                 `/api/visualisasi?${params}`,
                 {},
                 "Data visualisasi berhasil dimuat",
-                false // No success modal
+                false, // No success modal
             );
 
             if (result.data?.errors?.length > 0 || result.errors?.length > 0) {
@@ -545,7 +548,7 @@ Alpine.data("webData", () => ({
                 (s) =>
                     s.andil &&
                     s.andil.length > 0 &&
-                    s.andil.some((v) => v != null)
+                    s.andil.some((v) => v != null),
             );
 
             // If at province level and showAndil is true but no andil data, reset to Inflasi
@@ -558,16 +561,29 @@ Alpine.data("webData", () => ({
                 }
             }
 
-            const seriesData = data.chart_data[chartKey].series.map((s) => ({
-                name: `${s.name} (${
-                    this.showAndil && hasAndilData ? "Andil" : "Inflasi"
-                })`,
-                type: "line",
-                data: this.showAndil && hasAndilData ? s.andil : s.inflasi,
-                itemStyle: {
-                    color: this.colors[s.name] || this.colorPalette.HK,
-                },
-            }));
+            // Line Chart
+            const desiredOrder = [
+                "Harga Produsen",
+                "Harga Produsen Desa",
+                "Harga Perdagangan Besar",
+                "Harga Konsumen Kota",
+                "Harga Konsumen Desa",
+            ];
+
+            const seriesData = [...data.chart_data[chartKey].series]
+                .sort(
+                    (a, b) =>
+                        desiredOrder.indexOf(a.name) -
+                        desiredOrder.indexOf(b.name),
+                )
+                .map((s) => ({
+                    name: `${s.name} (${this.showAndil && hasAndilData ? "Andil" : "Inflasi"})`,
+                    type: "line",
+                    data: this.showAndil && hasAndilData ? s.andil : s.inflasi,
+                    itemStyle: {
+                        color: this.colors[s.name] || this.colorPalette.HK,
+                    },
+                }));
 
             lineChart.setOption({
                 tooltip: { trigger: "axis" },
@@ -614,7 +630,7 @@ Alpine.data("webData", () => ({
                 (d) =>
                     d.andil &&
                     d.andil.length > 0 &&
-                    d.andil[d.andil.length - 1] != null
+                    d.andil[d.andil.length - 1] != null,
             );
 
             // Prepare series data, including Andil only if it exists
@@ -623,7 +639,7 @@ Alpine.data("webData", () => ({
                     name: "Inflasi",
                     type: "bar",
                     data: data.chart_data.horizontalBar.datasets.map(
-                        (d) => d.inflasi[d.inflasi.length - 1]
+                        (d) => d.inflasi[d.inflasi.length - 1],
                     ),
                     itemStyle: { color: this.colorPalette.HK },
                     label: { show: true, position: "right" },
@@ -635,7 +651,7 @@ Alpine.data("webData", () => ({
                     name: "Andil",
                     type: "bar",
                     data: data.chart_data.horizontalBar.datasets.map(
-                        (d) => d.andil[d.andil.length - 1]
+                        (d) => d.andil[d.andil.length - 1],
                     ),
                     itemStyle: { color: this.colorPalette.HK_Desa },
                     label: { show: true, position: "right" },
@@ -659,7 +675,7 @@ Alpine.data("webData", () => ({
                 yAxis: {
                     type: "category",
                     data: data.chart_data.horizontalBar.datasets.map(
-                        (d) => d.label
+                        (d) => d.label,
                     ),
                 },
                 series: series,
@@ -676,19 +692,37 @@ Alpine.data("webData", () => ({
         // Heatmap Chart
         const heatmapChart = charts.get("heatmapChart");
         if (isNational && heatmapChart && data?.chart_data?.heatmap) {
+            const heatmapXOrder = ["HP", "HPed", "HPB", "HK", "HKDesa"];
+            const originalXAxis = data.chart_data.heatmap.xAxis;
+            const originalYAxis = data.chart_data.heatmap.yAxis;
+
+            const xIndices = heatmapXOrder
+                .map((l) => originalXAxis.indexOf(l))
+                .filter((i) => i !== -1);
+            const finalXIndices =
+                xIndices.length > 0 ? xIndices : originalXAxis.map((_, i) => i);
+            const sortedXAxis = finalXIndices.map((i) => originalXAxis[i]);
+
+            const xIndexMap = new Map(
+                finalXIndices.map((oldIdx, newIdx) => [oldIdx, newIdx]),
+            );
+            const sortedValues = data.chart_data.heatmap.values
+                .map(([x, y, v]) => {
+                    const newX = xIndexMap.get(x);
+                    return newX !== undefined ? [newX, y, v] : null;
+                })
+                .filter(Boolean);
+
             heatmapChart.setOption({
                 tooltip: {
                     position: "top",
                     formatter: function (params) {
-                        const xLabel =
-                            data.chart_data.heatmap.xAxis[params.data[0]];
-                        const yLabel =
-                            data.chart_data.heatmap.yAxis[params.data[1]];
+                        const xLabel = sortedXAxis[params.data[0]]; // was sortedYAxis
+                        const yLabel = originalYAxis[params.data[1]]; // was sortedYAxis
                         const value = params.data[2];
-                        return ` ${xLabel}<br>${yLabel}<br>${params.marker} Inflasi: ${value}%`;
+                        return `${xLabel}<br>${yLabel}<br>${params.marker} Inflasi: ${value}%`;
                     },
                 },
-
                 toolbox: {
                     feature: {
                         saveAsImage: { title: "Save as PNG" },
@@ -698,14 +732,14 @@ Alpine.data("webData", () => ({
                 grid: { left: "5%", right: "15%", containLabel: true },
                 xAxis: {
                     type: "category",
-                    data: data.chart_data.heatmap.xAxis,
+                    data: sortedXAxis,
                     splitArea: { show: true },
                 },
                 yAxis: {
                     type: "category",
-                    data: data.chart_data.heatmap.yAxis,
+                    data: originalYAxis,
                     splitArea: { show: true },
-                    inverse: true, //  flip the yAxis order
+                    inverse: true,
                 },
                 visualMap: {
                     type: "piecewise",
@@ -714,33 +748,33 @@ Alpine.data("webData", () => ({
                     left: "center",
                     bottom: 0,
                     pieces: [
-                        { max: -1, label: "< -1", color: "#65B581" }, // Green for < -1
+                        { max: -1, label: "< -1", color: "#65B581" },
                         {
                             min: -1,
                             max: -0.5,
                             label: "-1 - -0.5",
                             color: "#90C76A",
-                        }, // Greenish
+                        },
                         {
                             min: -0.5,
                             max: -0.001,
                             label: "-0.5 - <0",
                             color: "#B8DB51",
-                        }, // Greenish-yellow
-                        { value: 0, label: "0", color: "#ffffbf" }, // White for 0
+                        },
+                        { value: 0, label: "0", color: "#ffffbf" },
                         {
                             min: 0.001,
                             max: 0.5,
                             label: ">0 - 0.5",
                             color: "#fee08b",
-                        }, // Yellowish
+                        },
                         {
                             min: 0.5,
                             max: 1,
                             label: "0.5 - 1",
                             color: "#FFAA4A",
-                        }, // Yellow-red
-                        { min: 1, label: "> 1", color: "#FD665F" }, // Red for > 1
+                        },
+                        { min: 1, label: "> 1", color: "#FD665F" },
                     ],
                     formatter: function (value) {
                         return value != null ? value.toFixed(2) : "N/A";
@@ -757,7 +791,7 @@ Alpine.data("webData", () => ({
                     {
                         name: "Inflasi",
                         type: "heatmap",
-                        data: data.chart_data.heatmap.values,
+                        data: sortedValues,
                         label: { show: true },
                         emphasis: {
                             itemStyle: {
@@ -774,7 +808,6 @@ Alpine.data("webData", () => ({
                 text: "No data available",
                 color: "#FD665F",
             });
-            // console.warn("Heatmap chart data missing");
         }
 
         // Stacked Bar Chart
@@ -787,13 +820,29 @@ Alpine.data("webData", () => ({
                 "Data tidak tersedia": "#DCDDE2",
             };
 
+            const desiredOrder = ["HP", "HPed", "HPB", "HK", "HKDesa"];
+
+            const originalLabels = data.chart_data.stackedBar.labels;
+            // console.log("stackedBar labels from API:", originalLabels);
+
+            const sortedIndices = desiredOrder
+                .map((l) => originalLabels.indexOf(l))
+                .filter((i) => i !== -1);
+
+            // Fallback: if nothing matched, just use original order
+            const finalIndices =
+                sortedIndices.length > 0
+                    ? sortedIndices
+                    : originalLabels.map((_, i) => i);
+            const sortedLabels = finalIndices.map((i) => originalLabels[i]);
+
             const series = data.chart_data.stackedBar.datasets.map((d) => {
                 const label = d.label?.trim();
                 return {
                     name: label,
                     type: "bar",
                     stack: "total",
-                    data: d.data,
+                    data: sortedIndices.map((i) => d.data[i]), // ← reordered
                     itemStyle: {
                         color: colorMap[label] || undefined,
                     },
@@ -818,7 +867,7 @@ Alpine.data("webData", () => ({
                 grid: { left: "10%", right: "10%", bottom: "15%", top: "10%" },
                 xAxis: {
                     type: "category",
-                    data: data.chart_data.stackedBar.labels,
+                    data: sortedLabels,
                 },
                 yAxis: { type: "value", name: "Jumlah Provinsi", max: 38 },
                 series: series,
@@ -839,7 +888,7 @@ Alpine.data("webData", () => ({
             const chart = charts.get(chartId);
             if (chart && data?.chart_data?.provHorizontalBar) {
                 const provData = data.chart_data.provHorizontalBar.find(
-                    (d) => d.kd_level === kdLevel
+                    (d) => d.kd_level === kdLevel,
                 );
                 if (provData) {
                     chart.setOption({
@@ -902,11 +951,11 @@ Alpine.data("webData", () => ({
 
         // Kabkot Horizontal Bar Chart (only for HK, kd_level 01)
         const kabkotHorizontalBarChart = charts.get(
-            "kabkotHorizontalBarChart_01"
+            "kabkotHorizontalBarChart_01",
         );
         if (kabkotHorizontalBarChart && data?.chart_data?.kabkotHorizontalBar) {
             const kabkotData = data.chart_data.kabkotHorizontalBar.find(
-                (d) => d.kd_level === "01"
+                (d) => d.kd_level === "01",
             );
             if (kabkotData) {
                 kabkotHorizontalBarChart.setOption({
@@ -989,7 +1038,7 @@ Alpine.data("webData", () => ({
             }
 
             const provData = data.chart_data.provinsiChoropleth.find(
-                (d) => d.kd_level === kdLevel
+                (d) => d.kd_level === kdLevel,
             );
             if (!provData) {
                 chart.showLoading({
@@ -1003,10 +1052,10 @@ Alpine.data("webData", () => ({
             const provChoroData = this.provinsiGeoJson.features
                 .map((feature) => {
                     const regionCode = String(
-                        feature.properties.provno
+                        feature.properties.provno,
                     ).padStart(2, "0");
                     const index = provData.regions.findIndex(
-                        (code) => String(code).padStart(2, "0") === regionCode
+                        (code) => String(code).padStart(2, "0") === regionCode,
                     );
 
                     if (index === -1) {
@@ -1035,8 +1084,8 @@ Alpine.data("webData", () => ({
                                 (f) =>
                                     String(f.properties.provno).padStart(
                                         2,
-                                        "0"
-                                    ) === provno
+                                        "0",
+                                    ) === provno,
                             )?.properties.provinsi || "Unknown Province";
                         const value =
                             params.value === null || isNaN(params.value)
@@ -1116,7 +1165,7 @@ Alpine.data("webData", () => ({
         const kabkotChoropleth = charts.get("kabkotChoropleth_01");
         if (kabkotChoropleth && this.kabkotGeoJson) {
             const kabkotData = data?.chart_data?.kabkotChoropleth?.find(
-                (d) => d.kd_level === "01"
+                (d) => d.kd_level === "01",
             );
             if (kabkotData) {
                 // Create a mapping of idkab codes to city/regency names using nmkab
@@ -1134,7 +1183,7 @@ Alpine.data("webData", () => ({
                     .map((feature) => {
                         const regionCode = String(feature.properties.idkab);
                         const index = kabkotData.regions.findIndex(
-                            (code) => String(code) === regionCode
+                            (code) => String(code) === regionCode,
                         );
 
                         if (index === -1) {

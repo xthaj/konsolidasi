@@ -46,6 +46,7 @@ class PembahasanDataResource extends JsonResource
             'nilai_inflasi' => in_array($kdLevel, ['03', '05'])
                 ? $formatInflasi($inflasi->nilai_inflasi)
                 : null,
+
             'alasan' => $this->alasan,
             'detail' => $this->detail ?? '-',
             'sumber' => $this->media,
