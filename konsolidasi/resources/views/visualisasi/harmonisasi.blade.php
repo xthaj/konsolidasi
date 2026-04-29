@@ -29,25 +29,6 @@
                 <p x-show="isActivePeriod" class="text-sm text-gray-500">Periode aktif</p>
 
                 <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-900">Level Wilayah</label>
-                    <select name="level_wilayah" x-model="pendingWilayahLevel" @change="updateWilayahOptions" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
-                        <option value="1" :selected="pendingWilayahLevel == 1">Nasional</option>
-                        <option value="2" :selected="pendingWilayahLevel == 2">Provinsi</option>
-                    </select>
-                </div>
-
-                <div x-show="pendingWilayahLevel == 2" class="mt-4">
-                    <label class="block mb-2 text-sm font-medium text-gray-900">Provinsi</label>
-                    <select x-model="selectedProvince" @change="selectedKabkot = ''; updateKdWilayah();" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
-                        <option value="" selected>Pilih Provinsi</option>
-                        <template x-for="province in provinces" :key="province.kd_wilayah">
-                            <option :value="province.kd_wilayah" x-text="province.nama_wilayah" :selected="province.kd_wilayah == selectedProvince"></option>
-                        </template>
-                    </select>
-                </div>
-                <input type="hidden" name="kd_wilayah" x-model="kd_wilayah" required>
-
-                <div>
                     <label class="block mb-2 text-sm font-medium text-gray-900">Komoditas</label>
                     <select name="kd_komoditas" x-model="selectedKomoditas" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
                         <template x-for="komoditi in komoditas" :key="komoditi.kd_komoditas">
@@ -91,44 +72,35 @@
             <div class="bg-white p-4 rounded-lg shadow-md col-span-10">
                 <h3 class="text-lg font-semibold mb-4" x-text="data?.chart_status?.['line']?.title || 'Tren Inflasi dan Andil'"></h3>
                 <div id="lineChart" class="chart-container w-full h-96 mx-auto"></div>
-                <button x-show="wilayahLevel === '1'" id="toggleAndilBtn" x-on:click="toggleAndil" class="block mx-auto mt-4 font-semibold underline">
+                <button id="toggleAndilBtn" x-on:click="toggleAndil" class="block mx-auto mt-4 font-semibold underline">
                     <span x-text="showAndil ? 'Lihat Inflasi' : 'Lihat Andil'"></span>
                 </button>
             </div>
 
             <!-- Summary Boxes -->
-            <template x-if="wilayahLevel === '1'">
-                <template x-for="priceLevel in priceLevels" :key="priceLevel">
-                    <div class="bg-white p-4 rounded-lg shadow-md col-span-10 md:col-span-2 border-l-8"
-                        :style="`border-left-color: ${colors[priceLevel] || '#5470C6'}`">
-                        <h4 class="text-md font-semibold text-gray-800" x-text="priceLevel"></h4>
-                        <p class="text-gray-600">Inflasi: <span class="font-bold text-gray-900" x-text="formatPercentage(summaryData?.[priceLevel]?.inflasi)"></span></p>
-                        <p class="text-gray-600">Andil: <span class="font-bold text-gray-900" x-text="formatPercentage(summaryData?.[priceLevel]?.andil)"></span></p>
-                    </div>
-                </template>
-            </template>
-            <template x-if="wilayahLevel === '2'">
-                <div class="bg-white p-4 rounded-lg shadow-md col-span-10 border-l-8"
-                    :style="`border-left-color: ${colors['Harga Konsumen Kota'] || '#5470C6'}`">
-                    <h4 class="text-md font-semibold text-gray-800">Harga Konsumen Kota</h4>
-                    <p class="text-gray-600">Inflasi: <span class="font-bold text-gray-900" x-text="formatPercentage(summaryData?.['Harga Konsumen Kota']?.inflasi)"></span></p>
+            <template x-for="priceLevel in priceLevels" :key="priceLevel">
+                <div class="bg-white p-4 rounded-lg shadow-md col-span-10 md:col-span-2 border-l-8"
+                    :style="`border-left-color: ${colors[priceLevel] || '#5470C6'}`">
+                    <h4 class="text-md font-semibold text-gray-800" x-text="priceLevel"></h4>
+                    <p class="text-gray-600">Inflasi: <span class="font-bold text-gray-900" x-text="formatPercentage(summaryData?.[priceLevel]?.inflasi)"></span></p>
+                    <p class="text-gray-600">Andil: <span class="font-bold text-gray-900" x-text="formatPercentage(summaryData?.[priceLevel]?.andil)"></span></p>
                 </div>
             </template>
 
             <!-- Horizontal Bar Chart (nasional only) -->
-            <div x-show="wilayahLevel === '1'" class="bg-white p-4 rounded-lg shadow-md col-span-10">
+            <div class="bg-white p-4 rounded-lg shadow-md col-span-10">
                 <h3 class="text-lg font-semibold mb-4" x-text="data?.chart_status?.horizontalBar?.title || 'Perbandingan Inflasi dan Andil Antartingkat Harga'"></h3>
                 <div id="horizontalBarChart" class="chart-container w-full h-96 mx-auto"></div>
             </div>
 
             <!-- Heatmap Chart (nasional only) -->
-            <div x-show="wilayahLevel === '1'" class="bg-white p-4 rounded-lg shadow-md col-span-10">
+            <div class="bg-white p-4 rounded-lg shadow-md col-span-10">
                 <h3 class="text-lg font-semibold mb-4" x-text="data?.chart_status?.heatmap?.title || 'Inflasi per Provinsi Antartingkat Harga'"></h3>
                 <div id="heatmapChart" class="chart-container w-full h-[550px] mx-auto"></div>
             </div>
 
             <!-- Stacked Bar Chart (nasional only) -->
-            <div x-show="wilayahLevel === '1'" class="bg-white p-4 rounded-lg shadow-md col-span-10">
+            <div class="bg-white p-4 rounded-lg shadow-md col-span-10">
                 <h3 class="text-lg font-semibold mb-4" x-text="data?.chart_status?.stackedBar?.title || 'Distribusi Inflasi per Tingkat Harga'"></h3>
                 <div id="stackedBarChart" class="chart-container w-full h-96 mx-auto"></div>
             </div>
@@ -137,7 +109,7 @@
             <div class="col-span-10 flex flex-col gap-4">
 
                 <!-- 05 - Harga Produsen (nasional only) -->
-                <div x-show="wilayahLevel === '1'" x-data="{ open: true }">
+                <div x-data="{ open: true }">
                     <button type="button" @click="open = !open"
                         class="flex items-center justify-between w-full p-4 font-bold text-white rounded-lg gap-3"
                         style="background-color: #FC8452;">
@@ -159,7 +131,7 @@
                 </div>
 
                 <!-- 04 - Harga Produsen Desa (nasional only) -->
-                <div x-show="wilayahLevel === '1'" x-data="{ open: true }">
+                <div x-data="{ open: true }">
                     <button type="button" @click="open = !open"
                         class="flex items-center justify-between w-full p-4 font-bold text-white rounded-lg gap-3"
                         style="background-color: #9A60B4;">
@@ -181,7 +153,7 @@
                 </div>
 
                 <!-- 03 - Harga Perdagangan Besar (nasional only) -->
-                <div x-show="wilayahLevel === '1'" x-data="{ open: true }">
+                <div x-data="{ open: true }">
                     <button type="button" @click="open = !open"
                         class="flex items-center justify-between w-full p-4 font-bold text-white rounded-lg gap-3"
                         style="background-color: #8A9A5B;">
@@ -212,20 +184,20 @@
                     </button>
                     <div x-show="open" x-collapse>
                         <div class="grid grid-cols-1 md:grid-cols-10 gap-4 pt-4">
-                            <div x-show="wilayahLevel === '1'" class="bg-white p-4 rounded-lg shadow-md col-span-10 md:col-span-5">
+                            <div class="bg-white p-4 rounded-lg shadow-md col-span-10 md:col-span-5">
                                 <h3 class="text-lg font-semibold mb-4" x-text="data?.chart_status?.provHorizontalBar?.title || 'Inflasi per Provinsi'"></h3>
                                 <div id="provHorizontalBarChart_01" class="chart-container w-full h-[550px] mx-auto"></div>
                             </div>
-                            <div class="bg-white p-4 rounded-lg shadow-md col-span-10" :class="wilayahLevel === '1' ? 'md:col-span-5' : 'md:col-span-10'">
+                            <div class="bg-white p-4 rounded-lg shadow-md col-span-10 md:col-span-5">
                                 <h3 class="text-lg font-semibold mb-4" x-text="data?.chart_status?.kabkotHorizontalBar?.title || 'Inflasi per Kabupaten/Kota'"></h3>
                                 <div id="kabkotHorizontalBarChart_01" class="chart-container w-full h-[550px] mx-auto"></div>
                             </div>
-                            <div x-show="wilayahLevel === '1'" class="bg-white p-4 rounded-lg shadow-md col-span-10">
+                            <div class="bg-white p-4 rounded-lg shadow-md col-span-10">
                                 <h3 class="text-lg font-semibold mb-4" x-text="data?.chart_status?.provinsiChoropleth?.title || 'Peta Inflasi Provinsi'"></h3>
                                 <div id="provinsiChoropleth_01" class="chart-container w-full h-[400px] mx-auto"></div>
                             </div>
                             <div class="bg-white p-4 rounded-lg shadow-md col-span-10">
-                                <h3 class="text-lg font-semibold mb-4" x-text="data?.chart_status?.[wilayahLevel === '1' ? 'kabkotChoropleth' : 'provinsiKabkotChoropleth']?.title || 'Peta Inflasi Kabupaten/Kota'"></h3>
+                                <h3 class="text-lg font-semibold mb-4" x-text="data?.chart_status?.kabkotChoropleth?.title || 'Peta Inflasi Kabupaten/Kota'"></h3>
                                 <div id="kabkotChoropleth_01" class="chart-container w-full h-[400px] mx-auto"></div>
                             </div>
                         </div>
@@ -233,7 +205,7 @@
                 </div>
 
                 <!-- 02 - Harga Konsumen Desa (nasional only) -->
-                <div x-show="wilayahLevel === '1'" x-data="{ open: true }">
+                <div x-data="{ open: true }">
                     <button type="button" @click="open = !open"
                         class="flex items-center justify-between w-full p-4 font-bold text-white rounded-lg gap-3"
                         style="background-color: #73C0DE;">

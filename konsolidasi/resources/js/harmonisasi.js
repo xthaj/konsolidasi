@@ -43,16 +43,9 @@ Alpine.data("webData", () => ({
         ["November", 11],
         ["Desember", 12],
     ],
-    provinces: [],
-    kabkots: [],
     komoditas: [],
-    selectedProvince: "",
-    selectedKabkot: "",
     selectedKomoditas: "",
-    isPusat: false,
-    kd_wilayah: "",
-    wilayahLevel: "1",
-    pendingWilayahLevel: "1",
+    // isPusat: false,
     provinsiGeoJson: null,
     kabkotGeoJson: null,
     showAndil: false,
@@ -151,63 +144,44 @@ Alpine.data("webData", () => ({
         );
     },
 
-    // Computed property for filtered kabkots
-    get filteredKabkots() {
-        if (!this.selectedProvince) return [];
-        return this.kabkots.filter((k) => k.parent_kd == this.selectedProvince);
-    },
-
     // Initialize the component
     async init() {
         this.loading = true;
         try {
-            const [
-                wilayahResponse,
-                komoditasResponse,
-                bulanTahunResponse,
-                provGeo,
-                kabkotGeo,
-            ] = await Promise.all([
-                this.fetchWrapper(
-                    "/inflasi-segmented-wilayah",
-                    {},
-                    "Data wilayah berhasil dimuat",
-                    false,
-                ),
-                this.fetchWrapper(
-                    "/all-komoditas",
-                    {},
-                    "Data komoditas berhasil dimuat",
-                    false,
-                ),
-                this.fetchWrapper(
-                    "/bulan-tahun",
-                    {},
-                    "Data bulan dan tahun berhasil dimuat",
-                    false,
-                ),
-                this.fetchWrapper(
-                    "/geojson-api/provinsi",
-                    {},
-                    "Provinsi GeoJSON berhasil dimuat",
-                    false,
-                ).catch((err) => {
-                    console.error("Failed to load Provinsi GeoJSON:", err);
-                    return null;
-                }),
-                this.fetchWrapper(
-                    "/geojson-api/kabkot",
-                    {},
-                    "Kabkot GeoJSON berhasil dimuat",
-                    false,
-                ).catch((err) => {
-                    console.error("Failed to load Kabkot GeoJSON:", err);
-                    return null;
-                }),
-            ]);
+            const [komoditasResponse, bulanTahunResponse, provGeo, kabkotGeo] =
+                await Promise.all([
+                    this.fetchWrapper(
+                        "/all-komoditas",
+                        {},
+                        "Data komoditas berhasil dimuat",
+                        false,
+                    ),
+                    this.fetchWrapper(
+                        "/bulan-tahun",
+                        {},
+                        "Data bulan dan tahun berhasil dimuat",
+                        false,
+                    ),
+                    this.fetchWrapper(
+                        "/geojson-api/provinsi",
+                        {},
+                        "Provinsi GeoJSON berhasil dimuat",
+                        false,
+                    ).catch((err) => {
+                        console.error("Failed to load Provinsi GeoJSON:", err);
+                        return null;
+                    }),
+                    this.fetchWrapper(
+                        "/geojson-api/kabkot",
+                        {},
+                        "Kabkot GeoJSON berhasil dimuat",
+                        false,
+                    ).catch((err) => {
+                        console.error("Failed to load Kabkot GeoJSON:", err);
+                        return null;
+                    }),
+                ]);
 
-            this.provinces = wilayahResponse.data?.provinces || [];
-            this.kabkots = wilayahResponse.data?.kabkots || [];
             this.komoditas = komoditasResponse.data || [];
             const aktifData = bulanTahunResponse.data?.bt_aktif;
             this.bulan = aktifData?.bulan || "";
@@ -218,10 +192,6 @@ Alpine.data("webData", () => ({
                 bulanTahunResponse.data?.tahun ||
                 (aktifData ? [aktifData.tahun] : []);
             this.selectedKomoditas = "000";
-            this.isPusat = true;
-            this.kd_wilayah = "0";
-            this.wilayahLevel = "1";
-            this.pendingWilayahLevel = "1";
             this.provinsiGeoJson = provGeo;
             this.kabkotGeoJson = kabkotGeo;
 
@@ -407,58 +377,14 @@ Alpine.data("webData", () => ({
     // Check form validity
     checkFormValidity() {
         // Check if required fields are filled
-        if (!this.bulan || !this.tahun || !this.pendingWilayahLevel) {
-            this.modalMessage = "Harap isi bulan, tahun, dan level wilayah.";
+        if (!this.bulan || !this.tahun) {
+            this.modalMessage = "Harap isi bulan dan tahun.";
             this.$dispatch("open-modal", "error-modal");
             return false;
         }
 
-        // If level is Provinsi (2), ensure kd_wilayah is not "0" and a province is selected
-        if (this.pendingWilayahLevel === "2") {
-            if (!this.selectedProvince || this.kd_wilayah === "0") {
-                this.modalMessage = "Harap pilih provinsi yang valid.";
-                this.$dispatch("open-modal", "error-modal");
-                return false;
-            }
-        }
-
-        // If level is Nasional (1), kd_wilayah should be "0"
-        if (this.pendingWilayahLevel === "1") {
-            this.kd_wilayah = "0";
-            return true;
-        }
-
         // If all validations pass
         return true;
-    },
-
-    // Handle komoditas selection
-    selectKomoditas(event) {
-        this.selectedKomoditas = event.target.value;
-        this.fetchData();
-    },
-
-    // Update selected province and kd_wilayah
-    selectProvince(province) {
-        this.selectedProvince = province;
-        this.updateKdWilayah();
-        this.fetchData();
-    },
-
-    // Reset province selection when wilayah level changes
-    updateWilayahOptions() {
-        this.selectedProvince = "";
-        this.selectedKabkot = "";
-        this.updateKdWilayah();
-    },
-
-    // Update kd_wilayah based on wilayah level
-    updateKdWilayah() {
-        this.kd_wilayah =
-            this.pendingWilayahLevel === "1"
-                ? "0"
-                : this.selectedProvince || "";
-        // console.log("kd_wilayah:", this.kd_wilayah);
     },
 
     // Fetch data from API
@@ -476,8 +402,8 @@ Alpine.data("webData", () => ({
             const params = new URLSearchParams({
                 bulan: this.bulan,
                 tahun: this.tahun,
-                level_wilayah: this.pendingWilayahLevel,
-                kd_wilayah: this.kd_wilayah,
+                level_wilayah: "1",
+                kd_wilayah: "0",
                 kd_komoditas: this.selectedKomoditas,
             });
 
@@ -491,7 +417,7 @@ Alpine.data("webData", () => ({
             if (result.data?.errors?.length > 0 || result.errors?.length > 0) {
                 this.errors = result.errors || result.data?.errors || [];
             }
-            this.wilayahLevel = this.pendingWilayahLevel;
+
             this.data = result.data;
 
             await new Promise((resolve) => setTimeout(resolve, 100));
@@ -530,7 +456,6 @@ Alpine.data("webData", () => ({
     // Update all charts with new data
     updateCharts(data) {
         this.data = data;
-        const isNational = this.kd_wilayah === "0";
         const chartKey = "line";
 
         const levelColorMap = {
@@ -551,17 +476,6 @@ Alpine.data("webData", () => ({
                     s.andil.some((v) => v != null),
             );
 
-            // If at province level and showAndil is true but no andil data, reset to Inflasi
-            if (this.wilayahLevel === "2" && this.showAndil && !hasAndilData) {
-                this.showAndil = false;
-                const toggleAndilBtn =
-                    document.getElementById("toggleAndilBtn");
-                if (toggleAndilBtn) {
-                    toggleAndilBtn.textContent = "Lihat Andil";
-                }
-            }
-
-            // Line Chart
             const desiredOrder = [
                 "Harga Produsen",
                 "Harga Produsen Desa",
@@ -570,56 +484,144 @@ Alpine.data("webData", () => ({
                 "Harga Konsumen Desa",
             ];
 
+            const rawXAxis = data.chart_data[chartKey].xAxis;
+            const useAndil = this.showAndil && hasAndilData;
+
+            const buildSeriesValues = (values) => {
+                const parsed = values.map((v) =>
+                    v != null ? parseFloat(v) : null,
+                );
+                const cumulative = [];
+                let sum = 0;
+                for (let i = 0; i < parsed.length; i++) {
+                    if (parsed[i] == null) {
+                        cumulative.push(null);
+                    } else {
+                        sum = parseFloat((sum + parsed[i]).toFixed(4));
+                        cumulative.push(sum);
+                    }
+                }
+                // delta = change between consecutive raw values
+                const deltas = parsed.map((v, i) => {
+                    if (i === 0 || v == null || parsed[i - 1] == null)
+                        return null;
+                    return parseFloat((v - parsed[i - 1]).toFixed(4));
+                });
+                return { cumulative, raw: parsed, deltas };
+            };
+
             const seriesData = [...data.chart_data[chartKey].series]
                 .sort(
                     (a, b) =>
                         desiredOrder.indexOf(a.name) -
                         desiredOrder.indexOf(b.name),
                 )
-                .map((s) => ({
-                    name: `${s.name} (${this.showAndil && hasAndilData ? "Andil" : "Inflasi"})`,
-                    type: "line",
-                    data: this.showAndil && hasAndilData ? s.andil : s.inflasi,
-                    itemStyle: {
-                        color: this.colors[s.name] || this.colorPalette.HK,
-                    },
-                }));
+                .map((s) => {
+                    const rawValues = useAndil ? s.andil : s.inflasi;
+                    const { cumulative, raw, deltas } =
+                        buildSeriesValues(rawValues);
+                    return {
+                        name: `${s.name} (${useAndil ? "Andil" : "Inflasi"})`,
+                        type: "line",
+                        data: cumulative.map((val, i) => ({
+                            value: val,
+                            raw: raw[i],
+                            delta: deltas[i],
+                        })),
+                        itemStyle: {
+                            color: this.colors[s.name] || this.colorPalette.HK,
+                        },
+                        markLine: {
+                            silent: true,
+                            symbol: "none",
+                            lineStyle: {
+                                type: "dashed",
+                                color: "#ccc",
+                                width: 1,
+                            },
+                            data: [{ yAxis: 0 }],
+                        },
+                    };
+                });
 
-            lineChart.setOption({
-                tooltip: { trigger: "axis" },
-                legend: { bottom: 0, data: seriesData.map((s) => s.name) },
-                grid: {
-                    left: "3%",
-                    right: "4%",
-                    bottom: "20%",
-                    containLabel: true,
-                },
-                toolbox: {
-                    feature: {
-                        saveAsImage: { title: "Save as PNG" },
-                        restore: {},
+            lineChart.setOption(
+                {
+                    tooltip: {
+                        trigger: "axis",
+                        confine: true,
+                        axisPointer: { type: "cross" },
+                        formatter: (params) => {
+                            const idx = params[0]?.dataIndex ?? 0;
+                            const month = rawXAxis[idx];
+                            const isFirst = idx === 0;
+
+                            const rows = params
+                                .filter((p) => p.data?.raw != null)
+                                .map((p) => {
+                                    const raw = Number(p.data.raw).toFixed(2);
+                                    const cum = Number(p.data.value).toFixed(2);
+                                    const delta = p.data.delta;
+
+                                    let deltaStr = "";
+                                    if (!isFirst && delta != null) {
+                                        const sign = delta >= 0 ? "+" : "";
+                                        const color =
+                                            delta >= 0 ? "#EE6666" : "#65B581";
+                                        const arrow = delta >= 0 ? "▲" : "▼";
+                                        deltaStr = ` <span style="color:${color};font-weight:600">${arrow} ${sign}${Number(delta).toFixed(2)}</span>`;
+                                    }
+
+                                    return `${p.marker} ${p.seriesName}<br/>
+                                    &nbsp;&nbsp;&nbsp;
+                                    <b>${raw}%</b>${deltaStr}
+                                    <span style="color:#aaa;font-size:11px">&nbsp;(kum: ${cum}%)</span>`;
+                                })
+                                .join("<br/>");
+
+                            const subhead = isFirst
+                                ? `<span style="color:#aaa;font-size:11px">bulan dasar</span>`
+                                : `<span style="color:#aaa;font-size:11px">raw &nbsp;▲▼ delta raw &nbsp;(kumulatif)</span>`;
+
+                            return `<b>${month}</b> &nbsp;${subhead}<br/><br/>${rows}`;
+                        },
                     },
+                    legend: {
+                        bottom: 0,
+                        data: seriesData.map((s) => s.name),
+                    },
+                    grid: {
+                        left: "3%",
+                        right: "4%",
+                        bottom: "20%",
+                        containLabel: true,
+                    },
+                    toolbox: {
+                        feature: {
+                            saveAsImage: { title: "Save as PNG" },
+                            restore: {},
+                        },
+                    },
+                    xAxis: {
+                        type: "category",
+                        data: rawXAxis,
+                    },
+                    yAxis: {
+                        type: "value",
+                        name: useAndil
+                            ? "Kumulatif Andil (%)"
+                            : "Kumulatif Inflasi (%)",
+                    },
+                    series: seriesData,
                 },
-                xAxis: {
-                    type: "category",
-                    data: data.chart_data[chartKey].xAxis,
-                },
-                yAxis: {
-                    type: "value",
-                    name:
-                        this.showAndil && hasAndilData
-                            ? "Andil (%)"
-                            : "Inflasi (%)",
-                },
-                series: seriesData,
-            });
+                true,
+            );
+
             lineChart.hideLoading();
         } else if (lineChart) {
             lineChart.showLoading({
                 text: "No data available",
                 color: "#FD665F",
             });
-            // console.warn(`Line chart data missing: ${chartKey}`);
         }
 
         // Horizontal Bar Chart
@@ -691,7 +693,7 @@ Alpine.data("webData", () => ({
 
         // Heatmap Chart
         const heatmapChart = charts.get("heatmapChart");
-        if (isNational && heatmapChart && data?.chart_data?.heatmap) {
+        if (heatmapChart && data?.chart_data?.heatmap) {
             const heatmapXOrder = ["HP", "HPed", "HPB", "HK", "HKDesa"];
             const originalXAxis = data.chart_data.heatmap.xAxis;
             const originalYAxis = data.chart_data.heatmap.yAxis;
@@ -812,7 +814,7 @@ Alpine.data("webData", () => ({
 
         // Stacked Bar Chart
         const stackedBarChart = charts.get("stackedBarChart");
-        if (isNational && stackedBarChart && data?.chart_data?.stackedBar) {
+        if (stackedBarChart && data?.chart_data?.stackedBar) {
             const colorMap = {
                 "Menurun (<0)": "#91CC75",
                 "Stabil (=0)": "#FFCE34",
@@ -823,7 +825,6 @@ Alpine.data("webData", () => ({
             const desiredOrder = ["HP", "HPed", "HPB", "HK", "HKDesa"];
 
             const originalLabels = data.chart_data.stackedBar.labels;
-            // console.log("stackedBar labels from API:", originalLabels);
 
             const sortedIndices = desiredOrder
                 .map((l) => originalLabels.indexOf(l))
