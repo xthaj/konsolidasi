@@ -215,6 +215,7 @@ class KomoditasController extends Controller
     private function clearKomoditasCache(): void
     {
         Cache::forget('komoditas_data');
+        Cache::forget('komoditas_data_tanpa_umum');
         Log::info('Cache cleared for komoditas_data', ['timestamp' => now()]);
     }
 
@@ -246,6 +247,23 @@ class KomoditasController extends Controller
                 'message' => 'Gagal mengambil data komoditas: ' . $e->getMessage(),
                 'data' => []
             ], 500);
+        }
+    }
+
+    public function getAllKomoditasTanpaUmum(): JsonResponse
+    {
+        try {
+            $data = Cache::rememberForever('komoditas_data_tanpa_umum', function () {
+                return Komoditas::where('kd_komoditas', '!=', 0)
+                    ->orderBy('kd_komoditas', 'asc')
+                    ->get();
+            });
+            return response()->json([
+                'message' => 'Data komoditas berhasil diambil.',
+                'data' => KomoditasResource::collection($data)
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Gagal mengambil data komoditas.', 'data' => []], 500);
         }
     }
 }

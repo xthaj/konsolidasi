@@ -60,6 +60,7 @@ Route::middleware(['auth'])->group(function () {
     // resources
     Route::get('/all-alasan', [AlasanController::class, 'getAllAlasan']);
     Route::get('/all-komoditas', [KomoditasController::class, 'getAllKomoditas']);
+    Route::get('//all-komoditas-excl', [KomoditasController::class, 'getAllKomoditasTanpaUmum']);
     Route::get('/all-wilayah', [WilayahController::class, 'getAllWilayah']);
 
     Route::get('/rekonsiliasi/user-provinsi', [UserController::class, 'getUserWilayah'])->name('rekon.get_provinsi');
@@ -113,10 +114,6 @@ Route::middleware(['pusat'])->group(function () {
 
     Route::get('/data/finalisasi', [InflasiController::class, 'finalisasi'])->name('data.finalisasi');
 
-    //visualisasi
-    Route::get('/visualisasi', [VisualisasiController::class, 'create'])->name('visualisasi.create');
-    Route::get('/api/visualisasi', [VisualisasiController::class, 'fetchVisualisasiData']);
-
     // master Section
     // komoditas section
     Route::get('/master/komoditas', [KomoditasController::class, 'index'])->name('master.komoditas');
@@ -147,6 +144,10 @@ Route::middleware('provinsi_or_kabkot')->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
+    //visualisasi
+    Route::get('/visualisasi', [VisualisasiController::class, 'create'])->name('visualisasi.create');
+    Route::get('/api/visualisasi', [VisualisasiController::class, 'fetchVisualisasiData']);
+
     // Rekonsiliasi
     Route::get('/rekonsiliasi/pemilihan', [RekonsiliasiController::class, 'pemilihan'])->name('rekon.pemilihan');
     Route::get('/rekonsiliasi/pembahasan', [RekonsiliasiController::class, 'pembahasan'])->name('rekon.pembahasan');

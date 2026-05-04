@@ -7,6 +7,7 @@ use App\Models\Inflasi;
 use App\Models\Wilayah;
 use App\Models\Komoditas;
 use App\Models\LevelHarga;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
@@ -23,7 +24,9 @@ class VisualisasiController extends Controller
      */
     public function create(): View
     {
-        return view('visualisasi.harmonisasi');
+        return view('visualisasi.harmonisasi', [
+            'isPusat' => auth()->user()->isPusat()
+        ]);
     }
 
     /**
@@ -57,7 +60,7 @@ class VisualisasiController extends Controller
             $defaults = [
                 'bulan' => $activeBulanTahun->bulan,
                 'tahun' => $activeBulanTahun->tahun,
-                'kd_komoditas' => '0'
+                'kd_komoditas' => auth()->user()->isPusat() ? 0 : 1
             ];
 
             $input = array_merge($defaults, $request->only(array_keys($defaults)));
@@ -95,7 +98,14 @@ class VisualisasiController extends Controller
             $bulan = sprintf('%02d', $bulanTahunRecord->bulan);
             $tahun = $bulanTahunRecord->tahun;
             $kd_wilayah = 0;
-            $kd_komoditas = $validated['kd_komoditas'] ?? '001';
+            // $kd_komoditas = $validated['kd_komoditas'] ?? $defaults['kd_komoditas'];
+            $kd_komoditas = $validated['kd_komoditas'] ?? $defaults['kd_komoditas'];
+            if ($kd_komoditas == 0 && !auth()->user()->isPusat()) {
+                return response()->json([
+                    'message' => 'Anda tidak memiliki akses untuk melihat data komoditas umum.',
+                    'data' => null
+                ], 403);
+            }
 
             $response = [
                 'title' => 'Inflasi',

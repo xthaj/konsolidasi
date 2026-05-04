@@ -130,6 +130,22 @@ Alpine.data("webData", () => ({
         return this.data?.chart_data?.summary || {};
     },
 
+    get currentKomoditasIndex() {
+        return this.komoditas.findIndex(
+            (k) => k.kd_komoditas == this.selectedKomoditas,
+        );
+    },
+    get prevKomoditasName() {
+        const i = this.currentKomoditasIndex;
+        return i > 0 ? this.komoditas[i - 1].nama_komoditas : null;
+    },
+    get nextKomoditasName() {
+        const i = this.currentKomoditasIndex;
+        return i >= 0 && i < this.komoditas.length - 1
+            ? this.komoditas[i + 1].nama_komoditas
+            : null;
+    },
+
     // Helper function to format percentages
     formatPercentage(value) {
         // Convert value to a number if it's a string, or return "N/A" if null/undefined
@@ -148,10 +164,17 @@ Alpine.data("webData", () => ({
     async init() {
         this.loading = true;
         try {
+            const isPusat =
+                document.querySelector('meta[name="is-pusat"]')?.content ===
+                "1";
+            const komoditasUrl = isPusat
+                ? "/all-komoditas"
+                : "/all-komoditas-excl";
+
             const [komoditasResponse, bulanTahunResponse, provGeo, kabkotGeo] =
                 await Promise.all([
                     this.fetchWrapper(
-                        "/all-komoditas",
+                        komoditasUrl,
                         {},
                         "Data komoditas berhasil dimuat",
                         false,
@@ -183,6 +206,7 @@ Alpine.data("webData", () => ({
                 ]);
 
             this.komoditas = komoditasResponse.data || [];
+            this.selectedKomoditas = this.komoditas[0]?.kd_komoditas || "";
             const aktifData = bulanTahunResponse.data?.bt_aktif;
             this.bulan = aktifData?.bulan || "";
             this.tahun = aktifData?.tahun || "";
@@ -191,7 +215,6 @@ Alpine.data("webData", () => ({
             this.tahunOptions =
                 bulanTahunResponse.data?.tahun ||
                 (aktifData ? [aktifData.tahun] : []);
-            this.selectedKomoditas = "000";
             this.provinsiGeoJson = provGeo;
             this.kabkotGeoJson = kabkotGeo;
 
@@ -453,6 +476,14 @@ Alpine.data("webData", () => ({
         this.errors = [];
     },
 
+    stepKomoditas(direction) {
+        const i = this.currentKomoditasIndex;
+        const next = i + direction;
+        if (next >= 0 && next < this.komoditas.length) {
+            this.selectedKomoditas = this.komoditas[next].kd_komoditas;
+        }
+    },
+
     // Update all charts with new data
     updateCharts(data) {
         this.data = data;
@@ -553,36 +584,22 @@ Alpine.data("webData", () => ({
                         formatter: (params) => {
                             const idx = params[0]?.dataIndex ?? 0;
                             const month = rawXAxis[idx];
-                            const isFirst = idx === 0;
 
                             const rows = params
-                                .filter((p) => p.data?.raw != null)
                                 .map((p) => {
-                                    const raw = Number(p.data.raw).toFixed(2);
-                                    const cum = Number(p.data.value).toFixed(2);
-                                    const delta = p.data.delta;
-
-                                    let deltaStr = "";
-                                    if (!isFirst && delta != null) {
-                                        const sign = delta >= 0 ? "+" : "";
-                                        const color =
-                                            delta >= 0 ? "#EE6666" : "#65B581";
-                                        const arrow = delta >= 0 ? "▲" : "▼";
-                                        deltaStr = ` <span style="color:${color};font-weight:600">${arrow} ${sign}${Number(delta).toFixed(2)}</span>`;
-                                    }
-
-                                    return `${p.marker} ${p.seriesName}<br/>
-                                    &nbsp;&nbsp;&nbsp;
-                                    <b>${raw}%</b>${deltaStr}
-                                    <span style="color:#aaa;font-size:11px">&nbsp;(kum: ${cum}%)</span>`;
+                                    const raw = p.data?.raw;
+                                    const value =
+                                        raw != null
+                                            ? `<b>${Number(raw).toFixed(2)}</b>`
+                                            : `-`;
+                                    return `<tr>
+            <td>${p.marker} ${p.seriesName}</td>
+            <td style="padding-left:12px;text-align:right;">${value}</td>
+        </tr>`;
                                 })
-                                .join("<br/>");
+                                .join("");
 
-                            const subhead = isFirst
-                                ? `<span style="color:#aaa;font-size:11px">bulan dasar</span>`
-                                : `<span style="color:#aaa;font-size:11px">raw &nbsp;▲▼ delta raw &nbsp;(kumulatif)</span>`;
-
-                            return `<b>${month}</b> &nbsp;${subhead}<br/><br/>${rows}`;
+                            return `<b>${month}</b><table>${rows}</table>`;
                         },
                     },
                     legend: {
@@ -608,8 +625,9 @@ Alpine.data("webData", () => ({
                     yAxis: {
                         type: "value",
                         name: useAndil
-                            ? "Kumulatif Andil (%)"
-                            : "Kumulatif Inflasi (%)",
+                            ? "Kumulatif\nAndil (%)"
+                            : "Kumulatif\nInflasi (%)",
+                        // nameGap: 10,
                     },
                     series: seriesData,
                 },

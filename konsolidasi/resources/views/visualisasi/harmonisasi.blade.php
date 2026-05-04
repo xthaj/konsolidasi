@@ -3,6 +3,8 @@
     @vite(['resources/css/app.css', 'resources/js/harmonisasi.js'])
     @endsection
 
+    <meta name="is-pusat" content="{{ $isPusat ? '1' : '0' }}">
+
     <script src="https://cdn.jsdelivr.net/npm/echarts@latest/dist/echarts.min.js"></script>
 
     <x-slot name="sidebar">
@@ -35,6 +37,22 @@
                             <option :value="komoditi.kd_komoditas" x-text="komoditi.nama_komoditas" :selected="komoditi.kd_komoditas == selectedKomoditas"></option>
                         </template>
                     </select>
+                    <div class="flex items-center justify-between mt-2 gap-2">
+                        <button type="button" @click="stepKomoditas(-1)"
+                            :disabled="currentKomoditasIndex <= 0"
+                            :title="prevKomoditasName"
+                            class="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-xs rounded-lg border border-gray-300 bg-gray-50 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition">
+                            <span class="material-symbols-rounded text-base">chevron_left</span>
+                            <span class="truncate max-w-[80px]" x-text="prevKomoditasName || '-'"></span>
+                        </button>
+                        <button type="button" @click="stepKomoditas(1)"
+                            :disabled="currentKomoditasIndex >= komoditas.length - 1"
+                            :title="nextKomoditasName"
+                            class="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-xs rounded-lg border border-gray-300 bg-gray-50 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition">
+                            <span class="truncate max-w-[80px]" x-text="nextKomoditasName || '-'"></span>
+                            <span class="material-symbols-rounded text-base">chevron_right</span>
+                        </button>
+                    </div>
                 </div>
 
                 <x-primary-button type="submit" class="w-full">Filter</x-primary-button>
