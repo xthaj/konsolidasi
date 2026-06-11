@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Exports\InflasiExport;
 use App\Http\Resources\InflasiAllLevelResource;
 use App\Http\Resources\InflasiResource;
 use App\Models\Komoditas;
@@ -14,6 +13,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use App\Exports\InflasiExport;
+use App\Exports\InflasiMultiSheetExport;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exceptions\EarlyHaltException;
 use App\Exports\RekonsiliasiMultiLevelExport;
@@ -413,7 +414,7 @@ class InflasiController extends Controller
         $validated = $request->validate([
             'bulan' => 'required|integer|between:1,12',
             'tahun' => 'required|integer|min:2000|max:2100',
-            'level' => 'required|string|in:01,02,03,04,05',
+            'level' => 'required|string|in:all,01,02,03,04,05',
         ]);
 
         $response = [
@@ -431,7 +432,23 @@ class InflasiController extends Controller
                 $response['message'] = ["Tidak ada data tersedia untuk periode tersebut."];
                 return $request->wantsJson()
                     ? response()->json($response)
-                    : redirect()->back()->with('response', $response);
+                    : redirect()->back()->withErrors($response['message']);
+            }
+
+            $namaBulan = BulanTahun::getBulanName($validated['bulan']);
+
+            if ($validated['level'] === 'all') {
+                $count = Inflasi::where('bulan_tahun_id', $bulanTahun->bulan_tahun_id)->count();
+                if ($count === 0) {
+                    $response['message'] = ["Tidak ada data yang sesuai untuk diunduh."];
+                    return $request->wantsJson()
+                        ? response()->json($response)
+                        : redirect()->back()->withErrors($response['message']);
+                }
+
+                $levels = ['01', '02', '03', '04', '05'];
+                $fileName = "Konsolidasi_{$namaBulan}_{$validated['tahun']}.xlsx";
+                return Excel::download(new InflasiMultiSheetExport($validated['bulan'], $validated['tahun'], $levels), $fileName);
             }
 
             $count = Inflasi::where('bulan_tahun_id', $bulanTahun->bulan_tahun_id)
@@ -442,10 +459,9 @@ class InflasiController extends Controller
                 $response['message'] = ["Tidak ada data yang sesuai untuk diunduh."];
                 return $request->wantsJson()
                     ? response()->json($response)
-                    : redirect()->back()->with('response', $response);
+                    : redirect()->back()->withErrors($response['message']);
             }
 
-            $namaBulan = BulanTahun::getBulanName($validated['bulan']);
             $namaLevel = LevelHarga::getLevelHargaNameShortened($validated['level']);
             $fileName = "Konsolidasi_{$namaBulan}_{$validated['tahun']}_{$namaLevel}.xlsx";
             return Excel::download(new InflasiExport($validated['bulan'], $validated['tahun'], $validated['level']), $fileName);
@@ -454,13 +470,17 @@ class InflasiController extends Controller
             Log::error("Export final error: {$e->getMessage()}", ['trace' => $e->getTraceAsString()]);
             return $request->wantsJson()
                 ? response()->json($response)
-                : redirect()->back()->with('response', $response);
+                : redirect()->back()->withErrors($response['message']);
         }
     }
 
     public function export_rekonsiliasi(Request $request)
     {
-        Log::info('Export rekonsiliasi method started', $request->all());
+        Log::info('Export rekonsiliasi', [
+            'bulan' => $request->input('bulan'),
+            'tahun' => $request->input('tahun'),
+            'user_id' => auth()->id(),
+        ]);
 
         $request->merge(['bulan' => (int) $request->bulan]);
 
@@ -484,7 +504,7 @@ class InflasiController extends Controller
                 $response['message'] = ["Tidak ada data tersedia untuk periode tersebut."];
                 return $request->wantsJson()
                     ? response()->json($response)
-                    : redirect()->back()->with('response', $response);
+                    : redirect()->back()->withErrors($response['message']);
             }
 
             $namaBulan = BulanTahun::getBulanName($validated['bulan']);
@@ -500,7 +520,7 @@ class InflasiController extends Controller
             Log::error("Export rekonsiliasi error: {$e->getMessage()}", ['trace' => $e->getTraceAsString()]);
             return $request->wantsJson()
                 ? response()->json($response)
-                : redirect()->back()->with('response', $response);
+                : redirect()->back()->withErrors($response['message']);
         }
     }
 
