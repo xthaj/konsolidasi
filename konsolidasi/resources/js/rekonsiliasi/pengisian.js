@@ -8,6 +8,8 @@ Alpine.data("webData", () => ({
 
     modalMessage: "",
     data: { rekonsiliasi: null, title: null },
+    selectedIds: [],
+    selectAllChecked: false,
 
     bulan: "",
     tahun: "",
@@ -302,16 +304,6 @@ Alpine.data("webData", () => ({
         this.$dispatch("open-modal", "edit-rekonsiliasi");
     },
 
-    openDeleteModal(rekonsiliasi_id, nama_komoditas, nama_wilayah, kd_level) {
-        this.modalData = {
-            rekonsiliasi_id,
-            nama_komoditas,
-            nama_wilayah,
-            kd_level,
-        };
-        this.$dispatch("open-modal", "delete-rekonsiliasi");
-    },
-
     async submitEditRekon() {
         if (this.selectedAlasan.length === 0) {
             this.modalMessage = "Pilih minimal satu alasan.";
@@ -373,21 +365,59 @@ Alpine.data("webData", () => ({
         }
     },
 
-    async confirmDelete(id) {
+    toggleSelect(id) {
+        if (this.selectedIds.includes(id)) {
+            this.selectedIds = this.selectedIds.filter(i => i !== id);
+        } else {
+            this.selectedIds.push(id);
+        }
+        this.selectAllChecked = this.data.rekonsiliasi?.length > 0 &&
+            this.selectedIds.length === this.data.rekonsiliasi.length;
+    },
+
+    toggleSelectAll() {
+        if (this.selectAllChecked) {
+            this.selectedIds = [];
+            this.selectAllChecked = false;
+        } else {
+            this.selectedIds = this.data.rekonsiliasi.map(item => item.rekonsiliasi_id);
+            this.selectAllChecked = true;
+        }
+    },
+
+    openBulkDeleteModal() {
+        if (this.selectedIds.length === 0) {
+            this.modalMessage = "Tidak ada item yang dipilih. Centang item yang ingin dihapus terlebih dahulu.";
+            this.$dispatch("open-modal", "error-modal");
+            return;
+        }
+        this.modalData = {
+            rekonsiliasi_id: null,
+            nama_komoditas: this.selectedIds.length + ' item terpilih',
+            nama_wilayah: '',
+            kd_level: '',
+        };
+        this.$dispatch("open-modal", "delete-rekonsiliasi");
+    },
+
+    async bulkDelete() {
         try {
             const result = await this.fetchWrapper(
-                `/rekonsiliasi/${id}`,
+                `/rekonsiliasi/bulk-delete`,
                 {
-                    method: "DELETE",
+                    method: "POST",
+                    body: JSON.stringify({ ids: this.selectedIds }),
                 },
                 "Komoditas rekonsiliasi berhasil dihapus",
-                true // Show success modal
+                true
             );
 
+            this.selectedIds = [];
+            this.selectAllChecked = false;
             this.$dispatch("close-modal", "delete-rekonsiliasi");
             this.fetchData();
         } catch (error) {
-            console.error("Delete error:", error);
+            console.error("Bulk delete error:", error);
         }
     },
 

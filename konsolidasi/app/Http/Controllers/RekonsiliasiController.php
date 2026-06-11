@@ -50,7 +50,10 @@ class RekonsiliasiController extends Controller
     // konfirmasi komoditas rekon
     public function confirmRekonsiliasi(Request $request)
     {
-        Log::info('Confirm rekonsiliasi started', ['request' => $request->all()]);
+        Log::info('Confirm rekonsiliasi started', [
+            'inflasi_count' => count($request->input('inflasi_ids', [])),
+            'user_id' => auth()->id(),
+        ]);
 
         try {
             // Validate input
@@ -108,7 +111,7 @@ class RekonsiliasiController extends Controller
                     continue;
                 }
 
-                // Log each insert attempt
+                // old log --> i commented bcs it was one line per rekon, which is crazy
                 // Log::debug('Attempting to insert Rekonsiliasi', [
                 //     'inflasi_id' => $inflasi_id,
                 //     'bulan_tahun_id' => $bulan_tahun_id
@@ -123,6 +126,12 @@ class RekonsiliasiController extends Controller
             }
 
             DB::commit();
+
+            Log::info('Confirm rekonsiliasi completed', [
+                'created_count' => $createdCount,
+                'duplicate_count' => count($duplicates),
+                'user_id' => auth()->id(),
+            ]);
 
             // Prepare response
             if (!empty($duplicates)) {
@@ -279,7 +288,6 @@ class RekonsiliasiController extends Controller
      */
     public function apipengisian(FetchRekonsiliasiDataRequest  $request)
     {
-        Log::info('RekonsiliasiController@apipengisian called', ['request' => $request->all()]);
         return $this->fetchRekonsiliasiData($request, true); // JsonResponse mode
     }
 
@@ -401,7 +409,7 @@ class RekonsiliasiController extends Controller
                 ])->where('bulan_tahun_id', $activeBulanTahun->bulan_tahun_id)->get();
             });
 
-            Log::info('Cache access', ['key' => $cacheKey, 'hit' => Cache::has($cacheKey)]);
+            Log::debug('Cache access', ['key' => $cacheKey, 'hit' => Cache::has($cacheKey)]);
 
             $filteredRekonsiliasi = $rekonsiliasi->filter(function ($item) use ($input, $user) {
                 $inflasi = $item->inflasi;
@@ -803,7 +811,6 @@ class RekonsiliasiController extends Controller
 
     public function apiPemilihan(FetchRekonsiliasiDataRequest  $request)
     {
-        Log::info('RekonsiliasiController@apiPemilihan called', ['request' => $request->all()]);
         $response = $this->fetchRekonsiliasiData($request, true);
         return response()->json([
             'message' => $response['message'],
@@ -866,12 +873,19 @@ class RekonsiliasiController extends Controller
     {
         try {
             $rekonsiliasi = Rekonsiliasi::findOrFail($id);
+            $user = Auth::user();
             $rekonsiliasi->delete();
 
             // Reload cache
             if (!$this->reloadRekonsiliasiCache()) {
                 Log::warning('Cache reload failed during destroy', ['rekonsiliasi_id' => $id]);
             }
+
+            Log::info('Rekonsiliasi deleted', [
+                'rekonsiliasi_id' => $id,
+                'deleted_by' => $user?->user_id,
+                'deleted_by_name' => $user?->nama_lengkap,
+            ]);
 
             return response()->json([
                 'message' => 'Komoditas rekonsiliasi berhasil dihapus.',
@@ -885,6 +899,66 @@ class RekonsiliasiController extends Controller
             ], 404);
         } catch (\Exception $e) {
             Log::error('Error in destroy', ['message' => $e->getMessage()]);
+            return response()->json([
+                'message' => 'Gagal menghapus data: ' . $e->getMessage(),
+                'data' => null
+            ], 500);
+        }
+    }
+
+    public function bulkDestroy(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'ids' => 'required|array|min:1',
+                'ids.*' => 'required|integer|exists:rekonsiliasi,rekonsiliasi_id',
+            ]);
+
+            $user = Auth::user();
+            $ids = $validated['ids'];
+
+            // Fetch context before deleting
+            $records = Rekonsiliasi::whereIn('rekonsiliasi_id', $ids)
+                ->with('inflasi.bulanTahun', 'inflasi.wilayah', 'inflasi.komoditas', 'inflasi.levelHarga')
+                ->get();
+
+            $count = $records->count();
+
+            // Group summary by period + level + wilayah
+            $summary = $records->groupBy(fn($r) => sprintf(
+                '%s/%s - %s - %s',
+                $r->inflasi?->bulanTahun?->bulan ?? '?',
+                $r->inflasi?->bulanTahun?->tahun ?? '?',
+                $r->inflasi?->levelHarga?->nama_level ?? $r->inflasi?->kd_level ?? '?',
+                $r->inflasi?->wilayah?->nama_wilayah ?? $r->inflasi?->kd_wilayah ?? '?'
+            ))->map(fn($group, $key) => [
+                'group' => $key,
+                'total' => $group->count(),
+                'komoditas' => $group->pluck('inflasi.komoditas.nama_komoditas')
+                    ->filter()
+                    ->unique()
+                    ->values(),
+            ])->values();
+
+            Rekonsiliasi::whereIn('rekonsiliasi_id', $ids)->delete();
+
+            if (!$this->reloadRekonsiliasiCache()) {
+                Log::warning('Cache reload failed during bulkDestroy', ['ids' => $ids]);
+            }
+
+            Log::info('Bulk rekonsiliasi deleted', [
+                'count' => $count,
+                'summary' => $summary,
+                'deleted_by' => $user?->user_id,
+                'deleted_by_name' => $user?->nama_lengkap,
+            ]);
+
+            return response()->json([
+                'message' => $count . ' komoditas rekonsiliasi berhasil dihapus.',
+                'data' => null
+            ], 200);
+        } catch (\Exception $e) {
+            Log::error('Error in bulkDestroy', ['message' => $e->getMessage()]);
             return response()->json([
                 'message' => 'Gagal menghapus data: ' . $e->getMessage(),
                 'data' => null

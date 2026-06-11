@@ -3,6 +3,16 @@
     @vite(['resources/css/app.css', 'resources/js/rekonsiliasi/pengisian.js'])
     @endsection
 
+    <!-- Error Modal -->
+    <x-modal name="error-modal" title="Kesalahan" maxWidth="md">
+        <div class="text-gray-900 ">
+            <p x-text="modalMessage"></p>
+            <div class="mt-4 flex justify-end">
+                <x-primary-button type="button" x-on:click="$dispatch('close')">Tutup</x-primary-button>
+            </div>
+        </div>
+    </x-modal>
+
     <x-slot name="sidebar">
         <form id="filter-form" x-ref="filterForm" @submit.prevent="fetchData">
             <div class="space-y-4 md:space-y-6 mt-4">
@@ -123,6 +133,9 @@
                 <table class="w-full text-sm text-left rtl:text-right text-gray-500">
                     <thead class="text-xs text-gray-700 uppercase bg-gray-50   sticky top-0 z-10">
                         <tr>
+                            <th scope="col" class="px-6 py-3 w-12" x-show="isActivePeriod">
+                                <input type="checkbox" :checked="selectAllChecked" @click="toggleSelectAll" class="rounded border-gray-300">
+                            </th>
                             <th scope="col" class="px-6 py-3">No</th>
                             <!-- <th scope="col" class="px-6 py-3">Kode Wilayah</th> -->
                             <th scope="col" class="px-6 py-3">Wilayah</th>
@@ -139,6 +152,9 @@
                     <tbody>
                         <template x-for="(item, index) in data.rekonsiliasi" :key="item.rekonsiliasi_id">
                             <tr class="bg-white border-b  border-gray-200 hover:bg-gray-50 ">
+                                <td class="px-6 py-4" x-show="isActivePeriod">
+                                    <input type="checkbox" :checked="selectedIds.includes(item.rekonsiliasi_id)" @click="toggleSelect(item.rekonsiliasi_id)" class="rounded border-gray-300">
+                                </td>
                                 <td class="px-6 py-4" x-text="index + 1"></td>
                                 <!-- <td class="px-6 py-4" x-text="item.kd_wilayah"></td> -->
                                 <td class="px-6 py-4" x-text="item.nama_wilayah ? item.nama_wilayah.toUpperCase() : 'Tidak Dikenal'"></td>
@@ -181,7 +197,7 @@
                                     </button>
                                     <button
                                         x-show="isPusat"
-                                        @click="openDeleteModal(item.rekonsiliasi_id, item.nama_komoditas, item.nama_wilayah, item.kd_level)"
+                                        @click="openBulkDeleteModal()"
                                         class="font-medium text-red-600 hover:underline">
                                         Hapus
                                     </button>
@@ -296,47 +312,17 @@
 
     <x-modal name="delete-rekonsiliasi" focusable title="Konfirmasi Hapus Komoditas Rekonsiliasi" x-cloak>
         <div class="px-6 py-4">
-            <p x-text="'Hapus rekonsiliasi berikut?'"></p>
-            <span x-text="
-                modalData.kd_level === '01' ? 'Harga Konsumen Kota' :
-                modalData.kd_level === '02' ? 'Harga Konsumen Desa' :
-                modalData.kd_level === '03' ? 'Harga Perdagangan Besar' :
-                modalData.kd_level === '04' ? 'Harga Produsen Desa' : 'Harga Produsen'">
-            </span>
-            <div>
-                <span>Komoditas: </span>
-                <span x-text="modalData.nama_komoditas"></span>
-            </div>
-            <div>
-                <span>Wilayah: </span>
-                <span x-text="modalData.nama_wilayah"></span>
-            </div>
-            <div>
-                <span>Periode: </span>
-                <span x-text="`${activeBulan} ${activeTahun}`"></span>
-            </div>
+            <p>Hapus <span x-text="selectedIds.length"></span> item rekonsiliasi terpilih?</p>
+            <p class="text-sm text-gray-500 mt-2">Data yang dihapus tidak dapat dikembalikan.</p>
             <div class="mt-6 flex justify-end gap-3">
                 <x-secondary-button x-on:click="$dispatch('close-modal', 'delete-rekonsiliasi')">Batal</x-secondary-button>
-                <x-primary-button
-                    @click="confirmDelete(modalData.rekonsiliasi_id)">
-                    Hapus
-                </x-primary-button>
+                <x-primary-button @click="bulkDelete()">Hapus</x-primary-button>
             </div>
         </div>
     </x-modal>
 
     <!-- Success Modal -->
     <x-modal name="success-modal" title="Berhasil" maxWidth="md">
-        <div class="text-gray-900 ">
-            <p x-text="modalMessage"></p>
-            <div class="mt-4 flex justify-end">
-                <x-primary-button type="button" x-on:click="$dispatch('close')">Tutup</x-primary-button>
-            </div>
-        </div>
-    </x-modal>
-
-    <!-- Error Modal -->
-    <x-modal name="error-modal" title="Kesalahan" maxWidth="md">
         <div class="text-gray-900 ">
             <p x-text="modalMessage"></p>
             <div class="mt-4 flex justify-end">

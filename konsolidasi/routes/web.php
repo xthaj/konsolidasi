@@ -106,7 +106,7 @@ Route::middleware(['pusat'])->group(function () {
 
     // rekon
     Route::get('/rekonsiliasi/pengisian', [RekonsiliasiController::class, 'pengisian'])->name('rekon.pengisian');
-
+    Route::post('/rekonsiliasi/bulk-delete', [RekonsiliasiController::class, 'bulkDestroy'])->name('rekon.bulk-destroy');
 
     // Route::post('/data/store', [DataController::class, 'store'])->name('data.store');
     Route::get('/data/edit', [InflasiController::class, 'edit'])->name('data.edit');
