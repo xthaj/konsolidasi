@@ -101,7 +101,8 @@
             <!-- Level Harga -->
             <div>
                 <label class="block mb-1 text-sm font-medium text-gray-900">Level Harga</label>
-                <select id="level" name="level" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
+                <select id="level" name="level" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
+                    <option value="" selected>Pilih Level Harga</option>
                     <option value="01">Harga Konsumen Kota</option>
                     <option value="02">Harga Konsumen Desa</option>
                     <option value="03">Harga Perdagangan Besar</option>
@@ -125,8 +126,11 @@
             <p class="mt-1 text-xs text-gray-500">Format: Excel (XLSX). Maks 5MB.</p>
         </div>
 
-        <div class="mt-4" x-data="{ loading: false, showError: false, sizeError: false, typeError: false, maxSizeMB: 5 }">
+        <div class="mt-4" x-data="{ loading: false, showError: false, sizeError: false, typeError: false, levelError: false, maxSizeMB: 5 }">
             <!-- Error Messages -->
+            <div x-show="levelError" class="text-sm mb-4 text-red-600">
+                Pilih level harga terlebih dahulu.
+            </div>
             <div x-show="showError" class="text-sm mb-4 text-red-600">
                 Pilih file terlebih dahulu.
             </div>
@@ -155,6 +159,16 @@
                     <x-primary-button
                         type="submit"
                         @click="
+                const level = document.getElementById('level').value;
+                if (!level) {
+                    $event.preventDefault();
+                    levelError = true;
+                    showError = false;
+                    sizeError = false;
+                    typeError = false;
+                    return;
+                }
+                levelError = false;
                 const file = $refs.fileInput.files[0];
                 const allowedTypes = ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel'];
                 if (!file) {
@@ -226,6 +240,7 @@
             <div>
                 <label class="block mb-1 text-sm font-medium text-gray-900">Level Harga</label>
                 <select name="level" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg w-full p-2.5">
+                    <option value="all">Semua Level Harga</option>
                     <option value="01">Harga Konsumen Kota</option>
                     <option value="02">Harga Konsumen Desa</option>
                     <option value="03">Harga Perdagangan Besar</option>
