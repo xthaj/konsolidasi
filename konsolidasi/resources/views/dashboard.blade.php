@@ -47,6 +47,21 @@
                             {{ $activeMonthYear }}
                         </h2>
 
+                        {{-- Level Harga counts --}}
+                        @if (auth()->user()->isPusat() && $levelCounts->isNotEmpty())
+                        <div class="grid grid-cols-5 gap-2 my-4">
+                            @foreach ($levelCounts as $level)
+                            <div class="p-3 rounded-lg border border-gray-200 text-center {{ $level['total'] === $level['filled'] ? 'bg-green-50 border-green-200' : 'bg-gray-50' }}">
+                                <p class="text-xs font-medium text-gray-500">{{ $level['name'] }}</p>
+                                <p class="text-lg font-bold {{ $level['total'] === $level['filled'] ? 'text-green-700' : 'text-gray-900' }}">
+                                    {{ $level['total'] }}
+                                </p>
+                                <p class="text-xs text-gray-400">{{ $level['filled'] }}/{{ $level['total'] }}</p>
+                            </div>
+                            @endforeach
+                        </div>
+                        @endif
+
                         {{-- Percentage progress bar --}}
                         @if ($percentage >= 0)
                         <div class="w-full h-6 bg-gray-200 rounded-full">

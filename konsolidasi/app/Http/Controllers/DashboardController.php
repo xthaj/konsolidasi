@@ -19,7 +19,7 @@ class DashboardController extends Controller
             // Load inflasi.kd_wilayah and its wilayah.parent_kd
             $rekonsiliasiData = Rekonsiliasi::with([
                 'inflasi' => function ($q) {
-                    $q->select('inflasi_id', 'kd_wilayah')
+                    $q->select('inflasi_id', 'kd_wilayah', 'kd_level')
                         ->with(['wilayah:kd_wilayah,parent_kd']);
                 }
             ])
@@ -38,11 +38,25 @@ class DashboardController extends Controller
 
         $percentage = -1;
         $progressWidth = null;
+        $levelCounts = collect();
 
         // pusat: everything
         if (auth()->user()->isPusat()) {
             $total = $rekonsiliasiData->count();
             $filled = $rekonsiliasiData->whereNotNull('alasan')->where('alasan', '!=', '')->count();
+            $levelCounts = $rekonsiliasiData->groupBy(fn($r) => $r->inflasi?->kd_level ?? 'unknown')
+                ->map(fn($items, $level) => [
+                    'name' => match ($level) {
+                        '01' => 'HK',
+                        '02' => 'HKD',
+                        '03' => 'HPB',
+                        '04' => 'HPed',
+                        '05' => 'HP',
+                        default => '?',
+                    },
+                    'total' => $items->count(),
+                    'filled' => $items->whereNotNull('alasan')->where('alasan', '!=', '')->count(),
+                ]);
         }
         // provinsi: kd_wilayah OR parent_kd
         elseif (auth()->user()->isProvinsi()) {
@@ -79,6 +93,6 @@ class DashboardController extends Controller
         //     'total' => $total
         // ]);
 
-        return view('dashboard', compact('activeMonthYear', 'percentage', 'progressWidth'));
+        return view('dashboard', compact('activeMonthYear', 'percentage', 'progressWidth', 'levelCounts'));
     }
 }
