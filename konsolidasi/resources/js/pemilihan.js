@@ -148,10 +148,6 @@ Alpine.data("webData", () => ({
             this.tahunOptions =
                 bulanTahunResponse.data.tahun ||
                 (aktifData ? [aktifData.tahun] : []);
-            this.selectedKdLevel = document.querySelector(
-                'select[name="kd_level"]'
-            ).value;
-
             this.updateFilteredKabkots();
 
             // Watchers
