@@ -5,6 +5,7 @@ namespace App\Exports;
 use App\Models\BulanTahun;
 use App\Models\LevelHarga;
 use App\Models\Rekonsiliasi;
+use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithTitle;
@@ -31,7 +32,7 @@ class RekonsiliasiLevelSheet implements FromCollection, WithHeadings, WithTitle
             ->where('tahun', $this->tahun)
             ->firstOrFail();
 
-        return Rekonsiliasi::join('inflasi', 'rekonsiliasi.inflasi_id', '=', 'inflasi.inflasi_id')
+        $data = Rekonsiliasi::join('inflasi', 'rekonsiliasi.inflasi_id', '=', 'inflasi.inflasi_id')
             ->join('wilayah', 'inflasi.kd_wilayah', '=', 'wilayah.kd_wilayah')
             ->join('komoditas', 'inflasi.kd_komoditas', '=', 'komoditas.kd_komoditas')
             ->where('inflasi.bulan_tahun_id', $bulanTahun->bulan_tahun_id)
@@ -46,19 +47,28 @@ class RekonsiliasiLevelSheet implements FromCollection, WithHeadings, WithTitle
                 'rekonsiliasi.alasan',
                 'rekonsiliasi.detail'
             )
-            ->get()
-            ->map(fn($row) => [
-                $this->tahun,
-                $this->bulan,
-                str_pad((string)$row->kd_komoditas, 3, '0', STR_PAD_LEFT),
-                $row->nama_komoditas,
-                $row->kd_wilayah,
-                $row->nama_wilayah,
-                $row->nilai_inflasi,
-                $row->andil,
-                $row->alasan,
-                $row->detail,
+            ->get();
+
+        if ($data->isEmpty()) {
+            Log::warning('Export RekonsiliasiLevelSheet: no data found', [
+                'bulan' => $this->bulan,
+                'tahun' => $this->tahun,
+                'level' => $this->level,
             ]);
+        }
+
+        return $data->map(fn($row) => [
+            $this->tahun,
+            $this->bulan,
+            str_pad((string)$row->kd_komoditas, 3, '0', STR_PAD_LEFT),
+            $row->nama_komoditas,
+            $row->kd_wilayah,
+            $row->nama_wilayah,
+            $row->nilai_inflasi,
+            $row->andil,
+            $row->alasan,
+            $row->detail,
+        ]);
     }
 
     public function headings(): array

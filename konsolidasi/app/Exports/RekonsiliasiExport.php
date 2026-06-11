@@ -4,6 +4,7 @@ namespace App\Exports;
 
 use App\Models\BulanTahun;
 use App\Models\Rekonsiliasi;
+use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 
@@ -27,13 +28,18 @@ class RekonsiliasiExport implements FromCollection, WithHeadings
             ->first();
 
         if (!$bulanTahun) {
+            Log::warning('Export Rekonsiliasi: BulanTahun not found', [
+                'bulan' => $this->bulan,
+                'tahun' => $this->tahun,
+                'level' => $this->level,
+            ]);
             return collect([]);
         }
 
         $bulan = $bulanTahun->bulan;
         $tahun = $bulanTahun->tahun;
 
-        return Rekonsiliasi::join('inflasi', 'rekonsiliasi.inflasi_id', '=', 'inflasi.inflasi_id')
+        $data = Rekonsiliasi::join('inflasi', 'rekonsiliasi.inflasi_id', '=', 'inflasi.inflasi_id')
             ->join('wilayah', 'inflasi.kd_wilayah', '=', 'wilayah.kd_wilayah')
             ->join('komoditas', 'inflasi.kd_komoditas', '=', 'komoditas.kd_komoditas')
             ->where('inflasi.bulan_tahun_id', $bulanTahun->bulan_tahun_id)
@@ -49,24 +55,31 @@ class RekonsiliasiExport implements FromCollection, WithHeadings
                 'rekonsiliasi.detail'
             )
             ->orderBy('inflasi.kd_wilayah')
-            ->get()
-            ->map(function ($row) use ($bulan, $tahun) {
-                return [
-                    $tahun,
-                    $bulan,
-                    str_pad((string)$row->kd_komoditas, 3, '0', STR_PAD_LEFT),
-                    $row->nama_komoditas,
-                    $row->kd_wilayah,
-                    $row->nama_wilayah,
-                    $row->nilai_inflasi,
-                    $row->andil,
-                    $row->alasan,
-                    $row->detail,
-                ];
-            });
+            ->get();
+
+        if ($data->isEmpty()) {
+            Log::warning('Export Rekonsiliasi: no data found', [
+                'bulan' => $this->bulan,
+                'tahun' => $this->tahun,
+                'level' => $this->level,
+            ]);
+        }
+
+        return $data->map(function ($row) use ($bulan, $tahun) {
+            return [
+                $tahun,
+                $bulan,
+                str_pad((string)$row->kd_komoditas, 3, '0', STR_PAD_LEFT),
+                $row->nama_komoditas,
+                $row->kd_wilayah,
+                $row->nama_wilayah,
+                $row->nilai_inflasi,
+                $row->andil,
+                $row->alasan,
+                $row->detail,
+            ];
+        });
     }
-
-
 
     public function headings(): array
     {

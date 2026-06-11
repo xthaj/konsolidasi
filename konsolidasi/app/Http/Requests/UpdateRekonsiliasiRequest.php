@@ -29,7 +29,6 @@ class UpdateRekonsiliasiRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         if (Auth::check()) {
-            Log::info('Merging Auth user_id', ['auth_id' => Auth::id()]);
             $this->merge([
                 'user_id' => Auth::id(),
             ]);

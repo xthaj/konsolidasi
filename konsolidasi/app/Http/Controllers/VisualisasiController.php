@@ -38,8 +38,6 @@ class VisualisasiController extends Controller
      */
     public function fetchVisualisasiData(Request $request): JsonResponse
     {
-        Log::info('VisualisasiController@fetchVisualisasiData called', ['request' => $request->all()]);
-
         try {
             $activeBulanTahun = BulanTahun::where('aktif', 1)->first();
             if (!$activeBulanTahun) {
@@ -146,7 +144,11 @@ class VisualisasiController extends Controller
             $response['chart_data'] = $chartData['chart_data'];
             $response['errors'] = array_merge($response['errors'], $chartData['errors']);
 
-            Log::info('Chart Data Prepared:', ['chart_status' => $response['chart_status'], 'errors' => $response['errors']]);
+            Log::info('Chart data prepared', [
+                'charts' => count($response['chart_status']),
+                'complete' => collect($response['chart_status'])->where('status', 'complete')->count(),
+                'errors' => count($response['errors']),
+            ]);
 
             $message = empty($response['errors'])
                 ? 'Data berhasil diambil'
@@ -235,7 +237,9 @@ class VisualisasiController extends Controller
             }
 
             // Log errors after checking final_inflasi availability
-            Log::info('Errors after Final Inflasi Check', ['errors' => $errors]);
+            if (!empty($errors)) {
+                Log::info('Final Inflasi Check errors', ['count' => count($errors), 'sample' => array_slice($errors, 0, 3)]);
+            }
 
             // Step 5: Initialize chart types and data structures
             $charts = ['line', 'horizontalBar', 'heatmap', 'stackedBar', 'provHorizontalBar', 'kabkotHorizontalBar', 'provinsiChoropleth', 'kabkotChoropleth'];

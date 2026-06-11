@@ -55,7 +55,7 @@ class DataController extends Controller
                 $response['message'] = ["Tidak ada data tersedia untuk periode tersebut."];
                 return $request->wantsJson()
                     ? response()->json($response)
-                    : redirect()->back()->with('response', $response);
+                    : redirect()->back()->withErrors($response['message']);
             }
 
             // Update only the final_inflasi and final_andil columns to NULL
@@ -80,7 +80,9 @@ class DataController extends Controller
 
         return $request->wantsJson()
             ? response()->json($response)
-            : redirect()->back()->with('response', $response);
+            : $response['success']
+                ? redirect()->back()->with('success', $response['message'])
+                : redirect()->back()->withErrors($response['message']);
     }
 
     public function store(Request $request)

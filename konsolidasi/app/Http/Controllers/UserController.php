@@ -112,7 +112,7 @@ class UserController extends Controller
                 'data' => null,
             ], 422);
         } catch (\Exception $e) {
-            // Log::error('Edit user error: ' . $e->getMessage());
+            Log::error('Edit user error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             return response()->json([
                 'message' => 'An unexpected error occurred: ' . $e->getMessage(),
                 'data' => null,
@@ -125,7 +125,7 @@ class UserController extends Controller
         try {
             // Find the target user
             $targetUser = User::findOrFail($user_id);
-            
+
             // Check region access
             $this->checkRegionAccess($targetUser, request());
 
@@ -150,8 +150,7 @@ class UserController extends Controller
                 'data' => null,
             ], $e->getCode() ?: 403);
         } catch (\Exception $e) {
-            // Handle other exceptions
-            // Log::error('Delete user error: ' . $e->getMessage());
+            Log::error('Delete user error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             return response()->json([
                 'message' => 'An unexpected error occurred: ' . $e->getMessage(),
                 'data' => null,
@@ -210,6 +209,7 @@ class UserController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            Log::error('Store user error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             return response()->json([
                 'message' => 'An unexpected error occurred',
                 'error' => $e->getMessage(),
@@ -308,7 +308,7 @@ class UserController extends Controller
                 ],
             ], 200);
         } catch (\Exception $e) {
-            // Log::error('apiUsers error: ' . $e->getMessage());
+            Log::error('apiUsers error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             return $errorResponse('An unexpected error occurred: ' . $e->getMessage(), 500);
         }
     }
