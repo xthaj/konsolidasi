@@ -11,6 +11,7 @@
             request()->routeIs('dashboard') => 'Dashboard',
             request()->routeIs('user.index') => 'Kelola Akun',
             request()->routeIs('visualisasi.create') => 'Harmonisasi',
+            request()->routeIs('harga.create') => 'Harga',
             request()->routeIs('data.create') => 'Upload Data',
             request()->routeIs('data.edit') => 'Edit Data',
             request()->routeIs('data.finalisasi') => 'Finalisasi Data',
@@ -23,6 +24,7 @@
             request()->routeIs('rekon.laporan') => 'Laporan Rekonsiliasi',
             request()->routeIs('rekon.pembahasan') => 'Pembahasan Rekonsiliasi',
             request()->routeIs('pengaturan') => 'Pengaturan',
+            request()->routeIs('pengaturan.komoditas-harga') => 'Komoditas Harga',
             default => 'Dashboard',
             };
             @endphp
@@ -110,8 +112,13 @@
                     </div>
                 </li>
 
-                <!-- Pengaturan -->
                 @if (auth()->user()->isPusat())
+                <!-- Harga -->
+                <li>
+                    <a href="{{ route('harga.create') }}" class="block py-2 px-3 rounded-sm md:p-0 {{ request()->routeIs('harga.create') ? 'text-white bg-primary-700 md:bg-transparent md:text-primary-700' : 'text-gray-900 hover:bg-gray-100 md:hover:bg-transparent md:hover:text-primary-700' }}">Harga</a>
+                </li>
+
+                <!-- Pengaturan -->
                 <li>
                     <button id="dropdownNavbarLink5" data-dropdown-toggle="dropdownPengaturan" class="flex items-center justify-between w-full py-2 px-3 rounded-sm md:p-0 md:w-auto {{ request()->routeIs('pengaturan') ? 'text-primary-700' : 'text-gray-900 hover:bg-gray-100 md:hover:bg-transparent md:hover:text-primary-700' }} ">Pengaturan
                         <span class="material-symbols-rounded">keyboard_arrow_down</span>
@@ -119,6 +126,7 @@
                     <div id="dropdownPengaturan" class="z-15 hidden font-normal bg-white divide-y divide-gray-100 rounded-lg shadow-sm w-44">
                         <ul class="py-2 text-sm text-gray-700">
                             <li><a href="{{ route('pengaturan') }}" class="block px-4 py-2 hover:bg-gray-100">Periode Aktif</a></li>
+                            <li><a href="{{ route('pengaturan.komoditas-harga') }}" class="block px-4 py-2 hover:bg-gray-100">Komoditas Harga</a></li>
                         </ul>
                     </div>
                 </li>

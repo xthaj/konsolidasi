@@ -21,6 +21,7 @@ use App\Exports\RekonsiliasiMultiLevelExport;
 use App\Imports\DataImport;
 use App\Models\BulanTahun;
 use App\Imports\FinalImport;
+use App\Imports\HargaImport;
 use App\Models\Wilayah;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -92,6 +93,53 @@ class InflasiController extends Controller
         } catch (\Exception $e) {
             Log::error('Error in hapus', ['message' => $e->getMessage()]);
             return redirect()->back()->withErrors(["$title gagal dihapus: Error menghapus data: {$e->getMessage()}"]);
+        }
+    }
+
+    public function hapus_harga(Request $request)
+    {
+        try {
+            $request->merge(['bulan' => (int) $request->bulan]);
+
+            $request->validate([
+                'bulan' => 'required|integer|between:1,12',
+                'tahun' => 'required|integer|min:2000|max:2100',
+                'level' => 'required|string|in:01,02,03,04,05',
+            ]);
+
+            $bulanTahun = BulanTahun::where('bulan', $request->bulan)
+                ->where('tahun', $request->tahun)
+                ->orderBy('bulan_tahun_id', 'asc')
+                ->first();
+
+            $title = "Data Harga " . BulanTahun::getBulanName($request->bulan) . " Tahun {$request->tahun} level " . LevelHarga::getLevelHargaNameComplete($request->level);
+
+            if (!$bulanTahun) {
+                return redirect()->back()->withErrors(["$title gagal dihapus: Periode tidak ditemukan."]);
+            }
+
+            $updatedRows = Inflasi::where('bulan_tahun_id', $bulanTahun->bulan_tahun_id)
+                ->where('kd_level', $request->level)
+                ->where(function ($q) {
+                    $q->whereNotNull('harga')
+                      ->orWhereNotNull('rentang_bawah')
+                      ->orWhereNotNull('rentang_atas');
+                })
+                ->update([
+                    'harga' => null,
+                    'rentang_bawah' => null,
+                    'rentang_atas' => null,
+                ]);
+
+            if ($updatedRows > 0) {
+                return redirect()->back()->with('success', "$title berhasil dihapus: {$updatedRows} data harga dikosongkan.");
+            } else {
+                return redirect()->back()->withErrors(["$title gagal dihapus: Tidak ada data harga untuk dihapus."]);
+            }
+        } catch (ValidationException $e) {
+            return redirect()->back()->withErrors($e->errors())->withInput();
+        } catch (\Exception $e) {
+            return redirect()->back()->withErrors(["$title gagal dihapus: {$e->getMessage()}"]);
         }
     }
 
@@ -333,6 +381,81 @@ class InflasiController extends Controller
             return redirect()->back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
             Log::error('Import failed in final_upload', ['message' => $e->getMessage()]);
+            return redirect()->back()->withErrors(['file' => 'Error importing data: ' . $e->getMessage()]);
+        }
+    }
+
+    public function upload_harga(Request $request)
+    {
+        try {
+            $rules = [
+                'file' => 'required|file|mimes:xlsx|max:5120',
+                'bulan' => 'required|integer|between:1,12',
+                'tahun' => 'required|integer|min:2000|max:3000',
+                'level' => 'required|string|in:01,02,03,04,05',
+            ];
+
+            $messages = [
+                'file.required' => 'File Excel wajib diunggah.',
+                'file.mimes' => 'Format file harus xlsx.',
+                'file.max' => 'Ukuran file tidak boleh lebih dari 5MB.',
+                'bulan.required' => 'Bulan wajib diisi.',
+                'bulan.integer' => 'Bulan harus berupa angka.',
+                'bulan.between' => 'Bulan tidak valid.',
+                'tahun.required' => 'Tahun wajib diisi.',
+                'tahun.integer' => 'Tahun harus berupa angka.',
+                'tahun.min' => 'Tahun tidak valid.',
+                'tahun.max' => 'Tahun tidak valid.',
+                'level.required' => 'Level harga wajib dipilih.',
+                'level.in' => 'Level harga harus salah satu dari: 01, 02, 03, 04, atau 05.',
+            ];
+
+            $validated = $request->validate($rules, $messages);
+
+            ini_set('memory_limit', '512M');
+            ini_set('max_execution_time', 300);
+
+            $bulanTahun = BulanTahun::where('bulan', $validated['bulan'])
+                ->where('tahun', $validated['tahun'])
+                ->orderBy('bulan_tahun_id', 'asc')
+                ->first();
+            if (!$bulanTahun) {
+                return redirect()->back()->withErrors(['bulan' => 'Periode tidak ditemukan untuk bulan dan tahun yang dipilih.']);
+            }
+
+            if (!$request->file('file')->isValid()) {
+                return redirect()->back()->withErrors(['file' => 'File gagal diunggah: ' . $request->file('file')->getErrorMessage()])->withInput();
+            }
+
+            $import = new HargaImport($validated['bulan'], $validated['tahun'], $validated['level']);
+            \Maatwebsite\Excel\Facades\Excel::import($import, $request->file('file'));
+            $summary = $import->getSummary();
+
+            $levelHarga = $validated['level'];
+            $bulan = $validated['bulan'];
+            $tahun = $validated['tahun'];
+            $title = "Data Harga " . BulanTahun::getBulanName($bulan) . " Tahun {$tahun} level " . LevelHarga::getLevelHargaNameComplete($levelHarga);
+
+            $errors = $import->getErrors()->all();
+            $updated = $summary['updated'] ?? 0;
+            $failedRow = $summary['failed_row'] ?? null;
+
+            if (!empty($errors) || $failedRow !== null) {
+                $errorMessage = "$title gagal diimpor";
+                $errorMessage .= $failedRow ? " pada baris {$failedRow}" : "";
+                $errorMessage .= ": " . (empty($errors) ? "Terjadi kesalahan" : implode(', ', $errors)) . ". ";
+                $errorMessage .= "Sebelum kegagalan, {$updated} data harga diperbarui.";
+                return redirect()->back()->withErrors(['file' => $errorMessage]);
+            }
+
+            if ($updated === 0) {
+                return redirect()->back()->withErrors([
+                    'file' => "$title gagal diimpor: Tidak ada data yang berhasil diimpor.",
+                ]);
+            }
+
+            return redirect()->back()->with('success', "$title berhasil diimpor: {$updated} data harga diperbarui.");
+        } catch (\Exception $e) {
             return redirect()->back()->withErrors(['file' => 'Error importing data: ' . $e->getMessage()]);
         }
     }

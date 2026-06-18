@@ -13,11 +13,12 @@ class Komoditas extends Model
     protected $primaryKey = 'kd_komoditas';
     public $incrementing = false;
     protected $keyType = 'int';
-    protected $fillable = ['kd_komoditas', 'nama_komoditas'];
+    protected $fillable = ['kd_komoditas', 'nama_komoditas', 'is_harga'];
 
     protected $casts = [
         'kd_komoditas' => 'integer',
-        'nama_komoditas' => 'string'
+        'nama_komoditas' => 'string',
+        'is_harga' => 'boolean',
     ];
 
     public function inflasi()

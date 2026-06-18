@@ -8,10 +8,13 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+use App\Http\Resources\KomoditasHargaResource;
 use App\Http\Resources\KomoditasResource;
+use App\Models\Inflasi;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\Rule;
+use Illuminate\View\View;
 // ModelNotFoundException
 
 class KomoditasController extends Controller
@@ -216,6 +219,8 @@ class KomoditasController extends Controller
     {
         Cache::forget('komoditas_data');
         Cache::forget('komoditas_data_tanpa_umum');
+        Cache::forget('komoditas_harga_data');
+        Cache::forget('komoditas_data_with_flag');
         Log::info('Cache cleared for komoditas_data', ['timestamp' => now()]);
     }
 
@@ -264,6 +269,76 @@ class KomoditasController extends Controller
             ], 200);
         } catch (\Exception $e) {
             return response()->json(['message' => 'Gagal mengambil data komoditas.', 'data' => []], 500);
+        }
+    }
+
+    public function hargaIndex(): View
+    {
+        return view('pengaturan.komoditas_harga');
+    }
+
+    public function getAllKomoditasHarga(): JsonResponse
+    {
+        try {
+            $data = Cache::rememberForever('komoditas_harga_data', function () {
+                return Komoditas::where('is_harga', true)
+                    ->orderBy('kd_komoditas', 'asc')
+                    ->get();
+            });
+            return response()->json([
+                'message' => 'Data komoditas harga berhasil diambil.',
+                'data' => KomoditasResource::collection($data)
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Gagal mengambil data komoditas harga.',
+                'data' => []
+            ], 500);
+        }
+    }
+
+    public function getAllKomoditasWithFlag(): JsonResponse
+    {
+        try {
+            $data = Cache::rememberForever('komoditas_data_with_flag', function () {
+                return Komoditas::orderBy('kd_komoditas', 'asc')->get();
+            });
+
+            return response()->json([
+                'message' => 'Data komoditas berhasil diambil.',
+                'data' => KomoditasHargaResource::collection($data)
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Gagal mengambil data komoditas.', 'data' => []], 500);
+        }
+    }
+
+    public function toggleHarga(Request $request, $kd_komoditas): JsonResponse
+    {
+        try {
+            $kd_komoditas = (int) $kd_komoditas;
+            if ($kd_komoditas < 0 || $kd_komoditas > 255) {
+                return response()->json(['message' => 'Komoditas tidak ditemukan.', 'data' => null], 404);
+            }
+
+            $komoditas = Komoditas::findOrFail($kd_komoditas);
+            $komoditas->update([
+                'is_harga' => $request->boolean('is_harga')
+            ]);
+
+            Cache::forget('komoditas_harga_data');
+            Cache::forget('komoditas_data_with_flag');
+
+            return response()->json([
+                'message' => $request->boolean('is_harga')
+                    ? "{$komoditas->nama_komoditas} ditambahkan ke Komoditas Harga."
+                    : "{$komoditas->nama_komoditas} dihapus dari Komoditas Harga.",
+                'data' => new KomoditasResource($komoditas)
+            ], 200);
+        } catch (ModelNotFoundException $e) {
+            return response()->json(['message' => 'Komoditas tidak ditemukan.', 'data' => null], 404);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Gagal mengubah status: ' . $e->getMessage(), 'data' => null], 500);
         }
     }
 }

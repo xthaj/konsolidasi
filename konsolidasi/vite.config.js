@@ -29,6 +29,8 @@ export default defineConfig({
                 "resources/js/harmonisasi.js",
                 "resources/js/pemilihan.js",
                 "resources/js/pengaturan.js",
+                "resources/js/pengaturan/komoditas_harga.js",
+                "resources/js/harga.js",
                 "resources/js/register.js",
             ],
             refresh: true,
